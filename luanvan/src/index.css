@@ -1,0 +1,39 @@
+@import "tailwindcss";
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%); /* Điều chỉnh dựa trên số lượng thẻ */
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite; /* Điều chỉnh thời gian nếu cần */
+}
+
+/* Tùy chọn: Tạm dừng animation khi hover */
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Nếu dùng Tailwind, thêm class vào SanPhamCard */
+.san-pham-card {
+  @apply flex flex-col items-center p-4 bg-white rounded-lg shadow-md;
+  height: 100%; /* Đảm bảo card đồng đều */
+}
+*:focus {
+  outline: none;
+}
+
+/* Nếu không dùng Tailwind */
+.san-pham-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  height: 100%;
+}
