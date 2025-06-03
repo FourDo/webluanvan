@@ -1,7 +1,5 @@
 import React from "react";
 
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination } from "swiper/modules";
 import SwiperContainer from "../components/SwiperContainer";
 
 const TrangChu: React.FC = () => {
@@ -11,13 +9,6 @@ const TrangChu: React.FC = () => {
     { number: "150+", label: "Project Finished" },
   ];
   // Dummy data for danhSachSanPham to avoid error
-  const danhSachSanPham = [
-    { id: 1, name: "Product 1" },
-    { id: 2, name: "Product 2" },
-    { id: 3, name: "Product 3" },
-    { id: 4, name: "Product 4" },
-  ];
-  const sanPhamNoiBat = danhSachSanPham.slice(0, 3);
 
   return (
     <div>

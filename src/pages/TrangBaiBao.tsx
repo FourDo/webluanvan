@@ -1,4 +1,3 @@
-import React from "react";
 import ArticleSwiper from "../components/ArticleSwiper";
 
 function TrangBaiBao() {

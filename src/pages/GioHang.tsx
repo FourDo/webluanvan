@@ -12,8 +12,8 @@ const GioHang: React.FC = () => {
 
   // State cho phương thức thanh toán
   const [phuongThucThanhToan, setPhuongThucThanhToan] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setLoading] = useState<boolean>(false);
+  const [, setError] = useState<string | null>(null);
 
   const dinhDangTien = (gia: number): string => {
     return new Intl.NumberFormat("vi-VN", {
@@ -340,10 +340,3 @@ const GioHang: React.FC = () => {
 };
 
 export default GioHang;
-function setLoading(arg0: boolean) {
-  throw new Error("Function not implemented.");
-}
-
-function setError(arg0: string) {
-  throw new Error("Function not implemented.");
-}

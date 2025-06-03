@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Article {

@@ -7,7 +7,7 @@ export { default as TrangDichVu } from "../pages/TrangDichVu";
 export { default as TrangBaiBao } from "../pages/TrangBaiBao";
 export { default as TrangDangKy } from "./TrangDangKy";
 export { default as TrangDangNhap } from "./TrangDangNhap";
-export { default as GioHang } from "../pages/GioHang";
+export { default as GioHang } from "./GioHang";
 
 export { default as AdminDashboard } from "../pages/AdminDashboard";
 export { default as QLSanPham } from "../pages/QLSanPham";
