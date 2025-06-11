@@ -1,19 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGioHang } from "../context/GioHangContext";
-import { createMomoPayment } from "../API/api";
-import { createVNPayPayment } from "../API/vnpay";
-import { createZaloPayPayment } from "../API/zaloapi";
 
 const GioHang: React.FC = () => {
   const navigate = useNavigate();
   const { items, xoaKhoiGio, capNhatSoLuong, xoaGioHang, tinhTongTien } =
     useGioHang();
 
-  // State cho phương thức thanh toán
-  const [phuongThucThanhToan, setPhuongThucThanhToan] = useState<string>("");
-  const [, setLoading] = useState<boolean>(false);
-  const [, setError] = useState<string | null>(null);
+  // State cho ghi chú đơn hàng
+  const [ghiChu, setGhiChu] = useState<string>("");
 
   const dinhDangTien = (gia: number): string => {
     return new Intl.NumberFormat("vi-VN", {
@@ -28,103 +23,18 @@ const GioHang: React.FC = () => {
     }
   };
 
-  const handleXacNhanDatHang = async () => {
+  const handleCheckout = () => {
     if (items.length === 0) {
       alert("Giỏ hàng của bạn đang trống!");
       return;
     }
-
-    if (!phuongThucThanhToan) {
-      alert("Vui lòng chọn phương thức thanh toán!");
-      return;
+    // Lưu ghi chú vào localStorage hoặc context
+    if (ghiChu.trim()) {
+      localStorage.setItem("ghiChuDonHang", ghiChu);
     }
-
-    // Xử lý theo phương thức thanh toán được chọn
-    switch (phuongThucThanhToan) {
-      case "cod":
-        alert(
-          "Đơn hàng của bạn đã được xác nhận! Bạn sẽ thanh toán khi nhận hàng."
-        );
-        break;
-      case "vnpay":
-        try {
-          // Gọi API VNPay
-          const response = await createVNPayPayment({
-            amount: tinhTongTien() + 30000, // Tổng tiền + phí vận chuyển
-            orderInfo: `Thanh toán đơn hàng từ ${items.length} sản phẩm`,
-            orderType: "billpayment", // Có thể thay đổi tùy theo yêu cầu
-            language: "vn",
-          });
-
-          if (response.code === "00" && response.data) {
-            window.location.href = response.data; // Chuyển hướng đến URL thanh toán VNPay
-          } else {
-            setError("Không nhận được URL thanh toán từ VNPay");
-          }
-        } catch (error) {
-          setError("Đã có lỗi xảy ra khi xử lý thanh toán VNPay");
-          console.error("Lỗi thanh toán VNPay:", error);
-        } finally {
-          setLoading(false);
-        }
-        break;
-      case "zalopay":
-        try {
-          const response = await createZaloPayPayment({
-            amount: tinhTongTien() + 30000, // Tổng tiền + phí vận chuyển
-            userId: "user123",
-          });
-          const { order_url } = response;
-          if (order_url) {
-            window.location.href = order_url; // Chuyển hướng đến URL thanh toán ZaloPay
-          } else {
-            setError("Không nhận được URL thanh toán từ ZaloPay");
-          }
-        } catch (error) {
-          setError("Đã có lỗi xảy ra khi xử lý thanh toán ZaloPay");
-          console.error("Lỗi thanh toán ZaloPay:", error);
-        } finally {
-          setLoading(false);
-        }
-        break;
-        try {
-          // Gọi API MoMo
-          const response = await createMomoPayment({
-            amount: (tinhTongTien() + 30000).toString(), // Tổng tiền (tạm tính + phí vận chuyển)
-            orderInfo: `Thanh toán đơn hàng từ ${items.length} sản phẩm`,
-            // redirectUrl: 'https://your-redirect-url', // Thêm nếu cần
-            // ipnUrl: 'https://your-ipn-url', // Thêm nếu cần
-          });
-
-          const { payUrl } = response;
-          if (payUrl) {
-            window.location.href = payUrl; // Chuyển hướng đến URL thanh toán MoMo
-          } else {
-            setError("Không nhận được URL thanh toán từ MoMo");
-          }
-        } catch (error) {
-          setError("Đã có lỗi xảy ra khi xử lý thanh toán MoMo");
-          console.error("Lỗi thanh toán MoMo:", error);
-        } finally {
-          setLoading(false);
-        }
-        break;
-      default:
-        alert("Phương thức thanh toán không hợp lệ!");
-        return;
-    }
-
-    // Sau khi xác nhận đặt hàng thành công, xóa giỏ hàng
-    xoaGioHang();
-    navigate("/dat-hang-thanh-cong");
+    // Chuyển hướng đến trang thanh toán
+    navigate("/thanh-toan");
   };
-
-  const phuongThucThanhToanOptions = [
-    { value: "cod", label: "COD (Thanh toán khi nhận hàng)", icon: "💵" },
-    { value: "vnpay", label: "VNPay", icon: "🏦" },
-    { value: "zalopay", label: "ZaloPay", icon: "⚡" },
-    { value: "momo", label: "Momo", icon: "🟣" },
-  ];
 
   return (
     <div className="container mx-auto p-4">
@@ -146,9 +56,9 @@ const GioHang: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Danh sách sản phẩm */}
-          <div className="md:w-2/3">
+          <div className="lg:w-2/3">
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -262,74 +172,66 @@ const GioHang: React.FC = () => {
             </div>
           </div>
 
-          {/* Tổng tiền và thanh toán */}
-          <div className="md:w-1/3">
-            <div className="bg-white rounded-lg shadow-md p-6">
+          {/* Tóm tắt đơn hàng */}
+          <div className="lg:w-1/3">
+            <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
               <h2 className="text-lg font-semibold mb-4">Tóm tắt đơn hàng</h2>
 
-              <div className="flex justify-between py-2 border-b">
-                <span>Tạm tính</span>
-                <span>{dinhDangTien(tinhTongTien())}</span>
-              </div>
-
-              <div className="flex justify-between py-2 border-b">
-                <span>Phí vận chuyển</span>
-                <span>{dinhDangTien(30000)}</span>
-              </div>
-
-              <div className="flex justify-between py-2 font-semibold text-lg mt-2">
-                <span>Tổng cộng</span>
-                <span>{dinhDangTien(tinhTongTien() + 30000)}</span>
-              </div>
-
-              {/* Phương thức thanh toán */}
-              <div className="mt-6">
-                <h3 className="text-md font-semibold mb-3">
-                  Chọn phương thức thanh toán
-                </h3>
-                <div className="space-y-2">
-                  {phuongThucThanhToanOptions.map((option) => (
-                    <label
-                      key={option.value}
-                      className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
-                        phuongThucThanhToan === option.value
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="phuongThucThanhToan"
-                        value={option.value}
-                        checked={phuongThucThanhToan === option.value}
-                        onChange={(e) => setPhuongThucThanhToan(e.target.value)}
-                        className="mr-3"
-                      />
-                      <span className="text-lg mr-2">{option.icon}</span>
-                      <span className="text-sm font-medium">
-                        {option.label}
-                      </span>
-                    </label>
-                  ))}
+              <div className="space-y-3">
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-gray-600">Tạm tính</span>
+                  <span className="font-medium">
+                    {dinhDangTien(tinhTongTien())}
+                  </span>
                 </div>
+
+                <div className="flex justify-between py-3 font-semibold text-lg border-t-2">
+                  <span>Tổng cộng</span>
+                  <span className="text-blue-600">
+                    {dinhDangTien(tinhTongTien())}
+                  </span>
+                </div>
+
+                <p className="text-xs text-gray-500 mt-2">
+                  * Phí vận chuyển sẽ được tính khi thanh toán
+                </p>
+              </div>
+
+              {/* Ghi chú đơn hàng */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ghi chú đơn hàng
+                </label>
+                <textarea
+                  value={ghiChu}
+                  onChange={(e) => setGhiChu(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Thêm ghi chú cho đơn hàng (không bắt buộc)"
+                />
               </div>
 
               <button
-                className={`w-full font-bold py-3 px-4 rounded mt-6 transition-colors ${
-                  phuongThucThanhToan
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-                onClick={handleXacNhanDatHang}
-                disabled={!phuongThucThanhToan}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg mt-6 transition-colors duration-200"
+                onClick={handleCheckout}
               >
-                {phuongThucThanhToan
-                  ? `Thanh toán bằng ${phuongThucThanhToanOptions.find((opt) => opt.value === phuongThucThanhToan)?.label}`
-                  : "Chọn phương thức thanh toán"}
+                Tiến hành thanh toán
               </button>
 
               <div className="mt-4 text-center text-sm text-gray-500">
                 <p>🔒 Thông tin thanh toán được bảo mật an toàn</p>
+              </div>
+
+              {/* Thông tin bổ sung */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold text-sm mb-2">
+                  Chính sách mua hàng
+                </h3>
+                <ul className="text-xs text-gray-600 space-y-1">
+                  <li>• Miễn phí đổi trả trong 7 ngày</li>
+                  <li>• Giao hàng nhanh 2-3 ngày</li>
+                  <li>• Hỗ trợ khách hàng 24/7</li>
+                </ul>
               </div>
             </div>
           </div>

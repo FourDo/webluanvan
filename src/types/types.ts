@@ -1,4 +1,11 @@
 export interface SanPham {
+  width: number;
+  length: number;
+  weight: number;
+  chieuRong: number;
+  chieuDai: number;
+  chieuCao: number;
+  khoiLuong: number;
   description: any;
   category: any;
   image: any;

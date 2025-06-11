@@ -7,7 +7,7 @@ interface User {
   ho_ten: string;
   so_dien_thoai: string;
   dia_chi: string;
-  vai_tro: "client" | "admin"; // Cập nhật enum vai_tro
+  vai_tro: string;
   google_id: string | null;
   reset_token_expiry: string | null;
   trang_thai: string;
@@ -29,7 +29,7 @@ interface LogoutResponse {
 export const login = async (credentials: {
   email: string;
   mat_khau: string;
-  role?: "client" | "admin"; // Cập nhật role thành client/admin
+  role?: string;
 }): Promise<LoginResponse> => {
   try {
     const response = await axios.post<LoginResponse>(
@@ -57,14 +57,14 @@ export const login = async (credentials: {
     // Lưu token theo vai trò
     if (response.data.token) {
       const tokenKey =
-        response.data.user.vai_tro === "admin" ? "admin_token" : "client_token";
+        response.data.user.vai_tro === "admin" ? "admin_token" : "user_token";
       localStorage.setItem(tokenKey, response.data.token);
       console.log(`Stored ${tokenKey} in localStorage:`, response.data.token);
     }
 
     // Lưu thông tin người dùng theo vai trò
     const dataKey =
-      response.data.user.vai_tro === "admin" ? "admin_data" : "client_data";
+      response.data.user.vai_tro === "admin" ? "admin_data" : "user_data";
     localStorage.setItem(dataKey, JSON.stringify(response.data.user));
 
     return response.data;
@@ -78,11 +78,11 @@ export const login = async (credentials: {
 };
 
 export const logout = async (
-  role: "client" | "admin"
+  role: "user" | "admin"
 ): Promise<LogoutResponse> => {
   try {
-    const tokenKey = role === "admin" ? "admin_token" : "client_token";
-    const dataKey = role === "admin" ? "admin_data" : "client_data";
+    const tokenKey = role === "admin" ? "admin_token" : "user_token";
+    const dataKey = role === "admin" ? "admin_data" : "user_data";
     const token = localStorage.getItem(tokenKey);
 
     const response = await axios.post<LogoutResponse>(
@@ -104,8 +104,8 @@ export const logout = async (
   } catch (err: any) {
     console.error("Logout error:", err.response?.data || err.message);
     // Xóa dữ liệu client-side ngay cả khi API thất bại
-    const tokenKey = role === "admin" ? "admin_token" : "client_token";
-    const dataKey = role === "admin" ? "admin_data" : "client_data";
+    const tokenKey = role === "admin" ? "admin_token" : "user_token";
+    const dataKey = role === "admin" ? "admin_data" : "user_data";
     localStorage.removeItem(tokenKey);
     localStorage.removeItem(dataKey);
     localStorage.removeItem(`${role}_rememberMe`);

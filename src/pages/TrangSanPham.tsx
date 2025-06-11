@@ -12,6 +12,10 @@ const TrangSanPham: React.FC = () => {
     name: string;
     description: string;
     price: number;
+    length?: number;
+    width?: number;
+    height?: number;
+    weight?: number;
   }
 
   const [selected, setSelected] = useState("Featured");

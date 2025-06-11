@@ -11,6 +11,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useGioHang } from "../context/GioHangContext";
+import { logout } from "../API/authApi"; // Import hàm logout từ authapi.ts
 
 const Navbar: React.FC = () => {
   const { demSoLuongSanPham } = useGioHang();
@@ -38,9 +39,8 @@ const Navbar: React.FC = () => {
     { to: "/about-us", label: "About Us" },
   ];
 
-  // Kiểm tra trạng thái đăng nhập (có thể lấy từ localStorage, context, hoặc API)
+  // Kiểm tra trạng thái đăng nhập
   useEffect(() => {
-    // Ví dụ kiểm tra từ localStorage
     const token = localStorage.getItem("authToken");
     const userData = localStorage.getItem("user");
 
@@ -48,16 +48,40 @@ const Navbar: React.FC = () => {
       setIsLoggedIn(true);
       setUser(JSON.parse(userData));
     }
-  }, []);
+  }, [location.pathname]);
 
   // Xử lý đăng xuất
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
-    setUser(null);
-    setIsUserDropdownOpen(false);
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      // Gọi API đăng xuất (cookie HttpOnly sẽ được gửi tự động với withCredentials)
+      await logout();
+
+      // Xóa thông tin người dùng khỏi localStorage (nếu có)
+      localStorage.removeItem("user");
+      localStorage.removeItem("rememberMe");
+
+      // Cập nhật trạng thái
+      setIsLoggedIn(false);
+      setUser(null);
+      setIsUserDropdownOpen(false);
+
+      // Chuyển hướng về trang chủ
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Đăng xuất thất bại:", error);
+
+      // Vẫn xóa dữ liệu phía client nếu API thất bại
+      localStorage.removeItem("user");
+      localStorage.removeItem("rememberMe");
+
+      // Cập nhật trạng thái
+      setIsLoggedIn(false);
+      setUser(null);
+      setIsUserDropdownOpen(false);
+
+      // Chuyển hướng về trang chủ
+      navigate("/", { replace: true });
+    }
   };
 
   // Xử lý click outside để đóng dropdown
