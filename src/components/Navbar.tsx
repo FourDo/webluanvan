@@ -54,7 +54,7 @@ const Navbar: React.FC = () => {
   const handleLogout = async () => {
     try {
       // Gọi API đăng xuất (cookie HttpOnly sẽ được gửi tự động với withCredentials)
-      await logout();
+      await logout("user");
 
       // Xóa thông tin người dùng khỏi localStorage (nếu có)
       localStorage.removeItem("user");

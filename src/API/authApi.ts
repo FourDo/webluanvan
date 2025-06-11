@@ -19,7 +19,7 @@ interface User {
 interface LoginResponse {
   success: string;
   user: User;
-  token?: string;
+  token: string;
 }
 
 interface LogoutResponse {
@@ -58,10 +58,9 @@ export const login = async (credentials: {
     if (response.data.token) {
       const tokenKey =
         response.data.user.vai_tro === "admin" ? "admin_token" : "user_token";
-      localStorage.setItem(tokenKey, response.data.token);
+      localStorage.setItem(tokenKey, response.data.token ?? ""); // Fallback to empty string
       console.log(`Stored ${tokenKey} in localStorage:`, response.data.token);
     }
-
     // Lưu thông tin người dùng theo vai trò
     const dataKey =
       response.data.user.vai_tro === "admin" ? "admin_data" : "user_data";

@@ -153,7 +153,14 @@ const ChiTietSanPham: React.FC = () => {
       price: product.price,
       name: product.name,
       date: new Date().toISOString(), // Provide a default date
-      conHang: product.inStock, // Map from inStock
+      conHang: product.inStock,
+      width: 0,
+      length: 0,
+      weight: 0,
+      chieuRong: 0,
+      chieuDai: 0,
+      chieuCao: 0,
+      khoiLuong: 0,
     };
 
     themVaoGio(sanPhamGioHang, quantity);
@@ -175,7 +182,14 @@ const ChiTietSanPham: React.FC = () => {
       price: relatedProduct.price,
       name: relatedProduct.name,
       date: new Date().toISOString(), // Provide a default date
-      conHang: true, // Default value, as inStock is not available in RelatedProduct
+      conHang: true,
+      width: 0,
+      length: 0,
+      weight: 0,
+      chieuRong: 0,
+      chieuDai: 0,
+      chieuCao: 0,
+      khoiLuong: 0,
     };
 
     themVaoGio(sanPhamGioHang, 1);

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, User, Lock, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../API/authApi"; // Giả sử authapi nằm cùng thư mục
-import Cookies from "js-cookie";
 
 function TrangDangNhapADmin() {
   const [showPassword, setShowPassword] = useState(false);
@@ -53,10 +52,14 @@ function TrangDangNhapADmin() {
       const response = await login({
         email,
         mat_khau: password,
-        role: "admin", // Chỉ định vai trò là admin
+        role: "admin",
       });
 
-      // Xử lý ghi nhớ đăng nhập
+      // Example: Store token or user data in localStorage
+      localStorage.setItem("admin_token", response.token); // Adjust based on your API LoginResponse structure
+      localStorage.setItem("admin_data", JSON.stringify(response.user)); // Example
+
+      // Handle "remember me" functionality
       if (rememberMe) {
         localStorage.setItem("admin_rememberMe", "true");
         localStorage.setItem("admin_rememberMeEmail", email);
@@ -65,7 +68,7 @@ function TrangDangNhapADmin() {
         localStorage.removeItem("admin_rememberMeEmail");
       }
 
-      navigate("/admin", { replace: true }); // Chuyển hướng đến /admin
+      navigate("/admin", { replace: true });
     } catch (err) {
       if (err && typeof err === "object" && "message" in err) {
         setError(
