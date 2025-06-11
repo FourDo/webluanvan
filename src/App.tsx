@@ -1,115 +1,131 @@
-import axios from "axios";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import { GioHangProvider } from "./context/GioHangContext";
+import {
+  Navbar,
+  Footer,
+  TrangChu,
+  TrangSanPham,
+  ChiTietSanPham,
+  GioHang,
+  AdminDashboard,
+  QLSanPham,
+  QLDonHang,
+  QLTaiKhoan,
+  QLDoanhMuc,
+  QLMauSac,
+  QLSize,
+  QLThongKe,
+  QLKhachHang,
+  QLKhuyenMai,
+  TrangDichVu,
+  TrangBaiBao,
+  TrangDangKy,
+  TrangDangNhap,
+  AdminDangNhap,
+  TrangThanhToan,
+} from "../src/pages/index";
+import AdminPrivateRoute from "./components/AdminPrivateRoute";
 
-// Define the interface for the user response
-interface User {
-  ma_nguoi_dung: number;
-  email: string;
-  ho_ten: string;
-  so_dien_thoai: string;
-  dia_chi: string;
-  vai_tro: "client" | "admin"; // Cập nhật enum vai_tro
-  google_id: string | null;
-  reset_token_expiry: string | null;
-  trang_thai: string;
-  ngay_tao: string;
-  ngay_cap_nhat: string;
-}
+// Layout component cho các tuyến đường công khai
+const MainLayout = () => (
+  <div className="min-h-screen flex flex-col">
+    <Navbar />
+    <main className="flex-grow">
+      <Outlet />
+    </main>
+    <Footer />
+  </div>
+);
 
-// Define the interface for the API response
-interface LoginResponse {
-  success: string;
-  user: User;
-  token?: string;
-}
+// Layout component cho các tuyến đường admin
+const AdminLayout = () => (
+  <div className="min-h-screen">
+    <Outlet />
+  </div>
+);
 
-interface LogoutResponse {
-  message: string;
-}
-
-export const login = async (credentials: {
-  email: string;
-  mat_khau: string;
-  role?: "client" | "admin"; // Cập nhật role thành client/admin
-}): Promise<LoginResponse> => {
-  try {
-    const response = await axios.post<LoginResponse>(
-      "https://luanvan-7wv1.onrender.com/api/auth/login",
+// Cấu hình router
+const router = createBrowserRouter([
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
       {
-        email: credentials.email,
-        mat_khau: credentials.mat_khau,
+        path: "dangnhap",
+        element: <AdminDangNhap />,
       },
       {
-        withCredentials: true,
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    // Kiểm tra vai trò nếu role được chỉ định
-    if (credentials.role && response.data.user.vai_tro !== credentials.role) {
-      throw new Error(
-        `Tài khoản này không có quyền truy cập với vai trò ${credentials.role}`
-      );
-    }
-
-    // Lưu token theo vai trò
-    if (response.data.token) {
-      const tokenKey =
-        response.data.user.vai_tro === "admin" ? "admin_token" : "client_token";
-      localStorage.setItem(tokenKey, response.data.token);
-      console.log(`Stored ${tokenKey} in localStorage:`, response.data.token);
-    }
-
-    // Lưu thông tin người dùng theo vai trò
-    const dataKey =
-      response.data.user.vai_tro === "admin" ? "admin_data" : "client_data";
-    localStorage.setItem(dataKey, JSON.stringify(response.data.user));
-
-    return response.data;
-  } catch (err: any) {
-    console.error("Login error:", err.response?.data || err.message);
-    throw new Error(
-      err.message ||
-        "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin hoặc cấu hình server."
-    );
-  }
-};
-
-export const logout = async (
-  role: "client" | "admin"
-): Promise<LogoutResponse> => {
-  try {
-    const tokenKey = role === "admin" ? "admin_token" : "client_token";
-    const dataKey = role === "admin" ? "admin_data" : "client_data";
-    const token = localStorage.getItem(tokenKey);
-
-    const response = await axios.post<LogoutResponse>(
-      "https://luanvan-7wv1.onrender.com/api/auth/logout",
-      {},
+        element: <AdminPrivateRoute />,
+        children: [
+          {
+            path: "", // Đường dẫn /admin sẽ hiển thị AdminDashboard
+            element: <AdminDashboard />,
+            children: [
+              { index: true, element: <div>Welcome to Admin Dashboard</div> },
+              { path: "sanpham", element: <QLSanPham /> },
+              { path: "donhang", element: <QLDonHang /> },
+              { path: "taikhoan", element: <QLTaiKhoan /> },
+              { path: "mausac", element: <QLMauSac /> },
+              { path: "kichthuoc", element: <QLSize /> },
+              { path: "khachhang", element: <QLKhachHang /> },
+              { path: "khuyenmai", element: <QLKhuyenMai /> },
+              { path: "thongke", element: <QLThongKe /> },
+              { path: "doanhmuc", element: <QLDoanhMuc /> },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    element: <MainLayout />,
+    children: [
       {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        withCredentials: true,
-      }
-    );
+        path: "/",
+        element: <TrangChu />,
+      },
+      {
+        path: "/sanpham",
+        element: <TrangSanPham />,
+      },
+      {
+        path: "/san-pham/:id",
+        element: <ChiTietSanPham />,
+      },
+      {
+        path: "/dichvu",
+        element: <TrangDichVu />,
+      },
+      {
+        path: "/baibao",
+        element: <TrangBaiBao />,
+      },
+      {
+        path: "/dangky",
+        element: <TrangDangKy />,
+      },
+      {
+        path: "/dangnhap",
+        element: <TrangDangNhap />,
+      },
+      {
+        path: "/gio-hang",
+        element: <GioHang />,
+      },
+      {
+        path: "/thanh-toan",
+        element: <TrangThanhToan />,
+      },
+    ],
+  },
+]);
 
-    // Xóa dữ liệu theo vai trò
-    localStorage.removeItem(tokenKey);
-    localStorage.removeItem(dataKey);
-    localStorage.removeItem(`${role}_rememberMe`);
-    localStorage.removeItem(`${role}_rememberMeEmail`);
+function App() {
+  return (
+    <GioHangProvider>
+      <RouterProvider router={router} />
+    </GioHangProvider>
+  );
+}
 
-    return response.data;
-  } catch (err: any) {
-    console.error("Logout error:", err.response?.data || err.message);
-    // Xóa dữ liệu client-side ngay cả khi API thất bại
-    const tokenKey = role === "admin" ? "admin_token" : "client_token";
-    const dataKey = role === "admin" ? "admin_data" : "client_data";
-    localStorage.removeItem(tokenKey);
-    localStorage.removeItem(dataKey);
-    localStorage.removeItem(`${role}_rememberMe`);
-    localStorage.removeItem(`${role}_rememberMeEmail`);
-    return { message: `Đăng xuất ${role} thành công (client-side)` };
-  }
-};
+export default App;
