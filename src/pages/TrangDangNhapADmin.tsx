@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, User, Lock, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../API/authApi"; // Giả sử authapi nằm cùng thư mục
+import authApi from "../API/authApi"; // Import authApi từ authApi.ts
 
 function TrangDangNhapADmin() {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,8 +34,8 @@ function TrangDangNhapADmin() {
 
   // Kiểm tra trạng thái ghi nhớ đăng nhập khi component mount
   useEffect(() => {
-    const savedEmail = localStorage.getItem("rememberMeEmail");
-    const savedRememberMe = localStorage.getItem("rememberMe");
+    const savedEmail = localStorage.getItem("client_rememberMeEmail");
+    const savedRememberMe = localStorage.getItem("client_rememberMe");
     if (savedEmail && savedRememberMe === "true") {
       setEmail(savedEmail);
       setRememberMe(true);
@@ -49,37 +49,36 @@ function TrangDangNhapADmin() {
     setLoading(true);
 
     try {
-      const response = await login({
+      const response = await authApi.login({
         email,
         mat_khau: password,
-        role: "admin",
       });
 
-      // Example: Store token or user data in localStorage
-      localStorage.setItem("admin_token", response.token); // Adjust based on your API LoginResponse structure
-      localStorage.setItem("admin_data", JSON.stringify(response.user)); // Example
+      // Lưu thông tin người dùng vào localStorage
+      localStorage.setItem("user", JSON.stringify(response.user));
 
-      // Handle "remember me" functionality
+      // Xử lý ghi nhớ đăng nhập
       if (rememberMe) {
-        localStorage.setItem("admin_rememberMe", "true");
-        localStorage.setItem("admin_rememberMeEmail", email);
+        localStorage.setItem("client_rememberMe", "true");
+        localStorage.setItem("client_rememberMeEmail", email);
       } else {
-        localStorage.removeItem("admin_rememberMe");
-        localStorage.removeItem("admin_rememberMeEmail");
+        localStorage.removeItem("client_rememberMe");
+        localStorage.removeItem("client_rememberMeEmail");
       }
 
-      navigate("/admin", { replace: true });
-    } catch (err) {
-      if (err && typeof err === "object" && "message" in err) {
-        setError(
-          (err as { message?: string }).message ||
-            "Đăng nhập thất bại. Vui lòng thử lại."
-        );
+      // Kiểm tra vai trò admin trước khi chuyển hướng
+      if (response.user.vai_tro === "admin") {
+        navigate("/admin", { replace: true });
       } else {
-        setError("Đăng nhập thất bại. Vui lòng thử lại.");
+        throw new Error("Bạn không có quyền truy cập khu vực quản trị");
       }
-      localStorage.removeItem("admin_token");
-      localStorage.removeItem("admin_data");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Đăng nhập thất bại. Vui lòng kiểm tra email hoặc mật khẩu."
+      );
+      localStorage.removeItem("user");
     } finally {
       setLoading(false);
     }
