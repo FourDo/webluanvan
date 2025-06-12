@@ -30,7 +30,7 @@ const authApi = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     try {
       const response = await axios.post<LoginResponse>(
-        "http://luanvan-7wv1.onrender.com/api/auth/login",
+        "https://luanvan-7wv1.onrender.com/api/auth/login",
         credentials,
         {
           headers: {
@@ -50,7 +50,7 @@ const authApi = {
   logout: async (): Promise<LogoutResponse> => {
     try {
       const response = await axios.post<LogoutResponse>(
-        "http://luanvan-7wv1.onrender.com/api/auth/logout",
+        "https://luanvan-7wv1.onrender.com/api/auth/logout",
         {},
         {
           headers: {
