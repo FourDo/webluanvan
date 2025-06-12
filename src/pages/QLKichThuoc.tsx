@@ -207,9 +207,6 @@ const QLKichThuoc = () => {
                         <span className="inline-flex items-center justify-center w-10 h-10 bg-blue-100 text-blue-800 text-sm font-medium rounded-full mr-3">
                           {size.ten_kich_thuoc}
                         </span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {size.ten_kich_thuoc}
-                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
