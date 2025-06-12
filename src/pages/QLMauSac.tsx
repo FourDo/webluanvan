@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Save, X, Palette } from "lucide-react";
 import { fetchColors, deleteColor, saveColor } from "../API/colorApi";
 

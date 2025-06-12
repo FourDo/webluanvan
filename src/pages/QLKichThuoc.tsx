@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Save, X, Ruler } from "lucide-react";
 import { fetchSizes, deleteSize, saveSize } from "../API/sizeApi";
 
