@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useContext } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   ShoppingBag,
   User,
@@ -11,27 +11,23 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useGioHang } from "../context/GioHangContext";
-import { logout } from "../API/authApi"; // Import hàm logout từ authapi.ts
+import { AuthContext } from "../components/AuthContext";
 
 const Navbar: React.FC = () => {
+  const { isLoggedIn, client, logout } = useContext(AuthContext);
   const { demSoLuongSanPham } = useGioHang();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Trạng thái đăng nhập
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null
-  ); // Thông tin user
 
   const location = useLocation();
-  const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  const toggleUserDropdown = () => setIsUserDropdownOpen(!isUserDropdownOpen);
+  const toggleClientDropdown = () =>
+    setIsClientDropdownOpen(!isClientDropdownOpen);
 
-  // Danh sách các mục menu
   const menuItems = [
     { to: "/sanpham", label: "Product" },
     { to: "/dichvu", label: "Services" },
@@ -39,63 +35,13 @@ const Navbar: React.FC = () => {
     { to: "/about-us", label: "About Us" },
   ];
 
-  // Kiểm tra trạng thái đăng nhập
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    const userData = localStorage.getItem("user_data");
-
-    if (token && userData) {
-      setIsLoggedIn(true);
-
-      setUser(JSON.parse(userData));
-    } else {
-      setIsLoggedIn(false);
-      setUser(null);
-    }
-  }, [location.pathname]);
-
-  // Xử lý đăng xuất
-  const handleLogout = async () => {
-    try {
-      // Gọi API đăng xuất (cookie HttpOnly sẽ được gửi tự động với withCredentials)
-      await logout("user");
-
-      // Xóa thông tin người dùng khỏi localStorage (nếu có)
-      localStorage.removeItem("user");
-      localStorage.removeItem("rememberMe");
-
-      // Cập nhật trạng thái
-      setIsLoggedIn(false);
-      setUser(null);
-      setIsUserDropdownOpen(false);
-
-      // Chuyển hướng về trang chủ
-      navigate("/", { replace: true });
-    } catch (error) {
-      console.error("Đăng xuất thất bại:", error);
-
-      // Vẫn xóa dữ liệu phía client nếu API thất bại
-      localStorage.removeItem("user");
-      localStorage.removeItem("rememberMe");
-
-      // Cập nhật trạng thái
-      setIsLoggedIn(false);
-      setUser(null);
-      setIsUserDropdownOpen(false);
-
-      // Chuyển hướng về trang chủ
-      navigate("/", { replace: true });
-    }
-  };
-
-  // Xử lý click outside để đóng dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setIsUserDropdownOpen(false);
+        setIsClientDropdownOpen(false);
       }
     };
 
@@ -105,13 +51,12 @@ const Navbar: React.FC = () => {
     };
   }, []);
 
-  // Xử lý scroll để hiện/ẩn navbar
   const controlNavbar = () => {
     if (typeof window !== "undefined") {
       if (window.scrollY > lastScrollY) {
-        setShowNavbar(false); // Kéo xuống
+        setShowNavbar(false);
       } else {
-        setShowNavbar(true); // Kéo lên
+        setShowNavbar(true);
       }
       setLastScrollY(window.scrollY);
     }
@@ -133,7 +78,6 @@ const Navbar: React.FC = () => {
       } fixed top-0 left-0 right-0 z-50`}
     >
       <nav className="flex items-center justify-between max-w-7xl mx-auto">
-        {/* Logo + tên */}
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="w-7 h-7 sm:w-8 sm:h-8">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
@@ -148,7 +92,6 @@ const Navbar: React.FC = () => {
           </Link>
         </div>
 
-        {/* Menu desktop */}
         <div className="hidden sm:flex items-center gap-6 md:gap-12">
           {menuItems.map((item) => (
             <Link
@@ -168,7 +111,6 @@ const Navbar: React.FC = () => {
           ))}
         </div>
 
-        {/* Icon giỏ hàng, user và hamburger */}
         <div className="flex items-center gap-3 sm:gap-6 md:gap-8">
           <Link to="/gio-hang" aria-label="Shopping cart" className="relative">
             <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-[#151411]" />
@@ -179,26 +121,23 @@ const Navbar: React.FC = () => {
             )}
           </Link>
 
-          {/* User Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
-              onClick={toggleUserDropdown}
-              aria-label="User menu"
+              onClick={toggleClientDropdown}
+              aria-label="Client menu"
               className="flex items-center gap-1 hover:text-[#AD7E5C] transition-colors duration-200"
             >
               <User className="w-5 h-5 sm:w-6 sm:h-6 text-[#151411]" />
               <ChevronDown
                 className={`w-3 h-3 text-[#151411] transition-transform duration-200 ${
-                  isUserDropdownOpen ? "rotate-180" : ""
+                  isClientDropdownOpen ? "rotate-180" : ""
                 }`}
               />
             </button>
 
-            {/* Dropdown Menu */}
-            {isUserDropdownOpen && (
+            {isClientDropdownOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                 {!isLoggedIn ? (
-                  // Menu khi chưa đăng nhập
                   <div className="px-4 py-2">
                     <p className="text-sm text-gray-600 mb-3">
                       Chào mừng bạn đến với NộiThấtVN
@@ -207,41 +146,42 @@ const Navbar: React.FC = () => {
                       <Link
                         to="/dangnhap"
                         className="block w-full text-center px-4 py-2 bg-[#518581] text-white rounded-md hover:bg-[#518581]/90 transition-colors duration-200"
-                        onClick={() => setIsUserDropdownOpen(false)}
+                        onClick={() => setIsClientDropdownOpen(false)}
                       >
                         Đăng nhập
                       </Link>
                       <Link
                         to="/dangky"
                         className="block w-full text-center px-4 py-2 border border-[#518581] text-[#518581] rounded-md hover:bg-[#518581]/10 transition-colors duration-200"
-                        onClick={() => setIsUserDropdownOpen(false)}
+                        onClick={() => setIsClientDropdownOpen(false)}
                       >
                         Tạo tài khoản
                       </Link>
                       <Link
                         to="/quen-mat-khau"
                         className="block text-center text-sm text-gray-600 hover:text-[#AD7E5C] transition-colors duration-200"
-                        onClick={() => setIsUserDropdownOpen(false)}
+                        onClick={() => setIsClientDropdownOpen(false)}
                       >
                         Quên mật khẩu?
                       </Link>
                     </div>
                   </div>
                 ) : (
-                  // Menu khi đã đăng nhập
                   <div>
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-[#518581] rounded-full flex items-center justify-center">
                           <span className="text-white text-sm font-medium">
-                            {user?.name?.charAt(0).toUpperCase() || "U"}
+                            {client?.ho_ten?.charAt(0).toUpperCase() || "C"}
                           </span>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            {user?.name || "Người dùng"}
+                            {client?.ho_ten || "Khách hàng"}
                           </p>
-                          <p className="text-xs text-gray-500">{user?.email}</p>
+                          <p className="text-xs text-gray-500">
+                            {client?.email}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -250,7 +190,7 @@ const Navbar: React.FC = () => {
                       <Link
                         to="/profile"
                         className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                        onClick={() => setIsUserDropdownOpen(false)}
+                        onClick={() => setIsClientDropdownOpen(false)}
                       >
                         <UserCircle className="w-4 h-4" />
                         Thông tin cá nhân
@@ -258,7 +198,7 @@ const Navbar: React.FC = () => {
                       <Link
                         to="/don-hang"
                         className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                        onClick={() => setIsUserDropdownOpen(false)}
+                        onClick={() => setIsClientDropdownOpen(false)}
                       >
                         <ShoppingBag className="w-4 h-4" />
                         Đơn hàng của tôi
@@ -266,7 +206,7 @@ const Navbar: React.FC = () => {
                       <Link
                         to="/cai-dat"
                         className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                        onClick={() => setIsUserDropdownOpen(false)}
+                        onClick={() => setIsClientDropdownOpen(false)}
                       >
                         <Settings className="w-4 h-4" />
                         Cài đặt
@@ -275,7 +215,7 @@ const Navbar: React.FC = () => {
 
                     <div className="border-t border-gray-100 py-1">
                       <button
-                        onClick={handleLogout}
+                        onClick={logout}
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
                       >
                         <LogOut className="w-4 h-4" />
@@ -288,7 +228,6 @@ const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Hamburger menu icon */}
           <button
             className="sm:hidden"
             onClick={toggleMenu}
@@ -303,7 +242,6 @@ const Navbar: React.FC = () => {
         </div>
       </nav>
 
-      {/* Menu mobile */}
       {isMenuOpen && (
         <div className="sm:hidden flex flex-col gap-3 border-t border-gray-200 pt-4 mt-4">
           {menuItems.map((item) => (
