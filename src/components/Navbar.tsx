@@ -42,11 +42,14 @@ const Navbar: React.FC = () => {
   // Kiểm tra trạng thái đăng nhập
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    const userData = localStorage.getItem("user");
+    const userData = localStorage.getItem("user_data"); // Thay "user" thành "user_data"
 
     if (token && userData) {
       setIsLoggedIn(true);
       setUser(JSON.parse(userData));
+    } else {
+      setIsLoggedIn(false);
+      setUser(null);
     }
   }, [location.pathname]);
 
