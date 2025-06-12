@@ -22,7 +22,7 @@ export const deleteSize = async (id: number) => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/size/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/kich-thuoc/${id}`, {
       method: "DELETE",
     });
     if (response.ok) {
@@ -53,7 +53,7 @@ export const saveSize = async (
     if (editingItem) {
       // Update existing size
       const response = await fetch(
-        `${API_BASE_URL}/size/${editingItem.ma_kich_thuoc}`,
+        `${API_BASE_URL}/kich-thuoc/${editingItem.ma_kich_thuoc}`,
         {
           method: "PUT",
           headers: {
@@ -71,7 +71,7 @@ export const saveSize = async (
       }
     } else {
       // Create new size
-      const response = await fetch(`${API_BASE_URL}/size`, {
+      const response = await fetch(`${API_BASE_URL}/kich-thuoc`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
