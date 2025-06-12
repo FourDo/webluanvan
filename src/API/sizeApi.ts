@@ -2,7 +2,7 @@ export const API_BASE_URL = "https://luanvan-7wv1.onrender.com/api";
 
 export const fetchSizes = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/size`);
+    const response = await fetch(`${API_BASE_URL}/kich-thuoc`);
     if (response.ok) {
       const data = await response.json();
       return { success: true, data };
