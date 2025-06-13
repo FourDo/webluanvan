@@ -9,6 +9,9 @@ interface Size {
   ngay_tao: string;
 }
 
+// <<< THÊM MỚI: Định nghĩa hằng số cho số lượng mục trên mỗi trang
+const ITEMS_PER_PAGE = 5;
+
 const QLKichThuoc = () => {
   const [sizes, setSizes] = useState<Size[]>([]);
   const [loading, setLoading] = useState(false);
@@ -18,6 +21,9 @@ const QLKichThuoc = () => {
     ten_kich_thuoc: "",
     mo_ta: "",
   });
+
+  // <<< THÊM MỚI: State để quản lý trang hiện tại
+  const [currentPage, setCurrentPage] = useState(1);
 
   const resetForm = () => {
     setFormData({
@@ -52,7 +58,17 @@ const QLKichThuoc = () => {
   const handleDelete = async (id: number) => {
     const result = await deleteSize(id);
     if (result.success) {
-      setSizes(sizes.filter((size) => size.ma_kich_thuoc !== id));
+      const updatedSizes = sizes.filter((size) => size.ma_kich_thuoc !== id);
+      setSizes(updatedSizes);
+
+      // <<< THÊM MỚI: Cập nhật lại trang hiện tại nếu trang cuối cùng bị xóa hết
+      const totalPages = Math.ceil(updatedSizes.length / ITEMS_PER_PAGE);
+      if (currentPage > totalPages && totalPages > 0) {
+        setCurrentPage(totalPages);
+      } else if (updatedSizes.length === 0) {
+        setCurrentPage(1);
+      }
+
       alert("Xóa kích thước thành công!");
     } else if (result.error) {
       alert(result.error);
@@ -72,7 +88,13 @@ const QLKichThuoc = () => {
         );
         alert("Cập nhật kích thước thành công!");
       } else {
-        setSizes([...sizes, result.data]);
+        const newSizes = [...sizes, result.data];
+        setSizes(newSizes);
+
+        // <<< THÊM MỚI: Tự động chuyển đến trang cuối cùng khi thêm mới
+        const newTotalPages = Math.ceil(newSizes.length / ITEMS_PER_PAGE);
+        setCurrentPage(newTotalPages);
+
         alert("Thêm kích thước thành công!");
       }
       resetForm();
@@ -80,6 +102,12 @@ const QLKichThuoc = () => {
       alert(result.error);
     }
   };
+
+  // <<< THÊM MỚI: Tính toán dữ liệu cho trang hiện tại
+  const totalPages = Math.ceil(sizes.length / ITEMS_PER_PAGE);
+  const lastItemIndex = currentPage * ITEMS_PER_PAGE;
+  const firstItemIndex = lastItemIndex - ITEMS_PER_PAGE;
+  const currentSizes = sizes.slice(firstItemIndex, lastItemIndex);
 
   return (
     <div className="p-6">
@@ -100,13 +128,12 @@ const QLKichThuoc = () => {
         </button>
       </div>
 
-      {/* Add/Edit Form */}
+      {/* Add/Edit Form ... (giữ nguyên không đổi) */}
       {showAddForm && (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border">
           <h3 className="text-xl font-semibold mb-4">
             {editingItem ? "Sửa kích thước" : "Thêm kích thước mới"}
           </h3>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -125,7 +152,6 @@ const QLKichThuoc = () => {
                 placeholder="Nhập tên kích thước (VD: S, M, L, XL)..."
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Mô tả *
@@ -144,7 +170,6 @@ const QLKichThuoc = () => {
               />
             </div>
           </div>
-
           <div className="flex space-x-3 mt-6">
             <button
               onClick={handleSave}
@@ -164,7 +189,7 @@ const QLKichThuoc = () => {
         </div>
       )}
 
-      {/* Loading */}
+      {/* Loading ... (giữ nguyên không đổi) */}
       {loading && (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -177,6 +202,7 @@ const QLKichThuoc = () => {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
+              {/* ... thead giữ nguyên không đổi ... */}
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -197,7 +223,8 @@ const QLKichThuoc = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sizes.map((size) => (
+                {/* <<< CHỈNH SỬA: Lặp qua `currentSizes` thay vì `sizes` */}
+                {currentSizes.map((size) => (
                   <tr key={size.ma_kich_thuoc} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {size.ma_kich_thuoc}
@@ -238,6 +265,15 @@ const QLKichThuoc = () => {
               </tbody>
             </table>
 
+            {/* <<< CHỈNH SỬA: Hiển thị thông báo khi không có dữ liệu trên trang hiện tại */}
+            {currentSizes.length === 0 && sizes.length > 0 && (
+              <div className="text-center py-12">
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                  Không có dữ liệu trên trang này
+                </h3>
+              </div>
+            )}
+
             {sizes.length === 0 && (
               <div className="text-center py-12">
                 <Ruler className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -250,6 +286,36 @@ const QLKichThuoc = () => {
               </div>
             )}
           </div>
+
+          {/* <<< THÊM MỚI: Component phân trang */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t border-gray-200">
+              <span className="text-sm text-gray-700">
+                Hiển thị {firstItemIndex + 1}-
+                {Math.min(lastItemIndex, sizes.length)} trên tổng số{" "}
+                {sizes.length} kích thước
+              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Trang trước
+                </button>
+                <span className="text-sm text-gray-700">
+                  Trang {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Trang sau
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

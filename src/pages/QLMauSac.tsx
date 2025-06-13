@@ -9,6 +9,9 @@ interface Color {
   ngay_tao: string;
 }
 
+// <<< THÊM MỚI: Định nghĩa hằng số cho số lượng mục trên mỗi trang
+const ITEMS_PER_PAGE = 5;
+
 const QLMauSac = () => {
   const [colors, setColors] = useState<Color[]>([]);
   const [loading, setLoading] = useState(false);
@@ -18,6 +21,9 @@ const QLMauSac = () => {
     ten_mau_sac: "",
     mo_ta: "",
   });
+
+  // <<< THÊM MỚI: State để quản lý trang hiện tại
+  const [currentPage, setCurrentPage] = useState(1);
 
   const resetForm = () => {
     setFormData({
@@ -52,7 +58,17 @@ const QLMauSac = () => {
   const handleDelete = async (id: number) => {
     const result = await deleteColor(id);
     if (result.success) {
-      setColors(colors.filter((color) => color.ma_mau_sac !== id));
+      const updatedColors = colors.filter((color) => color.ma_mau_sac !== id);
+      setColors(updatedColors);
+
+      // <<< THÊM MỚI: Cập nhật lại trang hiện tại nếu trang cuối cùng bị xóa hết
+      const totalPages = Math.ceil(updatedColors.length / ITEMS_PER_PAGE);
+      if (currentPage > totalPages && totalPages > 0) {
+        setCurrentPage(totalPages);
+      } else if (updatedColors.length === 0) {
+        setCurrentPage(1);
+      }
+
       alert("Xóa màu sắc thành công!");
     } else if (result.error) {
       alert(result.error);
@@ -70,7 +86,13 @@ const QLMauSac = () => {
         );
         alert("Cập nhật màu sắc thành công!");
       } else {
-        setColors([...colors, result.data]);
+        const newColors = [...colors, result.data];
+        setColors(newColors);
+
+        // <<< THÊM MỚI: Tự động chuyển đến trang cuối cùng khi thêm mới
+        const newTotalPages = Math.ceil(newColors.length / ITEMS_PER_PAGE);
+        setCurrentPage(newTotalPages);
+
         alert("Thêm màu sắc thành công!");
       }
       resetForm();
@@ -95,9 +117,15 @@ const QLMauSac = () => {
     return colorMap[colorName] || "#CCCCCC";
   };
 
+  // <<< THÊM MỚI: Tính toán dữ liệu cho trang hiện tại
+  const totalPages = Math.ceil(colors.length / ITEMS_PER_PAGE);
+  const lastItemIndex = currentPage * ITEMS_PER_PAGE;
+  const firstItemIndex = lastItemIndex - ITEMS_PER_PAGE;
+  const currentColors = colors.slice(firstItemIndex, lastItemIndex);
+
   return (
     <div className="p-6">
-      {/* Header */}
+      {/* Header (giữ nguyên không đổi) */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
           <Palette className="w-8 h-8 text-blue-600 mr-3" />
@@ -112,13 +140,12 @@ const QLMauSac = () => {
         </button>
       </div>
 
-      {/* Add/Edit Form */}
+      {/* Add/Edit Form (giữ nguyên không đổi) */}
       {showAddForm && (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border">
           <h3 className="text-xl font-semibold mb-4">
             {editingItem ? "Sửa màu sắc" : "Thêm màu sắc mới"}
           </h3>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -137,7 +164,6 @@ const QLMauSac = () => {
                 placeholder="Nhập tên màu sắc..."
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Mô tả *
@@ -156,7 +182,6 @@ const QLMauSac = () => {
               />
             </div>
           </div>
-
           <div className="flex space-x-3 mt-6">
             <button
               onClick={handleSave}
@@ -176,7 +201,7 @@ const QLMauSac = () => {
         </div>
       )}
 
-      {/* Loading */}
+      {/* Loading (giữ nguyên không đổi) */}
       {loading && (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -189,6 +214,7 @@ const QLMauSac = () => {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
+              {/* ... thead giữ nguyên không đổi ... */}
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -212,7 +238,8 @@ const QLMauSac = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {colors.map((color) => (
+                {/* <<< CHỈNH SỬA: Lặp qua `currentColors` thay vì `colors` */}
+                {currentColors.map((color) => (
                   <tr key={color.ma_mau_sac} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {color.ma_mau_sac}
@@ -259,6 +286,15 @@ const QLMauSac = () => {
               </tbody>
             </table>
 
+            {/* <<< CHỈNH SỬA: Hiển thị thông báo khi không có dữ liệu trên trang hiện tại */}
+            {currentColors.length === 0 && colors.length > 0 && (
+              <div className="text-center py-12">
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                  Không có dữ liệu trên trang này
+                </h3>
+              </div>
+            )}
+
             {colors.length === 0 && (
               <div className="text-center py-12">
                 <Palette className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -271,6 +307,36 @@ const QLMauSac = () => {
               </div>
             )}
           </div>
+
+          {/* <<< THÊM MỚI: Component phân trang */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t border-gray-200">
+              <span className="text-sm text-gray-700">
+                Hiển thị {firstItemIndex + 1}-
+                {Math.min(lastItemIndex, colors.length)} trên tổng số{" "}
+                {colors.length} màu sắc
+              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Trang trước
+                </button>
+                <span className="text-sm text-gray-700">
+                  Trang {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Trang sau
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
