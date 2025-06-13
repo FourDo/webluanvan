@@ -7,7 +7,7 @@ interface AdminNavbarProps {
   toggleSidebar: () => void;
 }
 
-const AdminNavbar = ({ toggleSidebar }: AdminNavbarProps) => {
+const AdminNavbar = ({}: AdminNavbarProps) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const navigate = useNavigate(); // 3. Khởi tạo hook navigate
 
