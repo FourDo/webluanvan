@@ -14,15 +14,16 @@ import { useGioHang } from "../context/GioHangContext";
 import authApi from "../API/authApi"; // Import authApi từ authApi.ts
 
 const Navbar: React.FC = () => {
+  // --- Các state và hook của bạn (giữ nguyên) ---
   const { demSoLuongSanPham } = useGioHang();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Trạng thái đăng nhập
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<{ ho_ten: string; email: string } | null>(
     null
-  ); // Thông tin user
+  );
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const Navbar: React.FC = () => {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleUserDropdown = () => setIsUserDropdownOpen(!isUserDropdownOpen);
 
-  // Danh sách các mục menu
+  // --- Các hằng số và hiệu ứng (giữ nguyên) ---
   const menuItems = [
     { to: "/sanpham", label: "Product" },
     { to: "/dichvu", label: "Services" },
@@ -39,56 +40,66 @@ const Navbar: React.FC = () => {
     { to: "/about-us", label: "About Us" },
   ];
 
-  // Kiểm tra trạng thái đăng nhập
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-
-    if (userData) {
-      setIsLoggedIn(true);
-      setUser(JSON.parse(userData));
+    const userDataString = localStorage.getItem("user");
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString);
+        setIsLoggedIn(true);
+        setUser(userData);
+      } catch (e) {
+        // Xử lý trường hợp dữ liệu trong localStorage không hợp lệ
+        console.error("Lỗi khi parse dữ liệu người dùng từ localStorage:", e);
+        localStorage.removeItem("user");
+        setIsLoggedIn(false);
+        setUser(null);
+      }
     } else {
       setIsLoggedIn(false);
       setUser(null);
     }
-  }, [location.pathname]);
+    // Lắng nghe sự thay đổi của cả đường dẫn và trạng thái dropdown
+    // để đảm bảo component re-render khi cần
+  }, [location.pathname, isUserDropdownOpen]);
 
-  // Xử lý đăng xuất
+  // --- TỐI ƯU HÀM ĐĂNG XUẤT ---
   const handleLogout = async () => {
+    // Không cần hiển thị confirm nếu người dùng đã click vào nút trong dropdown
+    // Nhưng nếu muốn chắc chắn, có thể thêm:
+    // if (!window.confirm("Bạn có chắc muốn đăng xuất?")) return;
+
     try {
-      // Gọi API đăng xuất
+      // 1. Gọi API đăng xuất trước
       await authApi.logout();
-
-      // Xóa thông tin người dùng khỏi localStorage
-      localStorage.removeItem("user");
-      localStorage.removeItem("client_rememberMe");
-      localStorage.removeItem("client_rememberMeEmail");
-
-      // Cập nhật trạng thái
-      setIsLoggedIn(false);
-      setUser(null);
-      setIsUserDropdownOpen(false);
-
-      // Chuyển hướng về trang chủ
-      navigate("/", { replace: true });
+      console.log("Đăng xuất thành công trên server.");
     } catch (error) {
-      console.error("Đăng xuất thất bại:", error);
+      // 2. Nếu API lỗi, ghi log lại nhưng không chặn quá trình đăng xuất ở client
+      console.error(
+        "Lỗi khi gọi API đăng xuất, nhưng vẫn tiếp tục đăng xuất ở client:",
+        error
+      );
+    } finally {
+      // 3. Khối finally sẽ LUÔN LUÔN được thực thi, dù try thành công hay catch bị lỗi
+      // Đây là nơi lý tưởng để dọn dẹp state và localStorage
 
-      // Vẫn xóa dữ liệu phía client nếu API thất bại
       localStorage.removeItem("user");
-      localStorage.removeItem("client_rememberMe");
-      localStorage.removeItem("client_rememberMeEmail");
+      // Bạn có thể thêm các key khác cần xóa ở đây
+      // localStorage.removeItem("client_token"); // Ví dụ nếu có token
+      // localStorage.removeItem("client_rememberMe");
+      // localStorage.removeItem("client_rememberMeEmail");
 
-      // Cập nhật trạng thái
+      // Cập nhật state của ứng dụng
       setIsLoggedIn(false);
       setUser(null);
-      setIsUserDropdownOpen(false);
+      setIsUserDropdownOpen(false); // Đóng dropdown sau khi đăng xuất
 
-      // Chuyển hướng về trang chủ
+      // Điều hướng người dùng về trang chủ
+      // replace: true để người dùng không thể nhấn "Back" quay lại trang trước đó
       navigate("/", { replace: true });
     }
   };
 
-  // Xử lý click outside để đóng dropdown
+  // --- Các hiệu ứng xử lý click và scroll (giữ nguyên) ---
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -98,28 +109,22 @@ const Navbar: React.FC = () => {
         setIsUserDropdownOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
-  // Xử lý scroll để hiện/ẩn navbar
   const controlNavbar = () => {
     if (typeof window !== "undefined") {
-      if (window.scrollY > lastScrollY) {
-        setShowNavbar(false); // Kéo xuống
-      } else {
-        setShowNavbar(true); // Kéo lên
-      }
+      setShowNavbar(window.scrollY < lastScrollY || window.scrollY < 100);
       setLastScrollY(window.scrollY);
     }
   };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      window.addEventListener("scroll", controlNavbar);
+      window.addEventListener("scroll", controlNavbar, { passive: true });
       return () => {
         window.removeEventListener("scroll", controlNavbar);
       };

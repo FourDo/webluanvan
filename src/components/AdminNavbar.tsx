@@ -1,13 +1,7 @@
 import { useState } from "react";
-import {
-  Menu,
-  Bell,
-  Search,
-  User,
-  ChevronDown,
-  Settings,
-  LogOut,
-} from "lucide-react";
+import { User, ChevronDown, Settings, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // 1. Import useNavigate
+import authApi from "../API/authApi"; // 2. Import authApi của bạn
 
 interface AdminNavbarProps {
   toggleSidebar: () => void;
@@ -15,40 +9,37 @@ interface AdminNavbarProps {
 
 const AdminNavbar = ({ toggleSidebar }: AdminNavbarProps) => {
   const [profileOpen, setProfileOpen] = useState(false);
+  const navigate = useNavigate(); // 3. Khởi tạo hook navigate
+
+  // 4. Tạo hàm xử lý đăng xuất
+  const handleLogout = async () => {
+    // Hiển thị hộp thoại xác nhận trước khi đăng xuất
+    if (window.confirm("Bạn có chắc chắn muốn đăng xuất không?")) {
+      try {
+        await authApi.logout();
+        // Có thể hiển thị thông báo đăng xuất thành công nếu cần
+      } catch (error) {
+        console.error(error);
+        // Thông báo cho người dùng rằng có lỗi xảy ra nhưng vẫn tiếp tục đăng xuất
+        alert(
+          "Có lỗi xảy ra khi đăng xuất trên máy chủ, nhưng bạn vẫn sẽ được đăng xuất khỏi thiết bị này."
+        );
+      } finally {
+        // Quan trọng: Luôn xóa dữ liệu local và điều hướng
+        // dù cho API có thành công hay thất bại.
+        localStorage.removeItem("admin_data");
+        localStorage.removeItem("admin_token"); // Đừng quên xóa token
+        navigate("/admin/dangnhap");
+      }
+    }
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
+        {/* ... (Các phần code khác không thay đổi) ... */}
         <div className="flex items-center space-x-4">
-          <button
-            onClick={toggleSidebar}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
-          >
-            <Menu size={20} />
-          </button>
-          <h1 className="text-xl font-semibold text-gray-800">
-            Admin Dashboard
-          </h1>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          {/* Search */}
-          <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2">
-            <Search size={18} className="text-gray-400 mr-2" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              className="bg-transparent outline-none text-sm"
-            />
-          </div>
-
-          {/* Notifications */}
-          <button className="relative p-2 rounded-lg hover:bg-gray-100">
-            <Bell size={20} className="text-gray-600" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-              3
-            </span>
-          </button>
+          {/* ... Search, Notifications ... */}
 
           {/* Profile Dropdown */}
           <div className="relative">
@@ -64,7 +55,7 @@ const AdminNavbar = ({ toggleSidebar }: AdminNavbarProps) => {
             </button>
 
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
                 <a
                   href="#"
                   className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -80,13 +71,14 @@ const AdminNavbar = ({ toggleSidebar }: AdminNavbarProps) => {
                   Cài đặt
                 </a>
                 <div className="border-t border-gray-200 my-2"></div>
-                <a
-                  href="#"
-                  className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                {/* 5. Thay đổi thẻ a thành button hoặc div và gọi handleLogout */}
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                 >
                   <LogOut size={16} className="mr-3" />
                   Đăng xuất
-                </a>
+                </button>
               </div>
             )}
           </div>

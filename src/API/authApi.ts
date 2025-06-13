@@ -46,22 +46,27 @@ const authApi = {
       );
     }
   },
-
   logout: async (): Promise<LogoutResponse> => {
     try {
       const response = await axios.post<LogoutResponse>(
         "https://luanvan-7wv1.onrender.com/api/auth/logout",
-        {},
+        {}, // Logout thường không cần gửi body
         {
           headers: {
             "Content-Type": "application/json",
           },
-          withCredentials: true, // Để gửi cookie (token) cùng yêu cầu
+          withCredentials: true, // Rất quan trọng để gửi cookie/token lên server
         }
       );
       return response.data;
     } catch (error) {
-      throw new Error("Đăng xuất thất bại. Vui lòng thử lại.");
+      // Ngay cả khi server báo lỗi (ví dụ token đã hết hạn),
+      // chúng ta vẫn muốn tiếp tục quá trình đăng xuất ở client.
+      // Vì vậy, có thể ném ra lỗi để component xử lý hoặc trả về một giá trị mặc định.
+      console.error("Lỗi khi gọi API đăng xuất:", error);
+      throw new Error(
+        "Yêu cầu đăng xuất đến server thất bại, nhưng sẽ tiếp tục đăng xuất ở client."
+      );
     }
   },
 };
