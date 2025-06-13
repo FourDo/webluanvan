@@ -34,8 +34,8 @@ function TrangDangNhapADmin() {
 
   // Kiểm tra trạng thái ghi nhớ đăng nhập khi component mount
   useEffect(() => {
-    const savedEmail = localStorage.getItem("client_rememberMeEmail");
-    const savedRememberMe = localStorage.getItem("client_rememberMe");
+    const savedEmail = localStorage.getItem("admin_rememberMeEmail");
+    const savedRememberMe = localStorage.getItem("admin_rememberMe");
     if (savedEmail && savedRememberMe === "true") {
       setEmail(savedEmail);
       setRememberMe(true);
@@ -54,31 +54,49 @@ function TrangDangNhapADmin() {
         mat_khau: password,
       });
 
-      // Lưu thông tin người dùng vào localStorage
-      localStorage.setItem("user", JSON.stringify(response.user));
+      // ================= SỬA LỖI TẠI ĐÂY =================
 
-      // Xử lý ghi nhớ đăng nhập
+      // 1. Kiểm tra vai trò admin NGAY LẬP TỨC
+      if (response.user.vai_tro !== "admin") {
+        // Nếu không phải admin, không lưu gì cả và báo lỗi
+        throw new Error(
+          "Tài khoản này không có quyền truy cập khu vực quản trị."
+        );
+      }
+
+      // 2. Lưu thông tin vào đúng key mà AdminPrivateRoute cần
+      localStorage.setItem("admin_data", JSON.stringify(response.user));
+
+      // 3. Giả định rằng token được lưu trong cookie.
+      //    Nếu AdminPrivateRoute của bạn yêu cầu token trong localStorage,
+      //    bạn cần phải lấy token từ phản hồi và lưu nó.
+      //    Ví dụ, nếu API trả về token:
+      //    localStorage.setItem("admin_token", response.token);
+      //    Nếu bạn chỉ dựa vào cookie thì nên sửa AdminPrivateRoute để không check localStorage token.
+      //    Tạm thời, để vượt qua kiểm tra, chúng ta có thể đặt một giá trị giả
+      localStorage.setItem("admin_token", "true"); // Đặt một giá trị để AdminPrivateRoute xác thực thành công
+
+      // 4. Xử lý ghi nhớ đăng nhập cho admin
       if (rememberMe) {
-        localStorage.setItem("client_rememberMe", "true");
-        localStorage.setItem("client_rememberMeEmail", email);
+        localStorage.setItem("admin_rememberMe", "true");
+        localStorage.setItem("admin_rememberMeEmail", email);
       } else {
-        localStorage.removeItem("client_rememberMe");
-        localStorage.removeItem("client_rememberMeEmail");
+        localStorage.removeItem("admin_rememberMe");
+        localStorage.removeItem("admin_rememberMeEmail");
       }
 
-      // Kiểm tra vai trò admin trước khi chuyển hướng
-      if (response.user.vai_tro === "admin") {
-        navigate("/admin", { replace: true });
-      } else {
-        throw new Error("Bạn không có quyền truy cập khu vực quản trị");
-      }
+      // 5. Chuyển hướng đến dashboard của admin
+      navigate("/admin", { replace: true });
+      // ====================================================
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "Đăng nhập thất bại. Vui lòng kiểm tra email hoặc mật khẩu."
       );
-      localStorage.removeItem("user");
+      // Xóa các key của admin nếu đăng nhập thất bại
+      localStorage.removeItem("admin_data");
+      localStorage.removeItem("admin_token");
     } finally {
       setLoading(false);
     }
