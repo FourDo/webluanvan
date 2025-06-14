@@ -144,22 +144,6 @@ const QLSanPham = () => {
     setIsModalVisible(true);
   };
 
-  const handleEdit = (product: SanPhamAPI) => {
-    // TODO: Implement edit logic
-    // Cần tạo một API riêng để cập nhật sản phẩm
-    message.info("Chức năng sửa đang được phát triển!");
-    // setEditingProduct(product);
-    // form.setFieldsValue(...);
-    // setIsModalVisible(true);
-  };
-
-  const handleDelete = (productId: number) => {
-    // TODO: Implement delete logic
-    // Cần tạo API để xóa sản phẩm
-    message.info("Chức năng xóa đang được phát triển!");
-    // Modal.confirm(...);
-  };
-
   const handleCancel = () => {
     setIsModalVisible(false);
     setEditingProduct(null);
@@ -297,13 +281,13 @@ const QLSanPham = () => {
       width: 180,
       render: (_: any, record: SanPhamAPI) => (
         <Space size="middle">
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+          <Button icon={<EditOutlined />} onClick={() => record}>
             Sửa
           </Button>
           <Button
             icon={<DeleteOutlined />}
             danger
-            onClick={() => handleDelete(record.ma_san_pham)}
+            onClick={() => record.ma_san_pham}
           >
             Xóa
           </Button>
