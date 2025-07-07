@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, LogOut } from "lucide-react";
 import authApi from "../API/authApi";
+import { useAuth } from "../context/AuthContext";
 
 const TrangDangNhap: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -17,6 +18,7 @@ const TrangDangNhap: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
 
   useEffect(() => {
     if (location.state?.message) {
@@ -69,8 +71,8 @@ const TrangDangNhap: React.FC = () => {
         mat_khau: formData.mat_khau,
       });
 
-      // Lưu thông tin người dùng vào localStorage
-      localStorage.setItem("user", JSON.stringify(response.user));
+      // Sử dụng context để lưu user vào cookie
+      login(response.user);
 
       // Xử lý ghi nhớ đăng nhập
       if (rememberMe) {
