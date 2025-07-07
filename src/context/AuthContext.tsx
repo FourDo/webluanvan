@@ -28,7 +28,6 @@ export const useAuth = () => {
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  console.log("useAuth - Context:", context); // Debug
   return context;
 };
 
@@ -40,21 +39,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   // Đồng bộ trạng thái với cookie khi khởi tạo
   useEffect(() => {
-    const storedUser = Cookies.get("admin_data");
+    // Ưu tiên admin_data, nếu không có thì lấy user_data
+    const storedAdmin = Cookies.get("admin_data");
+    const storedUser = Cookies.get("user_data");
 
-    if (storedUser) {
+    if (storedAdmin) {
       try {
-        const userData = JSON.parse(storedUser);
-        console.log("userData từ cookie:", userData);
+        const userData = JSON.parse(storedAdmin);
         setUser(userData);
         setIsAdmin(userData.vai_tro === "admin");
-        console.log("isAdmin sau khi set:", userData.vai_tro === "admin"); // Debug
       } catch (error) {
-        console.error("Lỗi phân tích admin_data:", error);
+        logout();
+      }
+    } else if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        setIsAdmin(false);
+      } catch (error) {
         logout();
       }
     } else {
-      console.log("Không tìm thấy cookie admin_data, gọi logout");
       logout();
     }
   }, []);
@@ -62,36 +67,57 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   // Kiểm tra định kỳ cookie để phát hiện xóa thủ công
   useEffect(() => {
     const checkCookies = () => {
-      const storedUser = Cookies.get("admin_data");
-
-      if (!storedUser) {
+      const storedAdmin = Cookies.get("admin_data");
+      const storedUser = Cookies.get("user_data");
+      if (!storedAdmin && !storedUser) {
         logout();
       }
     };
 
-    const interval = setInterval(checkCookies, 5000); // Kiểm tra mỗi 1 giây
+    const interval = setInterval(checkCookies, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const login = (userData: any) => {
-    console.log("Lưu userData vào cookie:", userData); // Debug
+  // Lưu user vào cookie đúng loại, KHÔNG set domain
+  const login = (userData: any, token?: string) => {
     setUser(userData);
     setIsAdmin(userData.vai_tro === "admin");
-    Cookies.set("admin_data", JSON.stringify(userData), { expires: 7 });
-    console.log("Cookie admin_data sau khi lưu:", Cookies.get("admin_data")); // Debug
+    if (userData.vai_tro === "admin") {
+      Cookies.set("admin_data", JSON.stringify(userData), {
+        expires: 7,
+        sameSite: "Lax",
+        secure: true,
+      });
+      Cookies.remove("user_data");
+    } else {
+      Cookies.set("user_data", JSON.stringify(userData), {
+        expires: 7,
+        sameSite: "Lax",
+        secure: true,
+      });
+      Cookies.remove("admin_data");
+    }
+    // Lưu token vào cookie nếu có
+    if (token) {
+      Cookies.set("token", token, {
+        expires: 7,
+        sameSite: "Lax",
+        secure: true,
+      });
+    }
   };
 
   const logout = () => {
     setUser(null);
     setIsAdmin(false);
     Cookies.remove("admin_data");
+    Cookies.remove("user_data");
     Cookies.remove("admin_rememberMe");
     Cookies.remove("admin_rememberMeEmail");
-    // Không xóa token vì nó là HttpOnly, backend sẽ xử lý
   };
 
   const getToken = () => {
-    return Cookies.get("token"); // Sẽ trả undefined do HttpOnly
+    return Cookies.get("token");
   };
 
   return (
