@@ -1,160 +1,161 @@
-// src/pages/MomoSuccess.tsx
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle, XCircle, Loader } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const MomoSuccess: React.FC = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('');
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handlePaymentCallback = async () => {
-      try {
-        // Lấy các tham số từ URL
-        const amount = searchParams.get('amount');
-        const appid = searchParams.get('appid');
-        const apptransid = searchParams.get('apptransid');
-        const bankcode = searchParams.get('bankcode');
-        const checksum = searchParams.get('checksum');
-        const discountamount = searchParams.get('discountamount');
-        const pmcid = searchParams.get('pmcid');
-        const statusParam = searchParams.get('status');
+    const queryParams = new URLSearchParams(location.search);
+    const apptransid = queryParams.get("apptransid");
+    const status = queryParams.get("status");
+    const checksum = queryParams.get("checksum");
 
-        console.log('MoMo Callback Params:', {
-          amount,
-          appid,
-          apptransid,
-          bankcode,
-          checksum,
-          discountamount,
-          pmcid,
-          status: statusParam
-        });
+    console.log("MomoSuccess - Query params:", {
+      apptransid,
+      status,
+      checksum,
+    }); // Debug
 
-        // Kiểm tra trạng thái thanh toán
-        if (statusParam === '1') {
-          setStatus('success');
-          setMessage('Thanh toán thành công! Đơn hàng của bạn đã được xử lý.');
-          
-          // Lấy thông tin đơn hàng từ localStorage
-          const pendingOrder = localStorage.getItem('pendingOrder');
-          let orderData = {
-            ma_don_hang: apptransid,
-            trang_thai: 'thanh_toan_thanh_cong',
-            tong_thanh_toan: amount,
-            hinh_thuc_thanh_toan: 'MoMo'
-          };
-          
-          if (pendingOrder) {
-            try {
-              const parsedOrder = JSON.parse(pendingOrder);
-              orderData = { ...orderData, ...parsedOrder };
-              localStorage.removeItem('pendingOrder');
-            } catch (error) {
-              console.error('Lỗi parse pending order:', error);
+    if (apptransid && status === "1") {
+      const fetchOrder = async () => {
+        try {
+          const response = await axios.get(
+            `https://your-api-endpoint/orders/${apptransid}`,
+            {
+              params: { checksum }, // Gửi checksum để backend xác thực
             }
-          }
-          
-          // Xóa giỏ hàng sau khi thanh toán thành công
-          localStorage.removeItem('cart');
-          
-          // Chuyển hướng về trang hóa đơn sau 3 giây
-          setTimeout(() => {
-            navigate('/hoa-don', { 
-              state: { 
-                order: orderData
-              } 
-            });
-          }, 3000);
-        } else {
-          setStatus('error');
-          setMessage('Thanh toán thất bại hoặc bị hủy.');
+          );
+          setOrder(response.data);
+        } catch (err) {
+          console.error("Error fetching order:", err); // Debug
+          setError("Không thể tải thông tin đơn hàng");
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Lỗi xử lý callback:', error);
-        setStatus('error');
-        setMessage('Có lỗi xảy ra khi xử lý thanh toán.');
-      }
-    };
-
-    handlePaymentCallback();
-  }, [searchParams, navigate]);
-
-  const renderContent = () => {
-    switch (status) {
-      case 'loading':
-        return (
-          <div className="text-center">
-            <Loader className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">
-              Đang xử lý thanh toán...
-            </h2>
-            <p className="text-gray-600">
-              Vui lòng chờ trong giây lát
-            </p>
-          </div>
-        );
-      
-      case 'success':
-        return (
-          <div className="text-center">
-            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-green-700 mb-2">
-              Thanh toán thành công!
-            </h2>
-            <p className="text-gray-600 mb-4">
-              {message}
-            </p>
-            <div className="bg-green-50 p-4 rounded-lg mb-6">
-              <p className="text-sm text-green-700">
-                Bạn sẽ được chuyển hướng về trang hóa đơn trong giây lát...
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('/hoa-don')}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Xem hóa đơn ngay
-            </button>
-          </div>
-        );
-      
-      case 'error':
-        return (
-          <div className="text-center">
-            <XCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-red-700 mb-2">
-              Thanh toán thất bại
-            </h2>
-            <p className="text-gray-600 mb-4">
-              {message}
-            </p>
-            <div className="space-x-4">
-              <button
-                onClick={() => navigate('/gio-hang')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Quay lại giỏ hàng
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Về trang chủ
-              </button>
-            </div>
-          </div>
-        );
+      };
+      fetchOrder();
+    } else {
+      console.log("Invalid transaction"); // Debug
+      setError("Giao dịch không hợp lệ");
+      setLoading(false);
     }
-  };
+  }, [location.search]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="bg-white p-8 rounded-lg text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-4">
+            Đang tải thông tin đơn hàng...
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="bg-white p-8 rounded-lg text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-4">
+            {error || "Không tìm thấy thông tin đơn hàng"}
+          </h2>
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            onClick={() => navigate("/")}
+          >
+            Quay về trang chủ
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="max-w-md w-full mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {renderContent()}
+    <div className="container mx-auto p-4 max-w-2xl">
+      <div className="bg-white rounded-lg shadow-md p-8">
+        <h1 className="text-2xl font-bold mb-4 text-center text-green-600">
+          Thanh toán thành công!
+        </h1>
+        <p className="text-center text-gray-600 mb-6">
+          Cảm ơn bạn đã mua hàng. Dưới đây là thông tin đơn hàng của bạn:
+        </p>
+        <div className="mb-4">
+          <div className="flex justify-between mb-2">
+            <span className="font-medium">Mã đơn hàng:</span>
+            <span>{order.ma_don_hang || order.id || "-"}</span>
+          </div>
+          <div className="flex justify-between mb-2">
+            <span className="font-medium">Người nhận:</span>
+            <span>{order.ten_nguoi_nhan}</span>
+          </div>
+          <div className="flex justify-between mb-2">
+            <span className="font-medium">Số điện thoại:</span>
+            <span>{order.so_dien_thoai}</span>
+          </div>
+          <div className="flex justify-between mb-2">
+            <span className="font-medium">Địa chỉ giao:</span>
+            <span>{order.dia_chi_giao}</span>
+          </div>
+          <div className="flex justify-between mb-2">
+            <span className="font-medium">Hình thức thanh toán:</span>
+            <span>{order.hinh_thuc_thanh_toan}</span>
+          </div>
+        </div>
+        <div className="mb-4">
+          <h2 className="font-semibold mb-2">Sản phẩm:</h2>
+          <div className="divide-y">
+            {order.chi_tiet?.map((sp: any, idx: number) => (
+              <div key={idx} className="py-2 flex justify-between">
+                <div className="flex-1">
+                  <span className="font-medium">{sp.ten_san_pham}</span>
+                  {(sp.mau_sac || sp.kich_thuoc) && (
+                    <div className="text-sm text-gray-500 mt-1">
+                      {sp.mau_sac && (
+                        <span className="mr-2">Màu: {sp.mau_sac}</span>
+                      )}
+                      {sp.kich_thuoc && <span>Size: {sp.kich_thuoc}</span>}
+                    </div>
+                  )}
+                  <div className="text-sm text-gray-600">
+                    Số lượng: {sp.so_luong}
+                  </div>
+                </div>
+                <span className="font-medium">
+                  {sp.gia_sau_km?.toLocaleString()}₫
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="border-t pt-4 space-y-2">
+          <div className="flex justify-between">
+            <span>Tạm tính:</span>
+            <span>{order.tong_tien?.toLocaleString()}₫</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Phí vận chuyển:</span>
+            <span>{order.phi_van_chuyen?.toLocaleString()}₫</span>
+          </div>
+          <div className="flex justify-between font-bold text-lg">
+            <span>Tổng thanh toán:</span>
+            <span className="text-blue-600">
+              {order.tong_thanh_toan?.toLocaleString()}₫
+            </span>
+          </div>
+        </div>
+        <div className="mt-6 text-center">
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            onClick={() => navigate("/")}
+          >
+            Quay về trang chủ
+          </button>
         </div>
       </div>
     </div>

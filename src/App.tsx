@@ -2,7 +2,6 @@ import {
   createBrowserRouter,
   Outlet,
   RouterProvider,
-  Navigate,
   useNavigate,
   useLocation,
 } from "react-router-dom";
@@ -47,16 +46,21 @@ const RedirectHandler: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const apptransid = queryParams.get("apptransid");
-    const status = queryParams.get("status");
+  const queryParams = new URLSearchParams(location.search);
+  const apptransid = queryParams.get("apptransid");
+  const status = queryParams.get("status");
 
+  useEffect(() => {
     if (apptransid && status === "1") {
-      // Điều hướng đến TrangHoaDon hoặc MomoSuccess với query parameters
+      console.log("Redirecting to /momo-success"); // Debug
       navigate(`/momo-success${location.search}`, { replace: true });
     }
-  }, [location.search, navigate]);
+  }, [apptransid, status, navigate]);
+
+  // Đợi điều hướng, không render TrangChu ngay
+  if (apptransid && status === "1") {
+    return null; // hoặc spinner, hoặc loading
+  }
 
   return <TrangChu />;
 };
@@ -99,6 +103,7 @@ const router = createBrowserRouter([
           { path: "sanpham/them", element: <AddProduct /> },
           { path: "sanpham/sua/:productId", element: <EditProduct /> },
           { path: "donhang", element: <QLDonHang /> },
+          { path: "/momo-success", element: <TrangHoaDon /> },
           { path: "taikhoan", element: <QLTaiKhoan /> },
           { path: "mausac", element: <QLMauSac /> },
           { path: "kichthuoc", element: <QLSize /> },
@@ -114,7 +119,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <RedirectHandler key={typeof window !== "undefined" ? window.location.search : ""} />,
+        element: <RedirectHandler />,
       },
       {
         path: "/sanpham",
