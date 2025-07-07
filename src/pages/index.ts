@@ -12,6 +12,7 @@ export { default as TrangThanhToan } from "./TrangThanhToan";
 export { default as TrangProfile } from "./TrangProfile";
 export { default as TrangQuenMatKhau } from "./TrangQuenMatKhau";
 export { default as TrangHoaDon } from "./TrangHoaDon";
+export { default as MomoSuccess } from "./MomoSuccess";
 
 export { default as AdminDangNhap } from "../pages/TrangDangNhapADmin";
 export { default as AdminDashboard } from "../pages/AdminDashboard";

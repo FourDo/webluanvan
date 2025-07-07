@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGioHang } from "../context/GioHangContext";
+import { useAuth } from "../context/AuthContext";
 import { createOrder } from "../API/orderApi";
 import axios from "axios";
 
@@ -23,6 +24,7 @@ const YOUR_SHOP_WARD_CODE = "20101"; // Thay bằng ward_code của shop
 const ThanhToan: React.FC = () => {
   const navigate = useNavigate();
   const { items, xoaGioHang, tinhTongTien } = useGioHang();
+  const { user } = useAuth();
 
   // State cho thông tin khách hàng
   const [thongTinKhachHang, setThongTinKhachHang] = useState<ThongTinKhachHang>(
@@ -165,6 +167,19 @@ const ThanhToan: React.FC = () => {
     }
   };
 
+  // Tự động điền thông tin nếu người dùng đã đăng nhập
+  useEffect(() => {
+    if (user) {
+      setThongTinKhachHang(prev => ({
+        ...prev,
+        hoTen: user.ho_ten || "",
+        email: user.email || "",
+        soDienThoai: user.so_dien_thoai || "",
+        diaChi: user.dia_chi || "",
+      }));
+    }
+  }, [user]);
+
   // Lấy danh sách tỉnh/thành phố khi component mount
   useEffect(() => {
     const fetchProvinces = async () => {
@@ -296,7 +311,7 @@ const ThanhToan: React.FC = () => {
     try {
       // Chuẩn bị dữ liệu đơn hàng
       const donHangPayload = {
-        ma_nguoi_dung: 1, // TODO: Lấy từ context đăng nhập
+        ma_nguoi_dung: user?.id || null, // Sử dụng ID người dùng nếu đã đăng nhập, null nếu chưa đăng nhập
         ten_nguoi_nhan: thongTinKhachHang.hoTen,
         so_dien_thoai: thongTinKhachHang.soDienThoai,
         dia_chi_giao: `${thongTinKhachHang.diaChi}, ${thongTinKhachHang.phuongXa}, ${thongTinKhachHang.quanHuyen}, ${thongTinKhachHang.thanhPho}`,
@@ -320,6 +335,8 @@ const ThanhToan: React.FC = () => {
 
       const orderResult = await createOrder(donHangPayload);
       if (orderResult && orderResult.payment_url) {
+        // Lưu thông tin đơn hàng vào localStorage để sử dụng sau khi callback
+        localStorage.setItem('pendingOrder', JSON.stringify(orderResult));
         window.location.href = orderResult.payment_url;
         return;
       } else {
@@ -408,7 +425,26 @@ const ThanhToan: React.FC = () => {
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="lg:w-2/3">
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-6">Thông tin giao hàng</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold">Thông tin giao hàng</h2>
+              {user ? (
+                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                  <span>✓</span>
+                  <span>Đã đăng nhập - Thông tin đã được điền tự động</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                  <span>ℹ</span>
+                  <span>Chưa đăng nhập - Vui lòng nhập thông tin</span>
+                  <button
+                    onClick={() => navigate('/dangnhap')}
+                    className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors"
+                  >
+                    Đăng nhập
+                  </button>
+                </div>
+              )}
+            </div>
 
             {apiLoading && (
               <div className="flex items-center justify-center mb-4">

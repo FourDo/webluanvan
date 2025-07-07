@@ -103,6 +103,18 @@ const GioHang: React.FC = () => {
                             <div className="text-sm text-gray-500">
                               {item.sanPham.loai}
                             </div>
+                            {(item.sanPham.mauSac || item.sanPham.kichThuoc) && (
+                              <div className="text-xs text-gray-400 mt-1">
+                                {item.sanPham.mauSac && (
+                                  <span className="mr-2">
+                                    Màu: {item.sanPham.mauSac}
+                                  </span>
+                                )}
+                                {item.sanPham.kichThuoc && (
+                                  <span>Size: {item.sanPham.kichThuoc}</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>

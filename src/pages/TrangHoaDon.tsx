@@ -60,8 +60,17 @@ const TrangHoaDon: React.FC = () => {
           <div className="divide-y">
             {order.chi_tiet?.map((sp: any, idx: number) => (
               <div key={idx} className="py-2 flex justify-between">
-                <span>{sp.ten_san_pham} ({sp.mau_sac}) x {sp.so_luong}</span>
-                <span>{sp.gia_sau_km?.toLocaleString()}₫</span>
+                <div className="flex-1">
+                  <span className="font-medium">{sp.ten_san_pham}</span>
+                  {(sp.mau_sac || sp.kich_thuoc) && (
+                    <div className="text-sm text-gray-500 mt-1">
+                      {sp.mau_sac && <span className="mr-2">Màu: {sp.mau_sac}</span>}
+                      {sp.kich_thuoc && <span>Size: {sp.kich_thuoc}</span>}
+                    </div>
+                  )}
+                  <div className="text-sm text-gray-600">Số lượng: {sp.so_luong}</div>
+                </div>
+                <span className="font-medium">{sp.gia_sau_km?.toLocaleString()}₫</span>
               </div>
             ))}
           </div>

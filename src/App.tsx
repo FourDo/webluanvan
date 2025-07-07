@@ -25,6 +25,7 @@ import {
   TrangProfile,
   TrangQuenMatKhau,
   TrangHoaDon,
+  MomoSuccess,
 } from "./pages/index";
 import AdminPrivateRoute from "./context/AdminPrivateRoute";
 import ProductDetail from "./components/ProductDetail";
@@ -125,12 +126,16 @@ const router = createBrowserRouter([
         element: <TrangHoaDon />,
       },
       {
+        path: "/momo-success",
+        element: <MomoSuccess />,
+      },
+      {
+        path: "/thanh-toan",
+        element: <TrangThanhToan />,
+      },
+      {
         element: <PrivateRoute />,
         children: [
-          {
-            path: "/thanh-toan",
-            element: <TrangThanhToan />,
-          },
           {
             path: "/profile",
             element: <TrangProfile />,
