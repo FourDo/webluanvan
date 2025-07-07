@@ -147,7 +147,7 @@ const TrangHoaDon: React.FC = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             onClick={() => navigate("/")}
           >
-            Quay về trang chủ
+            Quay về trang Chủ
           </button>
         </div>
       </div>

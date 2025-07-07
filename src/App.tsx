@@ -56,7 +56,7 @@ const RedirectHandler: React.FC = () => {
       // Điều hướng đến TrangHoaDon hoặc MomoSuccess với query parameters
       navigate(`/momo-success${location.search}`, { replace: true });
     }
-  }, [location, navigate]);
+  }, [location.search, navigate]);
 
   return <TrangChu />;
 };
@@ -114,7 +114,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <RedirectHandler />,
+        element: <RedirectHandler key={typeof window !== "undefined" ? window.location.search : ""} />,
       },
       {
         path: "/sanpham",
