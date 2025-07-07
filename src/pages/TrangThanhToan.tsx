@@ -309,9 +309,8 @@ const ThanhToan: React.FC = () => {
     setError(null);
 
     try {
-      // Chuẩn bị dữ liệu đơn hàng
-      const donHangPayload = {
-        ma_nguoi_dung: user?.id || null, // Sử dụng ID người dùng nếu đã đăng nhập, null nếu chưa đăng nhập
+      // Chuẩn bị dữ liệu chung cho đơn hàng
+      const orderData = {
         ten_nguoi_nhan: thongTinKhachHang.hoTen,
         so_dien_thoai: thongTinKhachHang.soDienThoai,
         dia_chi_giao: `${thongTinKhachHang.diaChi}, ${thongTinKhachHang.phuongXa}, ${thongTinKhachHang.quanHuyen}, ${thongTinKhachHang.thanhPho}`,
@@ -333,6 +332,12 @@ const ThanhToan: React.FC = () => {
         })),
       };
 
+      // Sử dụng API với ID mặc định cho khách hàng chưa đăng nhập
+      const donHangPayload = {
+        ...orderData,
+        ma_nguoi_dung: user?.id || 1, // Sử dụng ID người dùng nếu đã đăng nhập, hoặc ID mặc định cho khách hàng chưa đăng nhập
+      };
+      
       const orderResult = await createOrder(donHangPayload);
       if (orderResult && orderResult.payment_url) {
         // Lưu thông tin đơn hàng vào localStorage để sử dụng sau khi callback

@@ -15,7 +15,7 @@ export interface ChiTietDonHang {
 }
 
 export interface DonHangPayload {
-  ma_nguoi_dung: number | null;
+  ma_nguoi_dung: number;
   ten_nguoi_nhan: string;
   so_dien_thoai: string;
   dia_chi_giao: string;
