@@ -103,7 +103,7 @@ const router = createBrowserRouter([
           { path: "sanpham/them", element: <AddProduct /> },
           { path: "sanpham/sua/:productId", element: <EditProduct /> },
           { path: "donhang", element: <QLDonHang /> },
-          { path: "/momo-success", element: <TrangHoaDon /> },
+
           { path: "taikhoan", element: <QLTaiKhoan /> },
           { path: "mausac", element: <QLMauSac /> },
           { path: "kichthuoc", element: <QLSize /> },
@@ -121,6 +121,7 @@ const router = createBrowserRouter([
         path: "/",
         element: <RedirectHandler />,
       },
+      { path: "/momo-success", element: <TrangHoaDon /> },
       {
         path: "/sanpham",
         element: <TrangSanPham />,
