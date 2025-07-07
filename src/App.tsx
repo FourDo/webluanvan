@@ -52,8 +52,8 @@ const RedirectHandler: React.FC = () => {
 
   useEffect(() => {
     if (apptransid && status === "1") {
-      console.log("Redirecting to /momo-success"); // Debug
-      navigate(`/momo-success${location.search}`, { replace: true });
+      console.log("Redirecting to /hoa-don"); // Debug
+      navigate(`/hoa-don${location.search}`, { replace: true });
     }
   }, [apptransid, status, navigate]);
 
@@ -121,7 +121,7 @@ const router = createBrowserRouter([
         path: "/",
         element: <RedirectHandler />,
       },
-      { path: "/momo-success", element: <TrangHoaDon /> },
+      { path: "/hoa-don", element: <TrangHoaDon /> },
       {
         path: "/sanpham",
         element: <TrangSanPham />,
