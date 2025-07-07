@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGioHang } from "../context/GioHangContext";
-import { createMomoPayment } from "../API/api";
-import { createVNPayPayment } from "../API/vnpay";
-import { createZaloPayPayment } from "../API/zaloapi";
+import { createOrder } from "../API/orderApi";
 import axios from "axios";
 
 interface ThongTinKhachHang {
@@ -296,62 +294,49 @@ const ThanhToan: React.FC = () => {
     setError(null);
 
     try {
-      switch (phuongThucThanhToan) {
-        case "cod":
-          alert(
-            "Đơn hàng của bạn đã được xác nhận! Bạn sẽ thanh toán khi nhận hàng."
-          );
-          break;
-        case "vnpay":
-          const vnpayResponse = await createVNPayPayment({
-            amount: tinhTongTien() + phiVanChuyen,
-            orderInfo: `Thanh toán đơn hàng từ ${items.length} sản phẩm`,
-            orderType: "billpayment",
-            language: "vn",
-          });
-          if (vnpayResponse.code === "00" && vnpayResponse.data) {
-            window.location.href = vnpayResponse.data;
-            return;
-          } else {
-            setError("Không nhận được URL thanh toán từ VNPay");
-            return;
-          }
-        case "zalopay":
-          const zalopayResponse = await createZaloPayPayment({
-            amount: tinhTongTien() + phiVanChuyen,
-            userId: "user123",
-          });
-          const { order_url } = zalopayResponse;
-          if (order_url) {
-            window.location.href = order_url;
-            return;
-          } else {
-            setError("Không nhận được URL thanh toán từ ZaloPay");
-            return;
-          }
-        case "momo":
-          const momoResponse = await createMomoPayment({
-            amount: (tinhTongTien() + phiVanChuyen).toString(),
-            orderInfo: `Thanh toán đơn hàng từ ${items.length} sản phẩm`,
-          });
-          const { payUrl } = momoResponse;
-          if (payUrl) {
-            window.location.href = payUrl;
-            return;
-          } else {
-            setError("Không nhận được URL thanh toán từ MoMo");
-            return;
-          }
-        default:
-          setError("Phương thức thanh toán không hợp lệ!");
-          return;
-      }
+      // Chuẩn bị dữ liệu đơn hàng
+      const donHangPayload = {
+        ma_nguoi_dung: 1, // TODO: Lấy từ context đăng nhập
+        ten_nguoi_nhan: thongTinKhachHang.hoTen,
+        so_dien_thoai: thongTinKhachHang.soDienThoai,
+        dia_chi_giao: `${thongTinKhachHang.diaChi}, ${thongTinKhachHang.phuongXa}, ${thongTinKhachHang.quanHuyen}, ${thongTinKhachHang.thanhPho}`,
+        hinh_thuc_thanh_toan: phuongThucThanhToan,
+        tong_tien: tinhTongTien(),
+        phi_van_chuyen: phiVanChuyen,
+        tong_thanh_toan: tinhTongTien() + phiVanChuyen,
+        ghi_chu: thongTinKhachHang.ghiChu,
+        chi_tiet: items.map((item) => ({
+          ma_bien_the: item.sanPham.id,
+          ten_san_pham: item.sanPham.ten,
+          mau_sac: item.sanPham.mauSac || "",
+          kich_thuoc: item.sanPham.kichThuoc || "",
+          so_luong: item.soLuong,
+          gia_goc: item.sanPham.gia,
+          loai_khuyen_mai: "",
+          gia_khuyen_mai: 0,
+          gia_sau_km: item.sanPham.gia,
+        })),
+      };
 
-      xoaGioHang();
-      navigate("/dat-hang-thanh-cong");
-    } catch (error) {
-      setError("Đã có lỗi xảy ra khi xử lý thanh toán");
-      console.error("Lỗi thanh toán:", error);
+      const orderResult = await createOrder(donHangPayload);
+      if (orderResult && orderResult.payment_url) {
+        window.location.href = orderResult.payment_url;
+        return;
+      } else {
+        xoaGioHang();
+        navigate("/hoa-don", { state: { order: orderResult } });
+        return;
+      }
+    } catch (error: any) {
+      if (error.response && error.response.status === 422) {
+        setError(
+          "Dữ liệu gửi lên không hợp lệ: " + JSON.stringify(error.response.data)
+        );
+        console.error("Lỗi 422 khi gửi đơn hàng:", error.response.data);
+      } else {
+        setError("Đã có lỗi xảy ra khi xử lý thanh toán");
+        console.error("Lỗi thanh toán:", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -365,16 +350,10 @@ const ThanhToan: React.FC = () => {
       desc: "Thanh toán bằng tiền mặt khi nhận hàng",
     },
     {
-      value: "vnpay",
-      label: "VNPay",
-      icon: "🏦",
-      desc: "Thanh toán qua ví điện tử VNPay",
-    },
-    {
       value: "zalopay",
-      label: "ZaloPay",
-      icon: "⚡",
-      desc: "Thanh toán qua ví điện tử ZaloPay",
+      label: "zalopay",
+      icon: "🏦",
+      desc: "Thanh toán qua ví điện tử zaloPay",
     },
     {
       value: "momo",

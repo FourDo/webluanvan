@@ -19,6 +19,8 @@ export interface SanPham {
   hinhAnh: string;
   moTa: string;
   conHang: boolean;
+  mauSac?: string;
+  kichThuoc?: string;
 }
 
 export interface SanPhamGioHang {

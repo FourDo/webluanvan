@@ -9,6 +9,9 @@ export { default as TrangDangKy } from "./TrangDangKy";
 export { default as TrangDangNhap } from "./TrangDangNhap";
 export { default as GioHang } from "./GioHang";
 export { default as TrangThanhToan } from "./TrangThanhToan";
+export { default as TrangProfile } from "./TrangProfile";
+export { default as TrangQuenMatKhau } from "./TrangQuenMatKhau";
+export { default as TrangHoaDon } from "./TrangHoaDon";
 
 export { default as AdminDangNhap } from "../pages/TrangDangNhapADmin";
 export { default as AdminDashboard } from "../pages/AdminDashboard";
@@ -18,6 +21,5 @@ export { default as QLTaiKhoan } from "../pages/QLTaiKhoan";
 export { default as QLDoanhMuc } from "../pages/QLDoanhMuc";
 export { default as QLMauSac } from "../pages/QLMauSac";
 export { default as QLSize } from "../pages/QLKichThuoc";
-export { default as QLThongKe } from "../pages/QLThongKe";
 export { default as QLKhachHang } from "../pages/QLKhachHang";
 export { default as QLKhuyenMai } from "../pages/QLKhuyenMai";

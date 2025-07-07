@@ -1,18 +1,36 @@
-export const API_BASE_URL = "https://luanvan-7wv1.onrender.com/api";
+import axios, { type AxiosResponse } from "axios";
+import Cookies from "js-cookie";
+
+const instance = axios.create({
+  baseURL: "https://luanvan-7wv1.onrender.com/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true,
+});
+
+instance.interceptors.request.use(
+  (config) => {
+    const token = Cookies.get("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn("Không tìm thấy token trong cookie");
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export const fetchColors = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/color`);
-    if (response.ok) {
-      const data = await response.json();
-      return { success: true, data };
-    } else {
-      console.error("Lỗi khi tải màu sắc");
-      return { success: false };
-    }
-  } catch (error) {
-    console.error("Lỗi khi tải màu sắc:", error);
-    return { success: false };
+    const response: AxiosResponse = await instance.get("/mau-sac");
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("Lỗi khi tải màu sắc:", error.response || error);
+    throw new Error(
+      error.response?.data?.message || "Lỗi khi lấy danh sách màu sắc"
+    );
   }
 };
 
@@ -22,25 +40,23 @@ export const deleteColor = async (id: number) => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/color/${id}`, {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      return { success: true };
-    } else {
-      return { success: false, error: "Lỗi khi xóa màu sắc!" };
-    }
-  } catch (error) {
-    console.error("Lỗi khi xóa màu sắc:", error);
-    return { success: false, error: "Lỗi khi xóa màu sắc!" };
+    await instance.delete(`/mau-sac/${id}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Lỗi khi xóa màu sắc:", error.response || error);
+    throw new Error(error.response?.data?.message || "Lỗi khi xóa màu sắc");
   }
 };
 
 export const saveColor = async (
-  formData: { ten_mau_sac: string; mo_ta: string },
+  formData: { ten_mau_sac: string; mo_ta: string; hex_code: string },
   editingItem: { ma_mau_sac: number } | null
 ) => {
-  if (!formData.ten_mau_sac.trim() || !formData.mo_ta.trim()) {
+  if (
+    !formData.ten_mau_sac.trim() ||
+    !formData.mo_ta.trim() ||
+    !formData.hex_code.trim()
+  ) {
     return { success: false, error: "Vui lòng điền đầy đủ thông tin!" };
   }
 
@@ -48,46 +64,23 @@ export const saveColor = async (
     const payload = {
       ten_mau_sac: formData.ten_mau_sac.trim(),
       mo_ta: formData.mo_ta.trim(),
+      hex_code: formData.hex_code.trim(),
     };
 
+    let response: AxiosResponse;
     if (editingItem) {
       // Update existing color
-      const response = await fetch(
-        `${API_BASE_URL}/color/${editingItem.ma_mau_sac}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
+      response = await instance.put(
+        `/mau-sac/${editingItem.ma_mau_sac}`,
+        payload
       );
-
-      if (response.ok) {
-        const updatedColor = await response.json();
-        return { success: true, data: updatedColor };
-      } else {
-        return { success: false, error: "Lỗi khi cập nhật màu sắc!" };
-      }
     } else {
       // Create new color
-      const response = await fetch(`${API_BASE_URL}/color`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        const newColor = await response.json();
-        return { success: true, data: newColor };
-      } else {
-        return { success: false, error: "Lỗi khi thêm màu sắc!" };
-      }
+      response = await instance.post("/mau-sac", payload);
     }
-  } catch (error) {
-    console.error("Lỗi khi lưu màu sắc:", error);
-    return { success: false, error: "Lỗi khi lưu màu sắc!" };
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("Lỗi khi lưu màu sắc:", error.response || error);
+    throw new Error(error.response?.data?.message || "Lỗi khi lưu màu sắc");
   }
 };

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, User, Lock, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import authApi from "../API/authApi"; // Import authApi từ authApi.ts
+import authApi from "../API/authApi";
+import { useAuth } from "../context/AuthContext"; // Import useAuth
 
 function TrangDangNhapADmin() {
   const [showPassword, setShowPassword] = useState(false);
@@ -12,14 +13,28 @@ function TrangDangNhapADmin() {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  const { login, isAdmin } = useAuth(); // Lấy login và isAdmin từ AuthContext
 
-  // Danh sách hình ảnh cho slideshow
   const images = [
     "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop",
     "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&h=600&fit=crop",
     "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop",
     "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=600&fit=crop",
   ];
+
+  // Kiểm tra trạng thái admin khi component mount
+  useEffect(() => {
+    if (isAdmin) {
+      navigate("/admin", { replace: true });
+    }
+
+    const savedEmail = localStorage.getItem("admin_rememberMeEmail");
+    const savedRememberMe = localStorage.getItem("admin_rememberMe");
+    if (savedEmail && savedRememberMe === "true") {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, [isAdmin, navigate]);
 
   // Tự động chuyển hình ảnh
   useEffect(() => {
@@ -30,21 +45,10 @@ function TrangDangNhapADmin() {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [images.length]);
-
-  // Kiểm tra trạng thái ghi nhớ đăng nhập khi component mount
-  useEffect(() => {
-    const savedEmail = localStorage.getItem("admin_rememberMeEmail");
-    const savedRememberMe = localStorage.getItem("admin_rememberMe");
-    if (savedEmail && savedRememberMe === "true") {
-      setEmail(savedEmail);
-      setRememberMe(true);
-    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setError("");
     setLoading(true);
 
@@ -54,29 +58,16 @@ function TrangDangNhapADmin() {
         mat_khau: password,
       });
 
-      // ================= SỬA LỖI TẠI ĐÂY =================
-
-      // 1. Kiểm tra vai trò admin NGAY LẬP TỨC
       if (response.user.vai_tro !== "admin") {
-        // Nếu không phải admin, không lưu gì cả và báo lỗi
         throw new Error(
           "Tài khoản này không có quyền truy cập khu vực quản trị."
         );
       }
 
-      // 2. Lưu thông tin vào đúng key mà AdminPrivateRoute cần
-      localStorage.setItem("admin_data", JSON.stringify(response.user));
+      // Gọi hàm login từ AuthContext để cập nhật trạng thái
+      login(response.user);
 
-      // 3. Giả định rằng token được lưu trong cookie.
-      //    Nếu AdminPrivateRoute của bạn yêu cầu token trong localStorage,
-      //    bạn cần phải lấy token từ phản hồi và lưu nó.
-      //    Ví dụ, nếu API trả về token:
-      //    localStorage.setItem("admin_token", response.token);
-      //    Nếu bạn chỉ dựa vào cookie thì nên sửa AdminPrivateRoute để không check localStorage token.
-      //    Tạm thời, để vượt qua kiểm tra, chúng ta có thể đặt một giá trị giả
-      localStorage.setItem("admin_token", "true"); // Đặt một giá trị để AdminPrivateRoute xác thực thành công
-
-      // 4. Xử lý ghi nhớ đăng nhập cho admin
+      // Xử lý ghi nhớ đăng nhập
       if (rememberMe) {
         localStorage.setItem("admin_rememberMe", "true");
         localStorage.setItem("admin_rememberMeEmail", email);
@@ -85,18 +76,15 @@ function TrangDangNhapADmin() {
         localStorage.removeItem("admin_rememberMeEmail");
       }
 
-      // 5. Chuyển hướng đến dashboard của admin
+      // Chuyển hướng đến dashboard
       navigate("/admin", { replace: true });
-      // ====================================================
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "Đăng nhập thất bại. Vui lòng kiểm tra email hoặc mật khẩu."
       );
-      // Xóa các key của admin nếu đăng nhập thất bại
       localStorage.removeItem("admin_data");
-      localStorage.removeItem("admin_token");
     } finally {
       setLoading(false);
     }

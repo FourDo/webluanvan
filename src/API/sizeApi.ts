@@ -1,46 +1,71 @@
-export const API_BASE_URL = "https://luanvan-7wv1.onrender.com/api";
+import axios, { type AxiosResponse } from "axios";
+import Cookies from "js-cookie";
 
+// Tạo một instance của axios với cấu hình chung
+const instance = axios.create({
+  baseURL: "https://luanvan-7wv1.onrender.com/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true,
+});
+// Thêm interceptor để tự động thêm token vào header của mỗi request
+instance.interceptors.request.use(
+  (config) => {
+    const token = Cookies.get("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+/**
+ * Lấy danh sách tất cả kích thước
+ */
 export const fetchSizes = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/kich-thuoc`);
-    if (response.ok) {
-      const data = await response.json();
-      return { success: true, data };
-    } else {
-      console.error("Lỗi khi tải kích thước");
-      return { success: false };
-    }
-  } catch (error) {
-    console.error("Lỗi khi tải kích thước:", error);
-    return { success: false };
+    const response: AxiosResponse = await instance.get("/kich-thuoc");
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("Lỗi khi tải danh sách kích thước:", error.response || error);
+    // Ném lỗi để component gọi nó có thể bắt và xử lý
+    throw new Error(
+      error.response?.data?.message || "Lỗi khi lấy danh sách kích thước"
+    );
   }
 };
 
+/**
+ * Xóa một kích thước theo ID
+ */
 export const deleteSize = async (id: number) => {
+  // Phần confirm này có thể giữ lại hoặc chuyển ra component tùy vào logic
   if (!confirm("Bạn có chắc chắn muốn xóa kích thước này?")) {
-    return { success: false };
+    // Trả về để không thực hiện hành động xóa
+    return { success: false, cancelled: true };
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/kich-thuoc/${id}`, {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      return { success: true };
-    } else {
-      return { success: false, error: "Lỗi khi xóa kích thước!" };
-    }
-  } catch (error) {
-    console.error("Lỗi khi xóa kích thước:", error);
-    return { success: false, error: "Lỗi khi xóa kích thước!" };
+    await instance.delete(`/kich-thuoc/${id}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Lỗi khi xóa kích thước:", error.response || error);
+    throw new Error(error.response?.data?.message || "Lỗi khi xóa kích thước");
   }
 };
 
+/**
+ * Lưu (thêm mới hoặc cập nhật) một kích thước
+ */
 export const saveSize = async (
   formData: { ten_kich_thuoc: string; mo_ta: string },
   editingItem: { ma_kich_thuoc: number } | null
 ) => {
   if (!formData.ten_kich_thuoc.trim() || !formData.mo_ta.trim()) {
+    // Trả về lỗi validation, không phải lỗi API
     return { success: false, error: "Vui lòng điền đầy đủ thông tin!" };
   }
 
@@ -50,44 +75,21 @@ export const saveSize = async (
       mo_ta: formData.mo_ta.trim(),
     };
 
+    let response: AxiosResponse;
+
     if (editingItem) {
-      // Update existing size
-      const response = await fetch(
-        `${API_BASE_URL}/kich-thuoc/${editingItem.ma_kich_thuoc}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
+      // Cập nhật kích thước đã có
+      response = await instance.put(
+        `/kich-thuoc/${editingItem.ma_kich_thuoc}`,
+        payload
       );
-
-      if (response.ok) {
-        const updatedSize = await response.json();
-        return { success: true, data: updatedSize };
-      } else {
-        return { success: false, error: "Lỗi khi cập nhật kích thước!" };
-      }
     } else {
-      // Create new size
-      const response = await fetch(`${API_BASE_URL}/kich-thuoc`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        const newSize = await response.json();
-        return { success: true, data: newSize };
-      } else {
-        return { success: false, error: "Lỗi khi thêm kích thước!" };
-      }
+      // Tạo kích thước mới
+      response = await instance.post("/kich-thuoc", payload);
     }
-  } catch (error) {
-    console.error("Lỗi khi lưu kích thước:", error);
-    return { success: false, error: "Lỗi khi lưu kích thước!" };
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("Lỗi khi lưu kích thước:", error.response || error);
+    throw new Error(error.response?.data?.message || "Lỗi khi lưu kích thước");
   }
 };

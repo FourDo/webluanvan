@@ -3,8 +3,6 @@ import {
   Home,
   Package,
   ShoppingCart,
-  Users,
-  BarChart3,
   Settings,
   X,
   Palette,
@@ -30,12 +28,6 @@ const SidebarAdmin = ({ isOpen, closeSidebar }: SidebarAdminProps) => {
       icon: ShoppingCart,
       path: "/admin/donhang",
     },
-    {
-      id: "khachhang",
-      label: "Khách hàng",
-      icon: Users,
-      path: "/admin/khachhang",
-    },
     { id: "doanhmuc", label: "Danh mục", icon: List, path: "/admin/doanhmuc" },
     { id: "mausac", label: "Màu sắc", icon: Palette, path: "/admin/mausac" },
     {
@@ -50,12 +42,7 @@ const SidebarAdmin = ({ isOpen, closeSidebar }: SidebarAdminProps) => {
       icon: Gift,
       path: "/admin/khuyenmai",
     },
-    {
-      id: "thongke",
-      label: "Thống kê",
-      icon: BarChart3,
-      path: "/admin/thongke",
-    },
+
     {
       id: "taikhoan",
       label: "Tài khoản",

@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock, Phone, MapPin } from "lucide-react";
+import authApi from "../API/authApi";
 
 const TrangDangky: React.FC = () => {
   const [formData, setFormData] = useState({
-    name: "",
+    ho_ten: "",
     email: "",
-    password: "",
+    mat_khau: "",
     confirmPassword: "",
+    so_dien_thoai: "",
+    dia_chi: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -22,7 +25,6 @@ const TrangDangky: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    // Xóa lỗi khi user bắt đầu nhập
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -34,8 +36,8 @@ const TrangDangky: React.FC = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Vui lòng nhập họ tên";
+    if (!formData.ho_ten.trim()) {
+      newErrors.ho_ten = "Vui lòng nhập họ tên";
     }
 
     if (!formData.email.trim()) {
@@ -44,15 +46,25 @@ const TrangDangky: React.FC = () => {
       newErrors.email = "Email không hợp lệ";
     }
 
-    if (!formData.password) {
-      newErrors.password = "Vui lòng nhập mật khẩu";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
+    if (!formData.so_dien_thoai.trim()) {
+      newErrors.so_dien_thoai = "Vui lòng nhập số điện thoại";
+    } else if (!/^\d{10,11}$/.test(formData.so_dien_thoai)) {
+      newErrors.so_dien_thoai = "Số điện thoại không hợp lệ";
+    }
+
+    if (!formData.dia_chi.trim()) {
+      newErrors.dia_chi = "Vui lòng nhập địa chỉ";
+    }
+
+    if (!formData.mat_khau) {
+      newErrors.mat_khau = "Vui lòng nhập mật khẩu";
+    } else if (formData.mat_khau.length < 6) {
+      newErrors.mat_khau = "Mật khẩu phải có ít nhất 6 ký tự";
     }
 
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
-    } else if (formData.password !== formData.confirmPassword) {
+    } else if (formData.mat_khau !== formData.confirmPassword) {
       newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
     }
 
@@ -68,18 +80,21 @@ const TrangDangky: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Gọi API đăng ký ở đây
-      // const response = await registerAPI(formData);
+      await authApi.register({
+        ho_ten: formData.ho_ten,
+        email: formData.email,
+        mat_khau: formData.mat_khau,
+        so_dien_thoai: formData.so_dien_thoai,
+        dia_chi: formData.dia_chi,
+      });
 
-      // Giả lập API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Chuyển hướng đến trang đăng nhập sau khi đăng ký thành công
-      navigate("/dang-nhap", {
+      navigate("/dangnhap", {
         state: { message: "Đăng ký thành công! Vui lòng đăng nhập." },
       });
-    } catch (error) {
-      setErrors({ general: "Có lỗi xảy ra. Vui lòng thử lại." });
+    } catch (error: any) {
+      setErrors({
+        general: error.message || "Có lỗi xảy ra. Vui lòng thử lại.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +139,7 @@ const TrangDangky: React.FC = () => {
             {/* Họ tên */}
             <div>
               <label
-                htmlFor="name"
+                htmlFor="ho_ten"
                 className="block text-sm font-medium text-gray-700"
               >
                 Họ và tên
@@ -134,19 +149,19 @@ const TrangDangky: React.FC = () => {
                   <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="name"
-                  name="name"
+                  id="ho_ten"
+                  name="ho_ten"
                   type="text"
-                  value={formData.name}
+                  value={formData.ho_ten}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
-                    errors.name ? "border-red-300" : "border-gray-300"
+                    errors.ho_ten ? "border-red-300" : "border-gray-300"
                   } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
                   placeholder="Nhập họ và tên"
                 />
               </div>
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              {errors.ho_ten && (
+                <p className="mt-1 text-sm text-red-600">{errors.ho_ten}</p>
               )}
             </div>
 
@@ -179,10 +194,70 @@ const TrangDangky: React.FC = () => {
               )}
             </div>
 
+            {/* Số điện thoại */}
+            <div>
+              <label
+                htmlFor="so_dien_thoai"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Số điện thoại
+              </label>
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="so_dien_thoai"
+                  name="so_dien_thoai"
+                  type="text"
+                  value={formData.so_dien_thoai}
+                  onChange={handleInputChange}
+                  className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
+                    errors.so_dien_thoai ? "border-red-300" : "border-gray-300"
+                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
+                  placeholder="Nhập số điện thoại"
+                />
+              </div>
+              {errors.so_dien_thoai && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.so_dien_thoai}
+                </p>
+              )}
+            </div>
+
+            {/* Địa chỉ */}
+            <div>
+              <label
+                htmlFor="dia_chi"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Địa chỉ
+              </label>
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MapPin className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="dia_chi"
+                  name="dia_chi"
+                  type="text"
+                  value={formData.dia_chi}
+                  onChange={handleInputChange}
+                  className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
+                    errors.dia_chi ? "border-red-300" : "border-gray-300"
+                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
+                  placeholder="Nhập địa chỉ"
+                />
+              </div>
+              {errors.dia_chi && (
+                <p className="mt-1 text-sm text-red-600">{errors.dia_chi}</p>
+              )}
+            </div>
+
             {/* Mật khẩu */}
             <div>
               <label
-                htmlFor="password"
+                htmlFor="mat_khau"
                 className="block text-sm font-medium text-gray-700"
               >
                 Mật khẩu
@@ -192,13 +267,13 @@ const TrangDangky: React.FC = () => {
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="password"
-                  name="password"
+                  id="mat_khau"
+                  name="mat_khau"
                   type={showPassword ? "text" : "password"}
-                  value={formData.password}
+                  value={formData.mat_khau}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-10 py-2 border ${
-                    errors.password ? "border-red-300" : "border-gray-300"
+                    errors.mat_khau ? "border-red-300" : "border-gray-300"
                   } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
                   placeholder="Nhập mật khẩu"
                 />
@@ -216,8 +291,8 @@ const TrangDangky: React.FC = () => {
                   </button>
                 </div>
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              {errors.mat_khau && (
+                <p className="mt-1 text-sm text-red-600">{errors.mat_khau}</p>
               )}
             </div>
 

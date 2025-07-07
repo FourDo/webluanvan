@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { User, ChevronDown, Settings, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // 1. Import useNavigate
-import authApi from "../API/authApi"; // 2. Import authApi của bạn
+import { useNavigate } from "react-router-dom";
+import authApi from "../API/authApi";
+import { useAuth } from "../context/AuthContext";
 
 interface AdminNavbarProps {
   toggleSidebar: () => void;
@@ -9,43 +10,38 @@ interface AdminNavbarProps {
 
 const AdminNavbar = ({}: AdminNavbarProps) => {
   const [profileOpen, setProfileOpen] = useState(false);
-  const navigate = useNavigate(); // 3. Khởi tạo hook navigate
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  // 4. Tạo hàm xử lý đăng xuất
   const handleLogout = async () => {
-    // Hiển thị hộp thoại xác nhận trước khi đăng xuất
-    if (window.confirm("Bạn có chắc chắn muốn đăng xuất không?")) {
-      try {
-        await authApi.logout();
-        // Có thể hiển thị thông báo đăng xuất thành công nếu cần
-      } catch (error) {
-        console.error(error);
-        // Thông báo cho người dùng rằng có lỗi xảy ra nhưng vẫn tiếp tục đăng xuất
-        alert(
-          "Có lỗi xảy ra khi đăng xuất trên máy chủ, nhưng bạn vẫn sẽ được đăng xuất khỏi thiết bị này."
-        );
-      } finally {
-        // Quan trọng: Luôn xóa dữ liệu local và điều hướng
-        // dù cho API có thành công hay thất bại.
-        localStorage.removeItem("admin_data");
-        localStorage.removeItem("admin_token"); // Đừng quên xóa token
-        navigate("/admin/dangnhap");
-      }
+    if (!window.confirm("Bạn có chắc chắn muốn đăng xuất không?")) return;
+
+    setIsLoggingOut(true);
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error("Lỗi đăng xuất:", error);
+      alert(
+        "Có lỗi xảy ra khi đăng xuất, nhưng bạn sẽ được đăng xuất trên thiết bị này."
+      );
+    } finally {
+      setIsLoggingOut(false);
+      setProfileOpen(false);
+      logout(); // Xóa cookie và trạng thái
+      navigate("/admin/dangnhap", { replace: true });
     }
   };
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* ... (Các phần code khác không thay đổi) ... */}
         <div className="flex items-center space-x-4">
-          {/* ... Search, Notifications ... */}
-
-          {/* Profile Dropdown */}
           <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
               className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
+              disabled={isLoggingOut}
             >
               <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                 <User size={16} className="text-white" />
@@ -56,28 +52,30 @@ const AdminNavbar = ({}: AdminNavbarProps) => {
 
             {profileOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                <a
-                  href="#"
-                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                <button
+                  onClick={() => navigate("/admin/profile")}
+                  className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <User size={16} className="mr-3" />
                   Hồ sơ
-                </a>
-                <a
-                  href="#"
-                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                </button>
+                <button
+                  onClick={() => navigate("/admin/settings")}
+                  className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <Settings size={16} className="mr-3" />
                   Cài đặt
-                </a>
+                </button>
                 <div className="border-t border-gray-200 my-2"></div>
-                {/* 5. Thay đổi thẻ a thành button hoặc div và gọi handleLogout */}
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  disabled={isLoggingOut}
+                  className={`w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 ${
+                    isLoggingOut ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
                   <LogOut size={16} className="mr-3" />
-                  Đăng xuất
+                  {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
                 </button>
               </div>
             )}

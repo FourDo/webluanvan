@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import { createBrowserRouter, Outlet, RouterProvider } from "react-router-dom";
 import { GioHangProvider } from "./context/GioHangContext";
 import {
   Navbar,
@@ -14,7 +14,6 @@ import {
   QLDoanhMuc,
   QLMauSac,
   QLSize,
-  QLThongKe,
   QLKhachHang,
   QLKhuyenMai,
   TrangDichVu,
@@ -23,10 +22,17 @@ import {
   TrangDangNhap,
   AdminDangNhap,
   TrangThanhToan,
-} from "../src/pages/index";
-import AdminPrivateRoute from "./components/AdminPrivateRoute";
+  TrangProfile,
+  TrangQuenMatKhau,
+  TrangHoaDon,
+} from "./pages/index";
+import AdminPrivateRoute from "./context/AdminPrivateRoute";
+import ProductDetail from "./components/ProductDetail";
+import AddProduct from "./components/AddProduct";
+import EditProduct from "./components/EditProduct";
+import PrivateRoute from "./context/PrivateRoute";
+import { AuthProvider } from "./context/AuthContext";
 
-// Layout component cho các tuyến đường công khai
 const MainLayout = () => (
   <div className="min-h-screen flex flex-col">
     <Navbar />
@@ -37,14 +43,12 @@ const MainLayout = () => (
   </div>
 );
 
-// Layout component cho các tuyến đường admin
 const AdminLayout = () => (
   <div className="min-h-screen">
     <Outlet />
   </div>
 );
 
-// Cấu hình router
 const router = createBrowserRouter([
   {
     path: "/admin",
@@ -55,24 +59,24 @@ const router = createBrowserRouter([
         element: <AdminDangNhap />,
       },
       {
-        element: <AdminPrivateRoute />,
+        element: (
+          <AdminPrivateRoute>
+            <AdminDashboard />
+          </AdminPrivateRoute>
+        ),
         children: [
-          {
-            path: "", // Đường dẫn /admin sẽ hiển thị AdminDashboard
-            element: <AdminDashboard />,
-            children: [
-              { index: true, element: <div>Welcome to Admin Dashboard</div> },
-              { path: "sanpham", element: <QLSanPham /> },
-              { path: "donhang", element: <QLDonHang /> },
-              { path: "taikhoan", element: <QLTaiKhoan /> },
-              { path: "mausac", element: <QLMauSac /> },
-              { path: "kichthuoc", element: <QLSize /> },
-              { path: "khachhang", element: <QLKhachHang /> },
-              { path: "khuyenmai", element: <QLKhuyenMai /> },
-              { path: "thongke", element: <QLThongKe /> },
-              { path: "doanhmuc", element: <QLDoanhMuc /> },
-            ],
-          },
+          { index: true, element: <div>Welcome to Admin Dashboard</div> },
+          { path: "sanpham", element: <QLSanPham /> },
+          { path: "sanpham/:productId", element: <ProductDetail /> },
+          { path: "sanpham/them", element: <AddProduct /> },
+          { path: "sanpham/sua/:productId", element: <EditProduct /> },
+          { path: "donhang", element: <QLDonHang /> },
+          { path: "taikhoan", element: <QLTaiKhoan /> },
+          { path: "mausac", element: <QLMauSac /> },
+          { path: "kichthuoc", element: <QLSize /> },
+          { path: "khachhang", element: <QLKhachHang /> },
+          { path: "khuyenmai", element: <QLKhuyenMai /> },
+          { path: "doanhmuc", element: <QLDoanhMuc /> },
         ],
       },
     ],
@@ -113,19 +117,38 @@ const router = createBrowserRouter([
         element: <GioHang />,
       },
       {
-        path: "/thanh-toan",
-        element: <TrangThanhToan />,
+        path: "/quenmatkhau",
+        element: <TrangQuenMatKhau />,
+      },
+      {
+        path: "/hoa-don",
+        element: <TrangHoaDon />,
+      },
+      {
+        element: <PrivateRoute />,
+        children: [
+          {
+            path: "/thanh-toan",
+            element: <TrangThanhToan />,
+          },
+          {
+            path: "/profile",
+            element: <TrangProfile />,
+          },
+        ],
       },
     ],
   },
 ]);
 
-function App() {
+const App: React.FC = () => {
   return (
-    <GioHangProvider>
-      <RouterProvider router={router} />
-    </GioHangProvider>
+    <AuthProvider>
+      <GioHangProvider>
+        <RouterProvider router={router} />
+      </GioHangProvider>
+    </AuthProvider>
   );
-}
+};
 
 export default App;

@@ -1,43 +1,126 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+// src/components/ProductCard.tsx
 
-export interface ProductCardProps {
-  id: number; // Add this line
-  image: string;
-  category: string;
-  name: string;
-  description: string;
-  price: number;
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import type { Product as ApiProduct } from "../types/Product"; // Sử dụng kiểu dữ liệu gốc từ API
+
+// Helper để chuyển tên màu sang mã hex, bạn có thể tùy chỉnh
+const colorNameToHex = (colorName: string): string => {
+  const colorMap: { [key: string]: string } = {
+    đen: "#000000",
+    trắng: "#FFFFFF",
+    xám: "#808080",
+    nâu: "#A52A2A",
+    vàng: "#FFD700",
+    "xanh dương": "#0000FF",
+    đỏ: "#FF0000",
+    // Thêm các màu khác từ dữ liệu của bạn ở đây
+  };
+  // Trả về màu xám nếu không tìm thấy, hoặc bạn có thể trả về chính colorName nếu nó đã là mã hex
+  return colorMap[colorName.toLowerCase()] || colorName;
+};
+
+// Helper định dạng tiền tệ
+const formatCurrency = (amount: number | string) => {
+  const numericAmount =
+    typeof amount === "string" ? parseFloat(amount) : amount;
+  if (isNaN(numericAmount)) return "N/A";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(numericAmount);
+};
+
+interface ProductCardProps {
+  product: ApiProduct; // Bắt buộc nhận prop 'product' với kiểu dữ liệu gốc
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({
-  id,
-  image,
-  category,
-  name,
-  description,
-  price,
-}) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
 
-  const handleClick = () => {
-    navigate(`/san-pham/${id}`); // Đúng với route trong App.tsx
+  // Lấy biến thể đầu tiên làm mặc định
+  const defaultVariant = product.bienthe?.[0];
+  const defaultImage = defaultVariant?.hinh_anh?.[0] || "";
+
+  // State để quản lý ảnh đang được hover
+  const [currentImage, setCurrentImage] = useState(defaultImage);
+
+  // Nếu sản phẩm không có biến thể nào, không hiển thị
+  if (!defaultVariant) {
+    return null;
+  }
+
+  const handleMouseEnterColor = (variantImage: string | undefined) => {
+    if (variantImage) {
+      setCurrentImage(variantImage);
+    }
+  };
+
+  const handleMouseLeaveCard = () => {
+    setCurrentImage(defaultImage);
+  };
+
+  const handleCardClick = () => {
+    // Điều hướng đến trang chi tiết sản phẩm, ví dụ: /san-pham/123
+    navigate(`/san-pham/${product.ma_san_pham}`);
   };
 
   return (
     <div
-      className=" shadow p-4 cursor-pointer hover:shadow-lg transition"
-      onClick={handleClick}
+      className="bg-white rounded-lg shadow-sm border border-gray-200 group flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl"
+      onMouseLeave={handleMouseLeaveCard} // Reset ảnh khi chuột rời khỏi card
     >
-      <img
-        src={image}
-        alt={name}
-        className="w-full h-48 object-cover rounded-lg mb-4"
-      />
-      <p className="text-sm text-gray-500">{category}</p>
-      <h3 className="text-lg font-semibold">{name}</h3>
-      <p className="text-gray-600">{description}</p>
-      <p className="text-xl font-bold mt-2">${price}</p>
+      {/* Phần hình ảnh */}
+      <div className="relative cursor-pointer" onClick={handleCardClick}>
+        <img
+          src={currentImage}
+          alt={product.ten_san_pham}
+          className="w-full h-64 object-cover transition-all duration-300"
+        />
+      </div>
+
+      {/* Phần thông tin */}
+      <div className="p-4 flex flex-col flex-grow">
+        <span className="text-xs text-gray-500 mb-1">
+          {product.ten_danh_muc || "Chưa phân loại"}
+        </span>
+        <h3
+          className="font-semibold text-gray-800 line-clamp-2 flex-grow min-h-[48px] cursor-pointer hover:text-green-700"
+          onClick={handleCardClick}
+        >
+          {product.ten_san_pham}
+        </h3>
+
+        <p className="text-xl font-bold text-green-600 my-3">
+          {formatCurrency(defaultVariant.gia_ban)}
+        </p>
+
+        {/* Phần hiển thị màu sắc tương tác */}
+        <div className="mt-auto pt-3 border-t border-gray-100 min-h-[40px]">
+          {product.bienthe && product.bienthe.length > 1 ? (
+            <div className="flex items-center gap-2">
+              {product.bienthe.map(
+                (variant) =>
+                  variant.hex_code && (
+                    <div
+                      key={variant.hex_code}
+                      onMouseEnter={() =>
+                        handleMouseEnterColor(variant.hinh_anh?.[0])
+                      }
+                      className="w-6 h-6 rounded-full cursor-pointer border-2 border-white ring-1 ring-gray-300 transition-transform hover:scale-110"
+                      style={{
+                        backgroundColor: colorNameToHex(variant.hex_code),
+                      }}
+                      title={variant.hex_code} // Hiển thị tên màu khi hover
+                    />
+                  )
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-400">Chỉ có 1 tùy chọn</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
