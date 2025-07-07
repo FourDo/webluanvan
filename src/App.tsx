@@ -1,4 +1,11 @@
-import { createBrowserRouter, Outlet, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Outlet,
+  RouterProvider,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import { GioHangProvider } from "./context/GioHangContext";
 import {
   Navbar,
@@ -33,6 +40,26 @@ import AddProduct from "./components/AddProduct";
 import EditProduct from "./components/EditProduct";
 import PrivateRoute from "./context/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
+import { useEffect } from "react";
+
+// Component để xử lý redirect từ cổng thanh toán
+const RedirectHandler: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const apptransid = queryParams.get("apptransid");
+    const status = queryParams.get("status");
+
+    if (apptransid && status === "1") {
+      // Điều hướng đến TrangHoaDon hoặc MomoSuccess với query parameters
+      navigate(`/momo-success${location.search}`, { replace: true });
+    }
+  }, [location, navigate]);
+
+  return <TrangChu />;
+};
 
 const MainLayout = () => (
   <div className="min-h-screen flex flex-col">
@@ -87,7 +114,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <TrangChu />,
+        element: <RedirectHandler />,
       },
       {
         path: "/sanpham",

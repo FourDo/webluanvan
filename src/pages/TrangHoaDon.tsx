@@ -1,17 +1,58 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios"; // Assuming you use axios for API calls
 
 const TrangHoaDon: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const order = location.state?.order;
+  const [order, setOrder] = useState<any>(location.state?.order || null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!order) {
+  // Parse query parameters
+  const queryParams = new URLSearchParams(location.search);
+  const apptransid = queryParams.get("apptransid");
+  const status = queryParams.get("status");
+
+  useEffect(() => {
+    // If no order in location.state and apptransid exists, fetch order details
+    if (!order && apptransid && status === "1") {
+      const fetchOrder = async () => {
+        setLoading(true);
+        try {
+          // Replace with your actual API endpoint to fetch order details
+          const response = await axios.get(
+            `https://your-api-endpoint/orders/${apptransid}`
+          );
+          setOrder(response.data);
+        } catch (err) {
+          setError("Không thể tải thông tin hóa đơn");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchOrder();
+    }
+  }, [order, apptransid, status]);
+
+  if (loading) {
     return (
       <div className="container mx-auto p-4">
         <div className="bg-white p-8 rounded-lg text-center">
           <h2 className="text-xl font-semibold text-gray-700 mb-4">
-            Không tìm thấy thông tin hóa đơn
+            Đang tải thông tin hóa đơn...
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || (!order && status !== "1")) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="bg-white p-8 rounded-lg text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-4">
+            {error || "Không tìm thấy thông tin hóa đơn"}
           </h2>
           <button
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
@@ -22,6 +63,10 @@ const TrangHoaDon: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  if (!order) {
+    return null; // Prevent rendering until order is fetched
   }
 
   return (
@@ -64,13 +109,19 @@ const TrangHoaDon: React.FC = () => {
                   <span className="font-medium">{sp.ten_san_pham}</span>
                   {(sp.mau_sac || sp.kich_thuoc) && (
                     <div className="text-sm text-gray-500 mt-1">
-                      {sp.mau_sac && <span className="mr-2">Màu: {sp.mau_sac}</span>}
+                      {sp.mau_sac && (
+                        <span className="mr-2">Màu: {sp.mau_sac}</span>
+                      )}
                       {sp.kich_thuoc && <span>Size: {sp.kich_thuoc}</span>}
                     </div>
                   )}
-                  <div className="text-sm text-gray-600">Số lượng: {sp.so_luong}</div>
+                  <div className="text-sm text-gray-600">
+                    Số lượng: {sp.so_luong}
+                  </div>
                 </div>
-                <span className="font-medium">{sp.gia_sau_km?.toLocaleString()}₫</span>
+                <span className="font-medium">
+                  {sp.gia_sau_km?.toLocaleString()}₫
+                </span>
               </div>
             ))}
           </div>
@@ -86,7 +137,9 @@ const TrangHoaDon: React.FC = () => {
           </div>
           <div className="flex justify-between font-bold text-lg">
             <span>Tổng thanh toán:</span>
-            <span className="text-blue-600">{order.tong_thanh_toan?.toLocaleString()}₫</span>
+            <span className="text-blue-600">
+              {order.tong_thanh_toan?.toLocaleString()}₫
+            </span>
           </div>
         </div>
         <div className="mt-6 text-center">
@@ -102,4 +155,4 @@ const TrangHoaDon: React.FC = () => {
   );
 };
 
-export default TrangHoaDon; 
+export default TrangHoaDon;
