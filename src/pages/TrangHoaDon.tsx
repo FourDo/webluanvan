@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios"; // Assuming you use axios for API calls
 
 const TrangHoaDon: React.FC = () => {
   const location = useLocation();
@@ -11,29 +10,50 @@ const TrangHoaDon: React.FC = () => {
 
   // Parse query parameters
   const queryParams = new URLSearchParams(location.search);
-  const apptransid = queryParams.get("apptransid");
+  const apptransid = queryParams.get("apptransid"); // MoMo
+  const app_trans_id = queryParams.get("app_trans_id"); // ZaloPay
+  const orderId = queryParams.get("orderId"); // COD
   const status = queryParams.get("status");
 
   useEffect(() => {
-    // If no order in location.state and apptransid exists, fetch order details
-    if (!order && apptransid && status === "1") {
-      const fetchOrder = async () => {
-        setLoading(true);
-        try {
-          // Replace with your actual API endpoint to fetch order details
-          const response = await axios.get(
-            `https://your-api-endpoint/orders/${apptransid}`
-          );
-          setOrder(response.data);
-        } catch (err) {
-          setError("Không thể tải thông tin hóa đơn");
-        } finally {
-          setLoading(false);
+    console.log("TrangHoaDon - Query params:", {
+      apptransid,
+      app_trans_id,
+      orderId,
+      status,
+    });
+
+    // Nếu không có order từ location.state, lấy từ localStorage
+    if (!order && (apptransid || app_trans_id || orderId)) {
+      setLoading(true);
+      try {
+        const storedOrder = localStorage.getItem("orderData");
+        if (storedOrder) {
+          const parsedOrder = JSON.parse(storedOrder);
+          // Kiểm tra xem order có khớp với apptransid/app_trans_id/orderId không
+          if (
+            parsedOrder.ma_don_hang === apptransid ||
+            parsedOrder.ma_don_hang === app_trans_id ||
+            parsedOrder.ma_don_hang === orderId
+          ) {
+            setOrder(parsedOrder);
+          } else {
+            setError("Không tìm thấy thông tin hóa đơn");
+          }
+        } else {
+          setError("Không tìm thấy thông tin hóa đơn");
         }
-      };
-      fetchOrder();
+      } catch (err) {
+        console.error("Error parsing order data:", err);
+        setError("Không thể tải thông tin hóa đơn");
+      } finally {
+        setLoading(false);
+      }
+    } else if (status && status !== "1") {
+      setError("Giao dịch không thành công");
+      setLoading(false);
     }
-  }, [order, apptransid, status]);
+  }, [order, apptransid, app_trans_id, orderId, status]);
 
   if (loading) {
     return (
@@ -47,7 +67,7 @@ const TrangHoaDon: React.FC = () => {
     );
   }
 
-  if (error || (!order && status !== "1")) {
+  if (error || (!order && status !== "1" && !orderId)) {
     return (
       <div className="container mx-auto p-4">
         <div className="bg-white p-8 rounded-lg text-center">
@@ -66,14 +86,16 @@ const TrangHoaDon: React.FC = () => {
   }
 
   if (!order) {
-    return null; // Prevent rendering until order is fetched
+    return null;
   }
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
       <div className="bg-white rounded-lg shadow-md p-8">
         <h1 className="text-2xl font-bold mb-4 text-center text-green-600">
-          Đặt hàng thành công!
+          {order.hinh_thuc_thanh_toan === "COD"
+            ? "Đặt hàng thành công!"
+            : "Thanh toán thành công!"}
         </h1>
         <p className="text-center text-gray-600 mb-6">
           Cảm ơn bạn đã mua hàng. Dưới đây là thông tin hóa đơn của bạn:
@@ -145,9 +167,12 @@ const TrangHoaDon: React.FC = () => {
         <div className="mt-6 text-center">
           <button
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            onClick={() => navigate("/")}
+            onClick={() => {
+              localStorage.removeItem("orderData"); // Xóa sau khi hiển thị
+              navigate("/");
+            }}
           >
-            Quay về trang Chủ
+            Quay về trang chủ
           </button>
         </div>
       </div>
