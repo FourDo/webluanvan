@@ -9,7 +9,6 @@ import {
   LogOut,
   Settings,
   UserCircle,
-  Home,
   Package,
   FileText,
   Info,
@@ -17,10 +16,8 @@ import {
   Bell,
   ChevronRight,
 } from "lucide-react";
-import categoryApi from "../API/categoryApi";
-import { getProducts } from "../API/productApi";
+
 import { useCategoryProduct } from "../context/CategoryProductContext";
-import type { Product as ProductFull } from "../types/Product";
 
 // --- Giả lập các hook và API để code có thể chạy độc lập ---
 // Bạn có thể xóa phần này nếu đã có các file này trong dự án của mình
@@ -33,10 +30,6 @@ const authApi = {
 };
 
 // --- Định nghĩa các Type/Interface cho dữ liệu ---
-interface Category {
-  ma_danh_muc: number;
-  ten_danh_muc: string;
-}
 
 interface Product {
   ma_san_pham: number;
@@ -484,4 +477,3 @@ const Navbar: React.FC = () => {
 };
 
 export default Navbar;
-
