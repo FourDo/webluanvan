@@ -16,21 +16,16 @@ const TrangHoaDon: React.FC = () => {
   const status = queryParams.get("status");
 
   useEffect(() => {
-    console.log("TrangHoaDon - Query params:", {
-      apptransid,
-      app_trans_id,
-      orderId,
-      status,
-    });
+    console.log("Query params:", { apptransid, app_trans_id, orderId, status });
 
-    // Nếu không có order từ location.state, lấy từ localStorage
     if (!order && (apptransid || app_trans_id || orderId)) {
       setLoading(true);
       try {
         const storedOrder = localStorage.getItem("orderData");
+        console.log("Stored orderData:", storedOrder);
         if (storedOrder) {
           const parsedOrder = JSON.parse(storedOrder);
-          // Kiểm tra xem order có khớp với apptransid/app_trans_id/orderId không
+          // Kiểm tra khớp apptransid hoặc orderId
           if (
             parsedOrder.ma_don_hang === apptransid ||
             parsedOrder.ma_don_hang === app_trans_id ||
@@ -38,10 +33,23 @@ const TrangHoaDon: React.FC = () => {
           ) {
             setOrder(parsedOrder);
           } else {
-            setError("Không tìm thấy thông tin hóa đơn");
+            // Gọi API để lấy thông tin đơn hàng nếu không khớp
+            fetch(`/api/confirm-order?apptransid=${apptransid}`)
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.order) {
+                  setOrder(data.order);
+                } else {
+                  setError("Không tìm thấy thông tin hóa đơn");
+                }
+              })
+              .catch((err) => {
+                console.error("API error:", err);
+                setError("Không thể tải thông tin hóa đơn");
+              });
           }
         } else {
-          setError("Không tìm thấy thông tin hóa đơn");
+          setError("Không tìm thấy thông tin hóa đơn trong bộ nhớ");
         }
       } catch (err) {
         console.error("Error parsing order data:", err);
@@ -54,7 +62,6 @@ const TrangHoaDon: React.FC = () => {
       setLoading(false);
     }
   }, [order, apptransid, app_trans_id, orderId, status]);
-
   if (loading) {
     return (
       <div className="container mx-auto p-4">

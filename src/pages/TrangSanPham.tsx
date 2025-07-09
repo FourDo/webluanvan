@@ -79,8 +79,10 @@ const TrangSanPham: React.FC = () => {
       // Kiểm tra cache trước
       const cachedProducts = getCachedProducts();
       if (cachedProducts) {
-        setAllProducts(cachedProducts);
-        const prices = cachedProducts
+        // Lọc chỉ lấy sản phẩm có biến thể
+        const validProducts = cachedProducts.filter((p) => Array.isArray(p.bienthe) && p.bienthe.length > 0);
+        setAllProducts(validProducts);
+        const prices = validProducts
           .map((p) => getProductDisplayInfo(p).price)
           .filter((price) => price > 0);
         const maxPrice =
@@ -97,8 +99,9 @@ const TrangSanPham: React.FC = () => {
           response.message === "Danh sách tìm kiếm sản phẩm" &&
           Array.isArray(response.data)
         ) {
+          // Lọc chỉ lấy sản phẩm có biến thể
           const activeProducts = response.data.filter(
-            (p) => p.trang_thai_hoat_dong === "hoat_dong"
+            (p) => p.trang_thai_hoat_dong === "hoat_dong" && Array.isArray(p.bienthe) && p.bienthe.length > 0
           );
           setAllProducts(activeProducts);
           cacheProducts(activeProducts);
@@ -116,8 +119,10 @@ const TrangSanPham: React.FC = () => {
         // Nếu API lỗi, thử lấy lại cache (nếu có)
         const cachedProductsFallback = getCachedProducts();
         if (cachedProductsFallback) {
-          setAllProducts(cachedProductsFallback);
-          const prices = cachedProductsFallback
+          // Lọc chỉ lấy sản phẩm có biến thể
+          const validProducts = cachedProductsFallback.filter((p) => Array.isArray(p.bienthe) && p.bienthe.length > 0);
+          setAllProducts(validProducts);
+          const prices = validProducts
             .map((p) => getProductDisplayInfo(p).price)
             .filter((price) => price > 0);
           const maxPrice =
@@ -376,6 +381,8 @@ const TrangSanPham: React.FC = () => {
                     (p) => p.ma_san_pham === product.ma_san_pham
                   );
                   if (!originalProduct) return null;
+                  // Nếu sản phẩm không có biến thể, không hiển thị
+                  if (!Array.isArray(originalProduct.bienthe) || originalProduct.bienthe.length === 0) return null;
                   return (
                     <ProductCard
                       key={product.ma_san_pham}
@@ -387,16 +394,16 @@ const TrangSanPham: React.FC = () => {
             ) : (
               <div className="text-center py-16 bg-white rounded-lg shadow-sm border">
                 <h3 className="text-xl font-semibold text-gray-700">
-                  No products match your criteria
+                  Không có sản phẩm hợp lệ để hiển thị
                 </h3>
                 <p className="text-gray-500 mt-2">
-                  Try adjusting your search or filters.
+                  Tất cả sản phẩm hợp lệ phải có ít nhất 1 biến thể.
                 </p>
                 <button
                   onClick={resetAllFilters}
                   className="mt-4 px-4 py-2 bg-[#518581] text-white rounded-lg hover:bg-green-800"
                 >
-                  Reset All Filters
+                  Đặt lại bộ lọc
                 </button>
               </div>
             )}

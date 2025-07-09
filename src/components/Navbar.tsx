@@ -17,6 +17,10 @@ import {
   Bell,
   ChevronRight,
 } from "lucide-react";
+import categoryApi from "../API/categoryApi";
+import { getProducts } from "../API/productApi";
+import { useCategoryProduct } from "../context/CategoryProductContext";
+import type { Product as ProductFull } from "../types/Product";
 
 // --- Giả lập các hook và API để code có thể chạy độc lập ---
 // Bạn có thể xóa phần này nếu đã có các file này trong dự án của mình
@@ -29,162 +33,16 @@ const authApi = {
 };
 
 // --- Định nghĩa các Type/Interface cho dữ liệu ---
-interface Product {
-  id: number;
-  name: string;
-  image: string;
-  price: string;
-}
-
-interface SubCategory {
-  name: string;
-  products: Product[];
-}
-
 interface Category {
-  name: string;
-  subcategories: Record<string, SubCategory>;
+  ma_danh_muc: number;
+  ten_danh_muc: string;
 }
 
-type ProductCategories = Record<string, Category>;
-
-// --- Dữ liệu Mock với Type đã định nghĩa ---
-const productCategories: ProductCategories = {
-  "phong-khach": {
-    name: "Phòng khách",
-    subcategories: {
-      sofa: {
-        name: "Sofa",
-        products: [
-          {
-            id: 1,
-            name: "Sofa da cao cấp",
-            image:
-              "https://images.unsplash.com/photo-1540574163026-643ea20ade25?w=200&h=150&fit=crop",
-            price: "15,990,000₫",
-          },
-          {
-            id: 2,
-            name: "Sofa vải hiện đại",
-            image:
-              "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&h=150&fit=crop",
-            price: "8,990,000₫",
-          },
-          {
-            id: 3,
-            name: "Sofa góc L",
-            image:
-              "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=200&h=150&fit=crop",
-            price: "12,500,000₫",
-          },
-        ],
-      },
-      "ban-tra": {
-        name: "Bàn trà",
-        products: [
-          {
-            id: 4,
-            name: "Bàn trà gỗ sồi",
-            image:
-              "https://images.unsplash.com/photo-1611269154421-4e7e725d7b1a?w=200&h=150&fit=crop",
-            price: "3,990,000₫",
-          },
-          {
-            id: 5,
-            name: "Bàn trà kính cường lực",
-            image:
-              "https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?w=200&h=150&fit=crop",
-            price: "2,490,000₫",
-          },
-        ],
-      },
-      "ke-tv": {
-        name: "Kệ TV",
-        products: [
-          {
-            id: 6,
-            name: "Kệ TV gỗ tự nhiên",
-            image:
-              "https://images.unsplash.com/photo-1593349480503-64d4e33d36b6?w=200&h=150&fit=crop",
-            price: "4,990,000₫",
-          },
-        ],
-      },
-    },
-  },
-  "phong-ngu": {
-    name: "Phòng ngủ",
-    subcategories: {
-      "giuong-ngu": {
-        name: "Giường ngủ",
-        products: [
-          {
-            id: 7,
-            name: "Giường ngủ gỗ sồi",
-            image:
-              "https://images.unsplash.com/photo-1594041183243-34e2c9423c7b?w=200&h=150&fit=crop",
-            price: "8,990,000₫",
-          },
-          {
-            id: 8,
-            name: "Giường bọc nệm",
-            image:
-              "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=200&h=150&fit=crop",
-            price: "12,990,000₫",
-          },
-        ],
-      },
-      "tu-quan-ao": {
-        name: "Tủ quần áo",
-        products: [
-          {
-            id: 9,
-            name: "Tủ áo 4 cánh",
-            image:
-              "https://images.unsplash.com/photo-1618221381711-42ca7ab5e110?w=200&h=150&fit=crop",
-            price: "6,990,000₫",
-          },
-        ],
-      },
-    },
-  },
-  "phong-bep": {
-    name: "Phòng bếp",
-    subcategories: {
-      "tu-bep": {
-        name: "Tủ bếp",
-        products: [
-          {
-            id: 10,
-            name: "Tủ bếp gỗ công nghiệp",
-            image:
-              "https://images.unsplash.com/photo-1600585152220-02042644a1b7?w=200&h=150&fit=crop",
-            price: "25,990,000₫",
-          },
-        ],
-      },
-      "ban-an": {
-        name: "Bàn ăn",
-        products: [
-          {
-            id: 11,
-            name: "Bàn ăn 6 ghế",
-            image:
-              "https://images.unsplash.com/photo-1617806118233-18e1de247200?w=200&h=150&fit=crop",
-            price: "8,990,000₫",
-          },
-          {
-            id: 12,
-            name: "Bộ bàn ăn 4 ghế",
-            image:
-              "https://images.unsplash.com/photo-1519642918688-7e43b19245d8?w=200&h=150&fit=crop",
-            price: "5,490,000₫",
-          },
-        ],
-      },
-    },
-  },
-};
+interface Product {
+  ma_san_pham: number;
+  ten_san_pham: string;
+  ten_danh_muc: string | null;
+}
 
 const Navbar: React.FC = () => {
   const { demSoLuongSanPham } = useGioHang();
@@ -197,12 +55,20 @@ const Navbar: React.FC = () => {
     null
   );
 
-  // States cho mega menu
+  // State cho menu sản phẩm động
+  const { categories, products } = useCategoryProduct();
+  // Gom sản phẩm theo tên danh mục từ context
+  const productsByCategory = React.useMemo(() => {
+    const grouped: Record<string, Product[]> = {};
+    products.forEach((p) => {
+      if (!p.ten_danh_muc) return;
+      if (!grouped[p.ten_danh_muc]) grouped[p.ten_danh_muc] = [];
+      grouped[p.ten_danh_muc].push(p);
+    });
+    return grouped;
+  }, [products]);
   const [isProductMenuOpen, setIsProductMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
-    null
-  );
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -212,8 +78,8 @@ const Navbar: React.FC = () => {
   const toggleUserDropdown = () => setIsUserDropdownOpen(!isUserDropdownOpen);
 
   const menuItems = [
-    { to: "/", label: "Trang chủ", icon: Home },
-    { to: "/sanpham", label: "Sản phẩm", icon: Package, hasSubmenu: true },
+    { to: "#", label: "Danh mục", icon: Package, hasSubmenu: true },
+    { to: "/sanpham", label: "Sản phẩm", icon: Package },
     { to: "/dichvu", label: "Dịch vụ", icon: Settings },
     { to: "/baibao", label: "Bài viết", icon: FileText },
     { to: "/about-us", label: "Về chúng tôi", icon: Info },
@@ -334,186 +200,86 @@ const Navbar: React.FC = () => {
               location.pathname.startsWith(item.to) ||
               (item.hasSubmenu && isProductMenuOpen);
 
+            // Dropdown cho "Danh mục"
             if (item.hasSubmenu) {
               return (
-                <div key={item.to} className="relative">
-                  <Link
-                    to={item.to}
-                    className={`relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group cursor-pointer ${
+                <div
+                  key={item.label}
+                  className="relative group"
+                  onMouseEnter={() => setIsProductMenuOpen(true)}
+                  onMouseLeave={() => {
+                    setIsProductMenuOpen(false);
+                    setSelectedCategory(null);
+                  }}
+                >
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
                       isActive
                         ? "text-[#518581] bg-[#518581]/10"
                         : "text-gray-700 hover:text-[#AD7E5C] hover:bg-gray-50"
                     }`}
-                    onMouseEnter={() => {
-                      setIsProductMenuOpen(true);
-                      if (!selectedCategory) {
-                        const firstCategoryKey =
-                          Object.keys(productCategories)[0];
-                        setSelectedCategory(firstCategoryKey);
-                      }
-                    }}
-                    onMouseLeave={() => {
-                      setIsProductMenuOpen(false);
-                      setSelectedCategory(null);
-                      setSelectedSubcategory(null);
-                    }}
+                    type="button"
                   >
                     <Icon className="w-4 h-4" />
                     {item.label}
-                    <ChevronDown
-                      className={`w-3 h-3 transition-transform duration-200 ${
-                        isProductMenuOpen ? "rotate-180" : ""
-                      }`}
-                    />
-
-                    {isProductMenuOpen && (
-                      <div
-                        className="absolute top-full left-1/2 -translate-x-1/2 w-[800px] pt-2 animate-in slide-in-from-top-2 duration-200"
-                        onMouseEnter={() => setIsProductMenuOpen(true)}
-                        onMouseLeave={() => setIsProductMenuOpen(false)}
-                      >
-                        <div className="bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-                          <div className="flex">
-                            {/* Categories Column */}
-                            <div className="w-1/3 bg-gray-50/70 border-r border-gray-100">
-                              <div className="p-4">
-                                <h3 className="text-sm font-semibold text-gray-800 mb-3 px-3">
-                                  Danh mục sản phẩm
-                                </h3>
-                                <div className="space-y-1">
-                                  {Object.entries(productCategories).map(
-                                    ([key, category]) => (
-                                      <button
-                                        key={key}
-                                        onMouseEnter={() => {
-                                          setSelectedCategory(key);
-                                          const firstSubCategory = Object.keys(
-                                            category.subcategories
-                                          )[0];
-                                          setSelectedSubcategory(
-                                            firstSubCategory
-                                          );
+                    <ChevronDown className="w-4 h-4 ml-1" />
+                  </button>
+                  {/* Dropdown cấp 1: Danh mục */}
+                  {isProductMenuOpen && (
+                    <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-50">
+                      {categories.map((cat) => (
+                        <div
+                          key={cat.ma_danh_muc}
+                          className="relative group"
+                          onMouseEnter={() =>
+                            setSelectedCategory(cat.ten_danh_muc)
+                          }
+                        >
+                          <button
+                            className="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#518581] rounded-lg"
+                            type="button"
+                          >
+                            {cat.ten_danh_muc}
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                          {/* Dropdown cấp 2: Sản phẩm */}
+                          {selectedCategory === cat.ten_danh_muc && (
+                            <div className="absolute left-full top-0 ml-1 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50">
+                              <div className="p-2 max-h-80 overflow-y-auto">
+                                {productsByCategory[cat.ten_danh_muc]
+                                  ?.length ? (
+                                  productsByCategory[cat.ten_danh_muc].map(
+                                    (product) => (
+                                      <Link
+                                        key={product.ma_san_pham}
+                                        to={`/sanpham/${product.ma_san_pham}`}
+                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#518581] rounded-lg"
+                                        onClick={() => {
+                                          setIsProductMenuOpen(false);
+                                          setSelectedCategory(null);
                                         }}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200 flex items-center justify-between group ${
-                                          selectedCategory === key
-                                            ? "bg-[#518581] text-white shadow-sm"
-                                            : "text-gray-700 hover:bg-white hover:text-[#518581]"
-                                        }`}
                                       >
-                                        {category.name}
-                                        <ChevronRight
-                                          className={`w-4 h-4 transition-opacity ${
-                                            selectedCategory === key
-                                              ? "opacity-100"
-                                              : "opacity-0 group-hover:opacity-100"
-                                          }`}
-                                        />
-                                      </button>
+                                        {product.ten_san_pham}
+                                      </Link>
                                     )
-                                  )}
-                                </div>
+                                  )
+                                ) : (
+                                  <div className="px-4 py-2 text-gray-400 text-sm">
+                                    Không có sản phẩm
+                                  </div>
+                                )}
                               </div>
                             </div>
-
-                            {/* Subcategories Column */}
-                            <div className="w-1/3 border-r border-gray-100">
-                              {selectedCategory && (
-                                <div className="p-4">
-                                  <h3 className="text-sm font-semibold text-gray-800 mb-3 px-3">
-                                    {productCategories[selectedCategory].name}
-                                  </h3>
-                                  <div className="space-y-1">
-                                    {Object.entries(
-                                      productCategories[selectedCategory]
-                                        .subcategories
-                                    ).map(([key, subcategory]) => (
-                                      <button
-                                        key={key}
-                                        onMouseEnter={() =>
-                                          setSelectedSubcategory(key)
-                                        }
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200 flex items-center justify-between group ${
-                                          selectedSubcategory === key
-                                            ? "bg-[#AD7E5C] text-white shadow-sm"
-                                            : "text-gray-700 hover:bg-gray-100 hover:text-[#AD7E5C]"
-                                        }`}
-                                      >
-                                        {subcategory.name}
-                                        <ChevronRight
-                                          className={`w-4 h-4 transition-opacity ${
-                                            selectedSubcategory === key
-                                              ? "opacity-100"
-                                              : "opacity-0 group-hover:opacity-100"
-                                          }`}
-                                        />
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Products Column */}
-                            <div className="w-1/3">
-                              {selectedCategory && selectedSubcategory && (
-                                <div className="p-4">
-                                  <h3 className="text-sm font-semibold text-gray-800 mb-3 px-3">
-                                    {
-                                      productCategories[selectedCategory]
-                                        .subcategories[selectedSubcategory].name
-                                    }
-                                  </h3>
-                                  <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2">
-                                    {productCategories[
-                                      selectedCategory
-                                    ].subcategories[
-                                      selectedSubcategory
-                                    ].products.map((product) => (
-                                      <Link
-                                        key={product.id}
-                                        to={`/san-pham/${product.id}`}
-                                        className="block group hover:bg-gray-50 p-2 rounded-lg transition-all duration-200"
-                                        onClick={() =>
-                                          setIsProductMenuOpen(false)
-                                        }
-                                      >
-                                        <div className="flex gap-3">
-                                          <img
-                                            src={product.image}
-                                            alt={product.name}
-                                            className="w-12 h-12 object-cover rounded-lg group-hover:scale-105 transition-transform duration-200"
-                                          />
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-gray-900 truncate group-hover:text-[#518581]">
-                                              {product.name}
-                                            </p>
-                                            <p className="text-xs text-[#AD7E5C] font-semibold">
-                                              {product.price}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </Link>
-                                    ))}
-                                  </div>
-                                  <Link
-                                    to={`/danh-muc/${selectedCategory}/${selectedSubcategory}`}
-                                    className="block mt-4 text-center text-sm text-[#518581] hover:text-[#AD7E5C] font-medium transition-colors duration-200"
-                                    onClick={() => setIsProductMenuOpen(false)}
-                                  >
-                                    Xem tất cả →
-                                  </Link>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                          )}
                         </div>
-                      </div>
-                    )}
-                  </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             }
 
+            // Các mục menu còn lại (bao gồm "Sản phẩm")
             return (
               <Link
                 key={item.to}
@@ -718,3 +484,4 @@ const Navbar: React.FC = () => {
 };
 
 export default Navbar;
+

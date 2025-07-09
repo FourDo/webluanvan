@@ -40,6 +40,7 @@ import EditProduct from "./components/EditProduct";
 import PrivateRoute from "./context/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { useEffect } from "react";
+import { CategoryProductProvider } from "./context/CategoryProductContext";
 
 // Component để xử lý redirect từ cổng thanh toán
 const RedirectHandler: React.FC = () => {
@@ -181,11 +182,13 @@ const router = createBrowserRouter([
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <GioHangProvider>
-        <RouterProvider router={router} />
-      </GioHangProvider>
-    </AuthProvider>
+    <CategoryProductProvider>
+      <AuthProvider>
+        <GioHangProvider>
+          <RouterProvider router={router} />
+        </GioHangProvider>
+      </AuthProvider>
+    </CategoryProductProvider>
   );
 };
 

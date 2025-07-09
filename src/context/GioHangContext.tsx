@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { SanPhamGioHang, SanPham } from '../types/types';
 
@@ -15,7 +15,30 @@ interface GioHangContextType {
 const GioHangContext = createContext<GioHangContextType | undefined>(undefined);
 
 export const GioHangProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<SanPhamGioHang[]>([]);
+  const LOCAL_KEY = 'gioHangItems';
+  const MAX_AGE_MS = 15 * 24 * 60 * 60 * 1000; // 15 ngày
+
+  const getInitialItems = (): SanPhamGioHang[] => {
+    try {
+      const raw = localStorage.getItem(LOCAL_KEY);
+      if (!raw) return [];
+      const { items, timestamp } = JSON.parse(raw);
+      if (!Array.isArray(items) || typeof timestamp !== 'number') return [];
+      if (Date.now() - timestamp > MAX_AGE_MS) {
+        localStorage.removeItem(LOCAL_KEY);
+        return [];
+      }
+      return items;
+    } catch {
+      return [];
+    }
+  };
+
+  const [items, setItems] = useState<SanPhamGioHang[]>(getInitialItems);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify({ items, timestamp: Date.now() }));
+  }, [items]);
 
   const themVaoGio = (sanPham: SanPham, soLuong: number) => {
     setItems(prevItems => {
