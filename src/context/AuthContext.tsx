@@ -13,6 +13,7 @@ interface AuthContextType {
   login: (userData: any) => void;
   logout: () => void;
   getToken: () => string | undefined;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
   getToken: () => undefined,
+  isLoading: true,
 });
 
 export const useAuth = () => {
@@ -36,6 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Đồng bộ trạng thái với cookie khi khởi tạo
   useEffect(() => {
@@ -62,6 +65,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     } else {
       logout();
     }
+
+    // Đặt loading thành false sau khi đã check cookie
+    setIsLoading(false);
   }, []);
 
   // Kiểm tra định kỳ cookie để phát hiện xóa thủ công
@@ -82,6 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const login = (userData: any, token?: string) => {
     setUser(userData);
     setIsAdmin(userData.vai_tro === "admin");
+    setIsLoading(false);
     if (userData.vai_tro === "admin") {
       Cookies.set("admin_data", JSON.stringify(userData), {
         expires: 7,
@@ -110,6 +117,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const logout = () => {
     setUser(null);
     setIsAdmin(false);
+    setIsLoading(false);
     Cookies.remove("admin_data");
     Cookies.remove("user_data");
     Cookies.remove("admin_rememberMe");
@@ -121,7 +129,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   return (
-    <AuthContext.Provider value={{ isAdmin, user, login, logout, getToken }}>
+    <AuthContext.Provider
+      value={{ isAdmin, user, login, logout, getToken, isLoading }}
+    >
       {children}
     </AuthContext.Provider>
   );

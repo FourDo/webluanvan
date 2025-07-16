@@ -1,4 +1,4 @@
-import axios from "axios";
+import apiClient from "../ultis/apiClient";
 import type {
   CategoryResponse,
   SingleCategoryResponse,
@@ -7,106 +7,51 @@ import type {
 } from "../types/category";
 
 const categoryApi = {
+  getAll: (): Promise<CategoryResponse> =>
+    apiClient
+      .get("/danhmuc")
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Lấy danh sách danh mục thất bại.");
+      }),
   // Lấy danh sách danh mục
-  getAll: async (): Promise<CategoryResponse> => {
-    try {
-      const response = await axios.get<CategoryResponse>(
-        "https://luanvan-7wv1.onrender.com/api/danhmuc",
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error("Lấy danh sách danh mục thất bại.");
-    }
-  },
 
-  // Lấy thông tin một danh mục theo ID
-  getById: async (id: number): Promise<SingleCategoryResponse> => {
-    try {
-      const response = await axios.get<SingleCategoryResponse>(
-        `https://luanvan-7wv1.onrender.com/api/danhmuc/${id}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error("Lấy thông tin danh mục thất bại.");
-    }
-  },
+  getById: (id: number): Promise<SingleCategoryResponse> =>
+    apiClient
+      .get(`/danhmuc/${id}`)
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Lấy thông tin danh mục thất bại.");
+      }),
 
-  // Tạo danh mục mới
-  create: async (
+  create: (
     credentials: CreateCategoryCredentials
-  ): Promise<SingleCategoryResponse> => {
-    try {
-      const response = await axios.post<SingleCategoryResponse>(
-        "https://luanvan-7wv1.onrender.com/api/danhmuc",
-        credentials,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        "Tạo danh mục thất bại. Vui lòng kiểm tra lại thông tin."
-      );
-    }
-  },
+  ): Promise<SingleCategoryResponse> =>
+    apiClient
+      .post("/danhmuc", credentials)
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Tạo danh mục thất bại.");
+      }),
 
-  // Cập nhật danh mục
-  update: async (
+  update: (
     id: number,
     credentials: UpdateCategoryCredentials
-  ): Promise<SingleCategoryResponse> => {
-    try {
-      const response = await axios.put<SingleCategoryResponse>(
-        `https://luanvan-7wv1.onrender.com/api/danhmuc/${id}`,
-        credentials,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        "Cập nhật danh mục thất bại. Vui lòng kiểm tra lại thông tin."
-      );
-    }
-  },
+  ): Promise<SingleCategoryResponse> =>
+    apiClient
+      .put(`/danhmuc/${id}`, credentials)
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Cập nhật danh mục thất bại.");
+      }),
 
-  // Xóa danh mục
-  delete: async (id: number): Promise<{ message: string }> => {
-    try {
-      const response = await axios.delete<{ message: string }>(
-        `https://luanvan-7wv1.onrender.com/api/danhmuc/${id}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error("Xóa danh mục thất bại.");
-    }
-  },
+  delete: (id: number): Promise<{ message: string }> =>
+    apiClient
+      .delete(`/danhmuc/${id}`)
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Xóa danh mục thất bại.");
+      }),
 };
 
 export default categoryApi;

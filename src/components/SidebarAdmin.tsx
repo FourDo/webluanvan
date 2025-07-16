@@ -9,6 +9,8 @@ import {
   Ruler,
   Gift,
   List,
+  Image,
+  FileText,
 } from "lucide-react";
 
 interface SidebarAdminProps {
@@ -42,7 +44,18 @@ const SidebarAdmin = ({ isOpen, closeSidebar }: SidebarAdminProps) => {
       icon: Gift,
       path: "/admin/khuyenmai",
     },
-
+    {
+      id: "banner",
+      label: "Quản lý banner",
+      icon: Image,
+      path: "/admin/banner",
+    },
+    {
+      id: "baibao",
+      label: "Quản lý bài báo",
+      icon: FileText,
+      path: "/admin/baibao",
+    },
     {
       id: "taikhoan",
       label: "Tài khoản",

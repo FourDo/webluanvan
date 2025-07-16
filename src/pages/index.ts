@@ -24,3 +24,5 @@ export { default as QLMauSac } from "../pages/QLMauSac";
 export { default as QLSize } from "../pages/QLKichThuoc";
 export { default as QLKhachHang } from "../pages/QLKhachHang";
 export { default as QLKhuyenMai } from "../pages/QLKhuyenMai";
+export { default as QLBanner } from "../pages/QLBanner";
+export { default as QLBaiBao } from "../pages/QLBaiBao";

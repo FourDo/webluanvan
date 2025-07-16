@@ -15,7 +15,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getProducts } from "../API/productApi"; // API call của bạn
+import { productApi } from "../API/productApi";
 import type { Product, ProductResponse } from "../types/Product"; // Type của bạn (cần cập nhật)
 
 // --- Helper Functions ---
@@ -177,7 +177,7 @@ const QLSanPham: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response: ProductResponse = await getProducts();
+        const response: ProductResponse = await productApi.getProducts();
         if (
           response.message === "Danh sách tìm kiếm sản phẩm" &&
           Array.isArray(response.data)

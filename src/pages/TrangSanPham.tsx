@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Filter, Search } from "lucide-react";
 
 // Import API và Types từ trang quản lý
-import { getProducts } from "../API/productApi";
+import { productApi } from "../API/productApi";
 import type { Product as ApiProduct, ProductResponse } from "../types/Product";
 
 // Import các component con
@@ -80,7 +80,9 @@ const TrangSanPham: React.FC = () => {
       const cachedProducts = getCachedProducts();
       if (cachedProducts) {
         // Lọc chỉ lấy sản phẩm có biến thể
-        const validProducts = cachedProducts.filter((p) => Array.isArray(p.bienthe) && p.bienthe.length > 0);
+        const validProducts = cachedProducts.filter(
+          (p) => Array.isArray(p.bienthe) && p.bienthe.length > 0
+        );
         setAllProducts(validProducts);
         const prices = validProducts
           .map((p) => getProductDisplayInfo(p).price)
@@ -94,14 +96,17 @@ const TrangSanPham: React.FC = () => {
 
       // Nếu không có cache hoặc cache hết hạn, gọi API
       try {
-        const response: ProductResponse = await getProducts();
+        const response: ProductResponse = await productApi.getProducts();
         if (
           response.message === "Danh sách tìm kiếm sản phẩm" &&
           Array.isArray(response.data)
         ) {
           // Lọc chỉ lấy sản phẩm có biến thể
           const activeProducts = response.data.filter(
-            (p) => p.trang_thai_hoat_dong === "hoat_dong" && Array.isArray(p.bienthe) && p.bienthe.length > 0
+            (p) =>
+              p.trang_thai_hoat_dong === "hoat_dong" &&
+              Array.isArray(p.bienthe) &&
+              p.bienthe.length > 0
           );
           setAllProducts(activeProducts);
           cacheProducts(activeProducts);
@@ -120,7 +125,9 @@ const TrangSanPham: React.FC = () => {
         const cachedProductsFallback = getCachedProducts();
         if (cachedProductsFallback) {
           // Lọc chỉ lấy sản phẩm có biến thể
-          const validProducts = cachedProductsFallback.filter((p) => Array.isArray(p.bienthe) && p.bienthe.length > 0);
+          const validProducts = cachedProductsFallback.filter(
+            (p) => Array.isArray(p.bienthe) && p.bienthe.length > 0
+          );
           setAllProducts(validProducts);
           const prices = validProducts
             .map((p) => getProductDisplayInfo(p).price)
@@ -382,7 +389,11 @@ const TrangSanPham: React.FC = () => {
                   );
                   if (!originalProduct) return null;
                   // Nếu sản phẩm không có biến thể, không hiển thị
-                  if (!Array.isArray(originalProduct.bienthe) || originalProduct.bienthe.length === 0) return null;
+                  if (
+                    !Array.isArray(originalProduct.bienthe) ||
+                    originalProduct.bienthe.length === 0
+                  )
+                    return null;
                   return (
                     <ProductCard
                       key={product.ma_san_pham}

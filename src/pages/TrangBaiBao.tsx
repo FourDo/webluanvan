@@ -41,12 +41,12 @@ function TrangBaiBao() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="flex flex-col justify-center items-center mb-6 sm:mb-8 text-center">
           <h1 className="mt-8 sm:mt-10 mb-4 sm:mb-6 text-4xl sm:text-5xl font-bold">
-            Article
+            Bài Báo
           </h1>
           <p className="text-gray-400 text-sm sm:text-base leading-relaxed max-w-md sm:max-w-xl">
-            We display products based on the latest products we have, if you
-            want <br />
-            to see our old products please enter the name of the item
+            Chúng tôi hiển thị sản phẩm dựa trên các sản phẩm mới nhất hiện có.
+            Nếu bạn muốn xem các sản phẩm cũ của chúng tôi, vui lòng nhập tên
+            sản phẩm.
           </p>
         </div>
       </div>

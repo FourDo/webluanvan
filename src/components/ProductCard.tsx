@@ -74,6 +74,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <div className="relative cursor-pointer" onClick={handleCardClick}>
         <img
           src={currentImage}
+          onError={(e) => {
+            e.currentTarget.src = "/image/hetcuu3.png"; // Hình ảnh thay thế nếu không tìm thấy
+          }}
           alt={product.ten_san_pham}
           className="w-full h-64 object-cover transition-all duration-300"
         />

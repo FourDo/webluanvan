@@ -50,13 +50,18 @@ const Navbar: React.FC = () => {
 
   // State cho menu sản phẩm động
   const { categories, products } = useCategoryProduct();
-  // Gom sản phẩm theo tên danh mục từ context
+console.log("Categories:", categories);
+console.log("Products:", products);
+  // Gom sản phẩm theo tên danh mục từ context, đảm bảo có image fallback
   const productsByCategory = React.useMemo(() => {
-    const grouped: Record<string, Product[]> = {};
-    products.forEach((p) => {
+    const grouped: Record<string, any[]> = {};
+    products.forEach((p: any) => {
       if (!p.ten_danh_muc) return;
       if (!grouped[p.ten_danh_muc]) grouped[p.ten_danh_muc] = [];
-      grouped[p.ten_danh_muc].push(p);
+      grouped[p.ten_danh_muc].push({
+        ...p,
+        image: p.image || p.hinh_anh || "image/hetcuu3.png",
+      });
     });
     return grouped;
   }, [products]);
@@ -198,8 +203,11 @@ const Navbar: React.FC = () => {
               return (
                 <div
                   key={item.label}
-                  className="relative group"
-                  onMouseEnter={() => setIsProductMenuOpen(true)}
+                  className="relative"
+                  onMouseEnter={() => {
+                    setIsProductMenuOpen(true);
+                    setSelectedCategory(categories[0]?.ten_danh_muc || null); // Mặc định chọn danh mục đầu tiên
+                  }}
                   onMouseLeave={() => {
                     setIsProductMenuOpen(false);
                     setSelectedCategory(null);
@@ -217,55 +225,54 @@ const Navbar: React.FC = () => {
                     {item.label}
                     <ChevronDown className="w-4 h-4 ml-1" />
                   </button>
-                  {/* Dropdown cấp 1: Danh mục */}
                   {isProductMenuOpen && (
-                    <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-50">
-                      {categories.map((cat) => (
-                        <div
-                          key={cat.ma_danh_muc}
-                          className="relative group"
-                          onMouseEnter={() =>
-                            setSelectedCategory(cat.ten_danh_muc)
-                          }
-                        >
-                          <button
-                            className="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#518581] rounded-lg"
-                            type="button"
+                    <div
+                      className="absolute left-0 top-full mt-2 flex z-50 w-[600px] bg-white rounded-xl shadow-xl border border-gray-100"
+                      // KHÔNG dùng margin giữa hai panel
+                    >
+                      {/* Bên trái: danh mục */}
+                      <div className="w-56 border-r border-gray-100 py-2">
+                        {categories.map((cat) => (
+                          <div
+                            key={cat.ma_danh_muc}
+                            className={`px-4 py-2 cursor-pointer text-sm rounded-lg flex items-center justify-between
+                              ${selectedCategory === cat.ten_danh_muc ? "bg-gray-100 text-[#518581]" : "text-gray-700 hover:bg-gray-50"}
+                            `}
+                            onMouseEnter={() => setSelectedCategory(cat.ten_danh_muc)}
                           >
                             {cat.ten_danh_muc}
                             <ChevronRight className="w-4 h-4" />
-                          </button>
-                          {/* Dropdown cấp 2: Sản phẩm */}
-                          {selectedCategory === cat.ten_danh_muc && (
-                            <div className="absolute left-full top-0 ml-1 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50">
-                              <div className="p-2 max-h-80 overflow-y-auto">
-                                {productsByCategory[cat.ten_danh_muc]
-                                  ?.length ? (
-                                  productsByCategory[cat.ten_danh_muc].map(
-                                    (product) => (
-                                      <Link
-                                        key={product.ma_san_pham}
-                                        to={`/sanpham/${product.ma_san_pham}`}
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#518581] rounded-lg"
-                                        onClick={() => {
-                                          setIsProductMenuOpen(false);
-                                          setSelectedCategory(null);
-                                        }}
-                                      >
-                                        {product.ten_san_pham}
-                                      </Link>
-                                    )
-                                  )
-                                ) : (
-                                  <div className="px-4 py-2 text-gray-400 text-sm">
-                                    Không có sản phẩm
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                          </div>
+                        ))}
+                      </div>
+                      {/* Bên phải: sản phẩm */}
+                      <div className="flex-1 p-4 grid grid-cols-3 gap-4 max-h-80 overflow-y-auto">
+                        {selectedCategory && productsByCategory[selectedCategory]?.length ? (
+                          productsByCategory[selectedCategory].map((product) => (
+                            <Link
+                              key={product.ma_san_pham}
+                              to={`/sanpham/${product.ma_san_pham}`}
+                              className="flex flex-col items-center text-center group"
+                              onClick={() => {
+                                setIsProductMenuOpen(false);
+                                setSelectedCategory(null);
+                              }}
+                            >
+                              <img
+                                src={product.image || "image/hetcuu3.png"}
+                                alt={product.ten_san_pham}
+                                className="w-14 h-14 object-cover rounded-md border border-gray-100 bg-gray-50 mb-2 group-hover:scale-105 transition"
+                                onError={(e) => (e.currentTarget.src = "image/hetcuu3.png")}
+                              />
+                              <span className="truncate text-xs">{product.ten_san_pham}</span>
+                            </Link>
+                          ))
+                        ) : (
+                          <div className="col-span-3 text-gray-400 text-sm flex items-center justify-center h-full">
+                            Không có sản phẩm
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

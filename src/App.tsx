@@ -22,6 +22,8 @@ import {
   QLSize,
   QLKhachHang,
   QLKhuyenMai,
+  QLBanner,
+  QLBaiBao,
   TrangDichVu,
   TrangBaiBao,
   TrangDangKy,
@@ -41,6 +43,7 @@ import PrivateRoute from "./context/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { useEffect } from "react";
 import { CategoryProductProvider } from "./context/CategoryProductContext";
+import DashboardContent from "./components/DashboardContent";
 
 // Component để xử lý redirect từ cổng thanh toán
 const RedirectHandler: React.FC = () => {
@@ -98,18 +101,19 @@ const router = createBrowserRouter([
           </AdminPrivateRoute>
         ),
         children: [
-          { index: true, element: <div>Welcome to Admin Dashboard</div> },
+          { index: true, element: <DashboardContent /> },
           { path: "sanpham", element: <QLSanPham /> },
           { path: "sanpham/:productId", element: <ProductDetail /> },
           { path: "sanpham/them", element: <AddProduct /> },
           { path: "sanpham/sua/:productId", element: <EditProduct /> },
           { path: "donhang", element: <QLDonHang /> },
-
           { path: "taikhoan", element: <QLTaiKhoan /> },
           { path: "mausac", element: <QLMauSac /> },
           { path: "kichthuoc", element: <QLSize /> },
           { path: "khachhang", element: <QLKhachHang /> },
           { path: "khuyenmai", element: <QLKhuyenMai /> },
+          { path: "banner", element: <QLBanner /> },
+          { path: "baibao", element: <QLBaiBao /> },
           { path: "doanhmuc", element: <QLDoanhMuc /> },
         ],
       },

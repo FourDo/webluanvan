@@ -2,16 +2,10 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import _ from "lodash";
-import {
-  getProductById,
-  updateProduct,
-  addVariant as apiAddVariant,
-  updateVariant as apiUpdateVariant,
-  deleteVariant as apiDeleteVariant,
-} from "../API/productApi";
+import { productApi } from "../API/productApi";
 import categoryApi from "../API/categoryApi";
-import { fetchColors } from "../API/colorApi";
-import { fetchSizes } from "../API/sizeApi";
+import colorApi from "../API/colorApi";
+import sizeApi from "../API/sizeApi";
 import type {
   Product,
   ProductForEdit,
@@ -94,7 +88,9 @@ const EditProduct: React.FC = () => {
       }
       try {
         setLoading(true);
-        const productFromApi: Product = await getProductById(Number(productId));
+        const productFromApi: Product = await productApi.getProductById(
+          Number(productId)
+        );
         const productDataForEdit: ProductForEdit = {
           ...productFromApi,
           ten_danh_muc: productFromApi.ten_danh_muc ?? "",
@@ -117,18 +113,18 @@ const EditProduct: React.FC = () => {
 
         const [categoryRes, colorRes, sizeRes] = await Promise.all([
           categoryApi.getAll(),
-          fetchColors(),
-          fetchSizes(),
+          colorApi.fetchColors(),
+          sizeApi.fetchSizes(),
         ]);
 
         if (categoryRes.data) {
           setCategories(categoryRes.data.map((cat: any) => cat.ten_danh_muc));
         }
-        if (colorRes.success && colorRes.data) {
-          setColors(colorRes.data);
+        if (colorRes && Array.isArray(colorRes)) {
+          setColors(colorRes);
         }
-        if (sizeRes.success && sizeRes.data) {
-          setSizes(sizeRes.data);
+        if (Array.isArray(sizeRes) && sizeRes.length > 0) {
+          setSizes(sizeRes);
         }
       } catch (err: any) {
         setError(err.message || "Không thể tải dữ liệu sản phẩm.");
@@ -355,7 +351,7 @@ const EditProduct: React.FC = () => {
     try {
       console.log("productMain gửi lên:", productMain);
       console.log("Tên danh mục gửi lên:", product.ten_danh_muc, "|");
-      await updateProduct(Number(productId), {
+      await productApi.updateProduct(Number(productId), {
         ...product,
         // Không cần truyền ma_danh_muc nếu backend không yêu cầu
       });
@@ -373,21 +369,26 @@ const EditProduct: React.FC = () => {
           hinh_anh: variant.hinh_anh,
         };
         if (!variant.ma_bien_the_san_pham) {
-          promises.push(apiAddVariant(Number(productId), variantDataPayload));
+          promises.push(
+            productApi.addVariant(Number(productId), variantDataPayload)
+          );
         } else {
           const originalVariant = originalProduct.bienthe.find(
             (v) => v.ma_bien_the_san_pham === variant.ma_bien_the_san_pham
           );
           if (originalVariant && !_.isEqual(variant, originalVariant)) {
             promises.push(
-              apiUpdateVariant(variant.ma_bien_the_san_pham, variantDataPayload)
+              productApi.updateVariant(
+                variant.ma_bien_the_san_pham,
+                variantDataPayload
+              )
             );
           }
         }
       }
 
       for (const variantId of deletedVariantIds) {
-        promises.push(apiDeleteVariant(variantId));
+        promises.push(productApi.deleteVariant(variantId));
       }
 
       await Promise.all(promises);

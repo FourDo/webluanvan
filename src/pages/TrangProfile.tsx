@@ -13,10 +13,17 @@ import {
   Heart,
   CreditCard,
   Package,
+  Lock,
+  Eye,
+  EyeOff,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import authApi from "../API/authApi";
-import type { UpdateUserCredentials } from "../types/auth";
+import type {
+  UpdateUserCredentials,
+  ResetPasswordCredentials,
+} from "../types/auth";
 
 function TrangProfile() {
   const { user, login } = useAuth();
@@ -25,6 +32,22 @@ function TrangProfile() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isRefreshingUserInfo, setIsRefreshingUserInfo] = useState(false);
+
+  // State cho đổi mật khẩu
+  const [passwordData, setPasswordData] = useState({
+    mat_khau_cu: "",
+    mat_khau_moi: "",
+    mat_khau_moi_confirmation: "",
+  });
+  const [passwordErrors, setPasswordErrors] = useState<{
+    [key: string]: string;
+  }>({});
+  const [showPasswords, setShowPasswords] = useState({
+    old: false,
+    new: false,
+    confirm: false,
+  });
 
   // Khởi tạo dữ liệu từ user context
   const [profileData, setProfileData] = useState({
@@ -33,8 +56,11 @@ function TrangProfile() {
     phone: user?.so_dien_thoai || "Chưa có thông tin",
     address: user?.dia_chi || "Chưa có thông tin",
     birthDate: "20/08/1985", // Giữ lại vì API chưa có trường này
-    joinDate: user?.ngay_tao ? new Date(user.ngay_tao).toLocaleDateString('vi-VN') : "Chưa có thông tin",
-    customerType: user?.vai_tro === "admin" ? "Quản trị viên" : "Khách hàng thân thiết",
+    joinDate: user?.ngay_tao
+      ? new Date(user.ngay_tao).toLocaleDateString("vi-VN")
+      : "Chưa có thông tin",
+    customerType:
+      user?.vai_tro === "admin" ? "Quản trị viên" : "Khách hàng thân thiết",
   });
 
   const [editData, setEditData] = useState(profileData);
@@ -48,13 +74,50 @@ function TrangProfile() {
         phone: user.so_dien_thoai || "Chưa có thông tin",
         address: user.dia_chi || "Chưa có thông tin",
         birthDate: "20/08/1985", // Giữ lại vì API chưa có trường này
-        joinDate: user.ngay_tao ? new Date(user.ngay_tao).toLocaleDateString('vi-VN') : "Chưa có thông tin",
-        customerType: user.vai_tro === "admin" ? "Quản trị viên" : "Khách hàng thân thiết",
+        joinDate: user.ngay_tao
+          ? new Date(user.ngay_tao).toLocaleDateString("vi-VN")
+          : "Chưa có thông tin",
+        customerType:
+          user.vai_tro === "admin" ? "Quản trị viên" : "Khách hàng thân thiết",
       };
       setProfileData(newProfileData);
       setEditData(newProfileData);
     }
   }, [user]);
+
+  // Hàm refresh thông tin người dùng từ server
+  const refreshUserInfo = async () => {
+    if (!user) return;
+
+    setIsRefreshingUserInfo(true);
+    setError(null);
+
+    try {
+      const response = await authApi.getUserInfo();
+
+      // Cập nhật thông tin trong context với dữ liệu mới từ server
+      const updatedUser = {
+        ...user,
+        ...response.data, // response.data chứa thông tin user mới nhất
+      };
+      login(updatedUser);
+
+      setSuccess("Thông tin đã được cập nhật!");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error: any) {
+      setError(error.message || "Có lỗi xảy ra khi tải thông tin người dùng");
+    } finally {
+      setIsRefreshingUserInfo(false);
+    }
+  };
+
+  // Tự động refresh thông tin khi component mount
+  useEffect(() => {
+    if (user) {
+      refreshUserInfo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Chỉ chạy một lần khi component mount
 
   // Dữ liệu mẫu cho đơn hàng
   const orders = [
@@ -113,7 +176,7 @@ function TrangProfile() {
       };
 
       const response = await authApi.updateUser(updateData);
-      
+
       // Cập nhật thông tin trong context
       const updatedUser = {
         ...user,
@@ -125,7 +188,7 @@ function TrangProfile() {
       setProfileData(editData);
       setIsEditing(false);
       setSuccess("Cập nhật thông tin thành công!");
-      
+
       // Tự động ẩn thông báo thành công sau 3 giây
       setTimeout(() => setSuccess(null), 3000);
     } catch (error: any) {
@@ -146,6 +209,87 @@ function TrangProfile() {
     setEditData((prev) => ({
       ...prev,
       [field]: value,
+    }));
+  };
+
+  // Xử lý đổi mật khẩu
+  const handlePasswordInputChange = (field: string, value: string) => {
+    setPasswordData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    // Xóa lỗi khi người dùng nhập
+    if (passwordErrors[field]) {
+      setPasswordErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
+  };
+
+  const validatePasswordForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!passwordData.mat_khau_cu) {
+      newErrors.mat_khau_cu = "Vui lòng nhập mật khẩu hiện tại";
+    }
+
+    if (!passwordData.mat_khau_moi) {
+      newErrors.mat_khau_moi = "Vui lòng nhập mật khẩu mới";
+    } else if (passwordData.mat_khau_moi.length < 6) {
+      newErrors.mat_khau_moi = "Mật khẩu mới phải có ít nhất 6 ký tự";
+    }
+
+    if (!passwordData.mat_khau_moi_confirmation) {
+      newErrors.mat_khau_moi_confirmation = "Vui lòng xác nhận mật khẩu mới";
+    } else if (
+      passwordData.mat_khau_moi !== passwordData.mat_khau_moi_confirmation
+    ) {
+      newErrors.mat_khau_moi_confirmation = "Mật khẩu xác nhận không khớp";
+    }
+
+    setPasswordErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validatePasswordForm()) return;
+
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const resetPasswordCredentials: ResetPasswordCredentials = {
+        mat_khau_cu: passwordData.mat_khau_cu,
+        mat_khau_moi: passwordData.mat_khau_moi,
+        mat_khau_moi_confirmation: passwordData.mat_khau_moi_confirmation,
+      };
+
+      const response = await authApi.resetpassword(resetPasswordCredentials);
+      setSuccess(response.message || "Đổi mật khẩu thành công!");
+
+      // Reset form
+      setPasswordData({
+        mat_khau_cu: "",
+        mat_khau_moi: "",
+        mat_khau_moi_confirmation: "",
+      });
+
+      // Tự động ẩn thông báo thành công sau 3 giây
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error: any) {
+      setError(error.message || "Có lỗi xảy ra khi đổi mật khẩu");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const togglePasswordVisibility = (field: "old" | "new" | "confirm") => {
+    setShowPasswords((prev) => ({
+      ...prev,
+      [field]: !prev[field],
     }));
   };
 
@@ -188,14 +332,28 @@ function TrangProfile() {
                 Quản lý thông tin và đơn hàng của bạn
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Tham gia từ</p>
-              <p className="font-semibold text-gray-800">
-                {profileData.joinDate}
-              </p>
-              <span className="inline-block bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full mt-1">
-                {profileData.customerType}
-              </span>
+            <div className="text-right flex items-end gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Tham gia từ</p>
+                <p className="font-semibold text-gray-800">
+                  {profileData.joinDate}
+                </p>
+                <span className="inline-block bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full mt-1">
+                  {profileData.customerType}
+                </span>
+              </div>
+              <button
+                onClick={refreshUserInfo}
+                disabled={isRefreshingUserInfo}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Làm mới thông tin"
+              >
+                <RefreshCw
+                  size={16}
+                  className={isRefreshingUserInfo ? "animate-spin" : ""}
+                />
+                {isRefreshingUserInfo ? "Đang tải..." : "Làm mới"}
+              </button>
             </div>
           </div>
         </div>
@@ -249,6 +407,17 @@ function TrangProfile() {
                 >
                   <Heart size={20} />
                   Sản phẩm yêu thích
+                </button>
+                <button
+                  onClick={() => setActiveTab("password")}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
+                    activeTab === "password"
+                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <Lock size={20} />
+                  Đổi mật khẩu
                 </button>
               </div>
             </div>
@@ -529,6 +698,168 @@ function TrangProfile() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Password Tab */}
+            {activeTab === "password" && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-xl font-semibold text-gray-800 mb-6">
+                  Đổi mật khẩu
+                </h3>
+                <form onSubmit={handleChangePassword} className="max-w-md">
+                  <div className="space-y-6">
+                    {/* Mật khẩu hiện tại */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mật khẩu hiện tại
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Lock className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                          type={showPasswords.old ? "text" : "password"}
+                          value={passwordData.mat_khau_cu}
+                          onChange={(e) =>
+                            handlePasswordInputChange(
+                              "mat_khau_cu",
+                              e.target.value
+                            )
+                          }
+                          className={`block w-full pl-10 pr-10 py-2 border ${
+                            passwordErrors.mat_khau_cu
+                              ? "border-red-300"
+                              : "border-gray-300"
+                          } rounded-md focus:ring-blue-500 focus:border-blue-500`}
+                          placeholder="Nhập mật khẩu hiện tại"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() => togglePasswordVisibility("old")}
+                        >
+                          {showPasswords.old ? (
+                            <EyeOff className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <Eye className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                      {passwordErrors.mat_khau_cu && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {passwordErrors.mat_khau_cu}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Mật khẩu mới */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mật khẩu mới
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Lock className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                          type={showPasswords.new ? "text" : "password"}
+                          value={passwordData.mat_khau_moi}
+                          onChange={(e) =>
+                            handlePasswordInputChange(
+                              "mat_khau_moi",
+                              e.target.value
+                            )
+                          }
+                          className={`block w-full pl-10 pr-10 py-2 border ${
+                            passwordErrors.mat_khau_moi
+                              ? "border-red-300"
+                              : "border-gray-300"
+                          } rounded-md focus:ring-blue-500 focus:border-blue-500`}
+                          placeholder="Nhập mật khẩu mới"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() => togglePasswordVisibility("new")}
+                        >
+                          {showPasswords.new ? (
+                            <EyeOff className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <Eye className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                      {passwordErrors.mat_khau_moi && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {passwordErrors.mat_khau_moi}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Xác nhận mật khẩu mới */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Xác nhận mật khẩu mới
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Lock className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                          type={showPasswords.confirm ? "text" : "password"}
+                          value={passwordData.mat_khau_moi_confirmation}
+                          onChange={(e) =>
+                            handlePasswordInputChange(
+                              "mat_khau_moi_confirmation",
+                              e.target.value
+                            )
+                          }
+                          className={`block w-full pl-10 pr-10 py-2 border ${
+                            passwordErrors.mat_khau_moi_confirmation
+                              ? "border-red-300"
+                              : "border-gray-300"
+                          } rounded-md focus:ring-blue-500 focus:border-blue-500`}
+                          placeholder="Nhập lại mật khẩu mới"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() => togglePasswordVisibility("confirm")}
+                        >
+                          {showPasswords.confirm ? (
+                            <EyeOff className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <Eye className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                      {passwordErrors.mat_khau_moi_confirmation && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {passwordErrors.mat_khau_moi_confirmation}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Submit button */}
+                    <div>
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Đang đổi mật khẩu...
+                          </>
+                        ) : (
+                          "Đổi mật khẩu"
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
             )}
           </div>

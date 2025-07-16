@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { addProduct } from "../API/productApi";
+import { productApi } from "../API/productApi";
 import type { Product, InputVariant, Variant } from "../types/Product";
 import categoryApi from "../API/categoryApi";
-import { fetchColors } from "../API/colorApi";
-import { fetchSizes } from "../API/sizeApi";
+import colorApi from "../API/colorApi";
+import sizeApi from "../API/sizeApi";
 import {
   Plus,
   X,
@@ -78,18 +78,18 @@ const AddProduct: React.FC = () => {
       try {
         const [categoryRes, colorRes, sizeRes] = await Promise.all([
           categoryApi.getAll(),
-          fetchColors(),
-          fetchSizes(),
+          colorApi.fetchColors(),
+          sizeApi.fetchSizes(),
         ]);
 
         if (categoryRes.data) {
           setCategories(categoryRes.data.map((cat: any) => cat.ten_danh_muc));
         }
-        if (colorRes.success && colorRes.data) {
-          setColors(colorRes.data);
+        if (colorRes && Array.isArray(colorRes)) {
+          setColors(colorRes);
         }
-        if (sizeRes.success && sizeRes.data) {
-          setSizes(sizeRes.data);
+        if (Array.isArray(sizeRes)) {
+          setSizes(sizeRes);
         }
       } catch (err) {
         setError(
@@ -276,7 +276,7 @@ const AddProduct: React.FC = () => {
     };
 
     try {
-      const response = await addProduct(productForApi);
+      const response = await productApi.addProduct(productForApi);
       console.log("Thêm sản phẩm thành công:", response);
       setSuccess("Thêm sản phẩm thành công!");
       setNewProduct({

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getProductById } from "../API/productApi";
+import { productApi } from "../API/productApi";
 import type { Product } from "../types/Product";
 
 const ProductDetail: React.FC = () => {
@@ -14,7 +14,9 @@ const ProductDetail: React.FC = () => {
       setLoading(true);
       try {
         if (!productId) throw new Error("Không tìm thấy ID sản phẩm");
-        const product: Product = await getProductById(Number(productId));
+        const product: Product = await productApi.getProductById(
+          Number(productId)
+        );
         setProduct(product);
       } catch (err: any) {
         console.error("API Error:", err);

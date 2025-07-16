@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getProductById } from "../API/productApi";
+import { productApi } from "../API/productApi";
 import type { Product } from "../types/Product";
 import { useGioHang } from "../context/GioHangContext";
 import {
@@ -52,7 +52,8 @@ const ChiTietSanPham: React.FC = () => {
     if (!id) return;
     setLoading(true);
     setError(null);
-    getProductById(Number(id))
+    productApi
+      .getProductById(Number(id))
       .then((data) => {
         setProduct(data);
         setSelectedVariantIdx(0);
