@@ -9,6 +9,13 @@ export const productApi = {
       .catch(() => {
         throw new Error("Lấy danh sách sản phẩm thất bại.");
       }),
+  searchProducts: async (searchTerm: string): Promise<ProductResponse> =>
+    apiClient
+      .get(`/san-pham?search=${encodeURIComponent(searchTerm)}`)
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Tìm kiếm sản phẩm thất bại.");
+      }),
   getProductById: async (productId: number): Promise<Product> =>
     apiClient
       .get(`/san-pham/${productId}`)
@@ -45,6 +52,7 @@ export const productApi = {
       .catch(() => {
         throw new Error("Xóa sản phẩm thất bại.");
       }),
+
   addVariant: async (
     productId: number,
     variant: InputVariant

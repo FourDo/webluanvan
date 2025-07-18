@@ -126,6 +126,15 @@ const ChiTietSanPham: React.FC = () => {
   const inStock = selectedVariant ? selectedVariant.so_luong_ton > 0 : false;
 
   const handleAddToCart = () => {
+    // Kiểm tra xem người dùng đã đăng nhập chưa
+    const userDataString = localStorage.getItem("user");
+    if (!userDataString) {
+      // Nếu chưa đăng nhập, chuyển hướng đến trang đăng nhập
+      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
+      navigate("/dangnhap");
+      return;
+    }
+
     if (!selectedVariant) return;
     const color =
       selectedVariant.ten_mau_sac ||

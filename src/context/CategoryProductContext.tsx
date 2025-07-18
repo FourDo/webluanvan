@@ -30,8 +30,6 @@ export const CategoryProductProvider: React.FC<{ children: ReactNode }> = ({
         categoryApi.getAll(),
         productApi.getProducts(),
       ]);
-      console.log("API Categories:", catRes);
-      console.log("API Products:", prodRes);
 
       // Xử lý danh mục
       if (catRes && Array.isArray(catRes.data)) {
@@ -46,10 +44,22 @@ export const CategoryProductProvider: React.FC<{ children: ReactNode }> = ({
 
       // Xử lý sản phẩm
       if (prodRes && Array.isArray(prodRes.data)) {
-        const productsWithImage = prodRes.data.map((p: any) => ({
-          ...p,
-          image: p.image || p.hinh_anh || "image/hetcuu3.png",
-        }));
+        const productsWithImage = prodRes.data
+          .filter((p: any) => {
+            // Chỉ lấy sản phẩm có biến thể và có hình ảnh
+            return (
+              p.bienthe &&
+              Array.isArray(p.bienthe) &&
+              p.bienthe.length > 0 &&
+              p.bienthe[0].hinh_anh &&
+              Array.isArray(p.bienthe[0].hinh_anh) &&
+              p.bienthe[0].hinh_anh.length > 0
+            );
+          })
+          .map((p: any) => ({
+            ...p,
+            image: p.bienthe[0].hinh_anh[0],
+          }));
         setProducts(productsWithImage);
       } else {
         console.error("Dữ liệu sản phẩm không đúng định dạng:", prodRes);

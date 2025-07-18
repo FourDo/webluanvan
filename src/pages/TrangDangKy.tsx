@@ -16,17 +16,67 @@ const TrangDangky: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
 
   const navigate = useNavigate();
 
+  // Helper function to check if there are any validation errors
+  const hasValidationErrors = () => {
+    return Object.values(validationErrors).some((error) => error !== "");
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    // Xử lý định dạng đặc biệt cho từng trường
+    let formattedValue = value;
+
+    switch (name) {
+      case "ho_ten":
+        // Chỉ cho phép chữ cái và khoảng trắng, loại bỏ số và ký tự đặc biệt
+        formattedValue = value.replace(/[^a-zA-ZÀ-ỹ\s]/g, "");
+        // Viết hoa chữ cái đầu mỗi từ
+        formattedValue = formattedValue.replace(/\b\w/g, (l) =>
+          l.toUpperCase()
+        );
+        break;
+
+      case "so_dien_thoai":
+        // Chỉ cho phép số và loại bỏ khoảng trắng
+        formattedValue = value.replace(/[^\d]/g, "");
+        // Giới hạn 10-11 số
+        if (formattedValue.length > 11) {
+          formattedValue = formattedValue.slice(0, 11);
+        }
+        break;
+
+      case "email":
+        // Loại bỏ khoảng trắng và chuyển về chữ thường
+        formattedValue = value.trim().toLowerCase();
+        break;
+
+      case "dia_chi":
+        // Viết hoa chữ cái đầu
+        formattedValue = value.charAt(0).toUpperCase() + value.slice(1);
+        break;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: formattedValue,
     }));
+
+    // Xóa lỗi validation khi người dùng nhập
     if (errors[name]) {
       setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => ({
         ...prev,
         [name]: "",
       }));
@@ -36,38 +86,62 @@ const TrangDangky: React.FC = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
+    // Kiểm tra họ tên
     if (!formData.ho_ten.trim()) {
-      newErrors.ho_ten = "Vui lòng nhập họ tên";
+      newErrors.ho_ten = "❌ Vui lòng nhập họ tên!";
+    } else if (formData.ho_ten.trim().length < 2) {
+      newErrors.ho_ten = "❌ Họ tên phải có ít nhất 2 ký tự!";
+    } else if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(formData.ho_ten.trim())) {
+      newErrors.ho_ten = "❌ Họ tên chỉ được chứa chữ cái và khoảng trắng!";
+    } else if (formData.ho_ten.trim().split(" ").length < 2) {
+      newErrors.ho_ten = "❌ Vui lòng nhập đầy đủ họ và tên!";
     }
 
+    // Kiểm tra email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
-      newErrors.email = "Vui lòng nhập email";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email không hợp lệ";
+      newErrors.email = "❌ Vui lòng nhập email!";
+    } else if (!emailRegex.test(formData.email.trim())) {
+      newErrors.email =
+        "❌ Email không đúng định dạng (ví dụ: name@example.com)!";
     }
 
+    // Kiểm tra số điện thoại Việt Nam
+    const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
     if (!formData.so_dien_thoai.trim()) {
-      newErrors.so_dien_thoai = "Vui lòng nhập số điện thoại";
-    } else if (!/^\d{10,11}$/.test(formData.so_dien_thoai)) {
-      newErrors.so_dien_thoai = "Số điện thoại không hợp lệ";
+      newErrors.so_dien_thoai = "❌ Vui lòng nhập số điện thoại!";
+    } else if (
+      !phoneRegex.test(formData.so_dien_thoai.trim().replace(/\s/g, ""))
+    ) {
+      newErrors.so_dien_thoai =
+        "❌ Số điện thoại không đúng định dạng (VD: 0901234567)!";
     }
 
+    // Kiểm tra địa chỉ
     if (!formData.dia_chi.trim()) {
-      newErrors.dia_chi = "Vui lòng nhập địa chỉ";
+      newErrors.dia_chi = "❌ Vui lòng nhập địa chỉ!";
+    } else if (formData.dia_chi.trim().length < 10) {
+      newErrors.dia_chi = "❌ Địa chỉ phải có ít nhất 10 ký tự!";
     }
 
+    // Kiểm tra mật khẩu
     if (!formData.mat_khau) {
-      newErrors.mat_khau = "Vui lòng nhập mật khẩu";
+      newErrors.mat_khau = "❌ Vui lòng nhập mật khẩu!";
     } else if (formData.mat_khau.length < 6) {
-      newErrors.mat_khau = "Mật khẩu phải có ít nhất 6 ký tự";
+      newErrors.mat_khau = "❌ Mật khẩu phải có ít nhất 6 ký tự!";
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.mat_khau)) {
+      newErrors.mat_khau =
+        "❌ Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường và 1 số!";
     }
 
+    // Kiểm tra xác nhận mật khẩu
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
+      newErrors.confirmPassword = "❌ Vui lòng xác nhận mật khẩu!";
     } else if (formData.mat_khau !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
+      newErrors.confirmPassword = "❌ Mật khẩu xác nhận không khớp!";
     }
 
+    setValidationErrors(newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -155,13 +229,26 @@ const TrangDangky: React.FC = () => {
                   value={formData.ho_ten}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
-                    errors.ho_ten ? "border-red-300" : "border-gray-300"
-                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
-                  placeholder="Nhập họ và tên"
+                    errors.ho_ten
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-300 focus:border-[#518581]"
+                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] sm:text-sm transition-colors`}
+                  placeholder="Nguyễn Văn A"
                 />
               </div>
               {errors.ho_ten && (
-                <p className="mt-1 text-sm text-red-600">{errors.ho_ten}</p>
+                <div className="mt-1 flex items-start gap-1">
+                  <p className="text-red-600 text-sm flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.ho_ten}
+                  </p>
+                </div>
+              )}
+              {!errors.ho_ten && formData.ho_ten && (
+                <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                  <span>✅</span>
+                  Họ tên hợp lệ
+                </p>
               )}
             </div>
 
@@ -184,14 +271,29 @@ const TrangDangky: React.FC = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
-                    errors.email ? "border-red-300" : "border-gray-300"
-                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
-                  placeholder="Nhập địa chỉ email"
+                    errors.email
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-300 focus:border-[#518581]"
+                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] sm:text-sm transition-colors`}
+                  placeholder="name@example.com"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                <div className="mt-1 flex items-start gap-1">
+                  <p className="text-red-600 text-sm flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.email}
+                  </p>
+                </div>
               )}
+              {!errors.email &&
+                formData.email &&
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
+                  <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                    <span>✅</span>
+                    Email hợp lệ
+                  </p>
+                )}
             </div>
 
             {/* Số điện thoại */}
@@ -213,16 +315,38 @@ const TrangDangky: React.FC = () => {
                   value={formData.so_dien_thoai}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
-                    errors.so_dien_thoai ? "border-red-300" : "border-gray-300"
-                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
-                  placeholder="Nhập số điện thoại"
+                    errors.so_dien_thoai
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-300 focus:border-[#518581]"
+                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] sm:text-sm transition-colors`}
+                  placeholder="0901234567"
+                  maxLength={11}
                 />
               </div>
               {errors.so_dien_thoai && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.so_dien_thoai}
-                </p>
+                <div className="mt-1 flex items-start gap-1">
+                  <p className="text-red-600 text-sm flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.so_dien_thoai}
+                  </p>
+                </div>
               )}
+              {!errors.so_dien_thoai &&
+                formData.so_dien_thoai &&
+                /^(0[3|5|7|8|9])+([0-9]{8})$/.test(formData.so_dien_thoai) && (
+                  <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                    <span>✅</span>
+                    Số điện thoại hợp lệ
+                  </p>
+                )}
+              {formData.so_dien_thoai &&
+                formData.so_dien_thoai.length > 0 &&
+                formData.so_dien_thoai.length < 10 && (
+                  <p className="mt-1 text-blue-600 text-sm flex items-center gap-1">
+                    <span>ℹ️</span>
+                    Số điện thoại cần có 10-11 chữ số
+                  </p>
+                )}
             </div>
 
             {/* Địa chỉ */}
@@ -244,14 +368,37 @@ const TrangDangky: React.FC = () => {
                   value={formData.dia_chi}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
-                    errors.dia_chi ? "border-red-300" : "border-gray-300"
-                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
-                  placeholder="Nhập địa chỉ"
+                    errors.dia_chi
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-300 focus:border-[#518581]"
+                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] sm:text-sm transition-colors`}
+                  placeholder="123 Đường ABC, Phường XYZ, Quận DEF, TP HCM"
                 />
               </div>
               {errors.dia_chi && (
-                <p className="mt-1 text-sm text-red-600">{errors.dia_chi}</p>
+                <div className="mt-1 flex items-start gap-1">
+                  <p className="text-red-600 text-sm flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.dia_chi}
+                  </p>
+                </div>
               )}
+              {!errors.dia_chi &&
+                formData.dia_chi &&
+                formData.dia_chi.length >= 10 && (
+                  <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                    <span>✅</span>
+                    Địa chỉ hợp lệ
+                  </p>
+                )}
+              {formData.dia_chi &&
+                formData.dia_chi.length > 0 &&
+                formData.dia_chi.length < 10 && (
+                  <p className="mt-1 text-blue-600 text-sm flex items-center gap-1">
+                    <span>ℹ️</span>
+                    Địa chỉ cần có ít nhất 10 ký tự
+                  </p>
+                )}
             </div>
 
             {/* Mật khẩu */}
@@ -273,9 +420,11 @@ const TrangDangky: React.FC = () => {
                   value={formData.mat_khau}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-10 py-2 border ${
-                    errors.mat_khau ? "border-red-300" : "border-gray-300"
-                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
-                  placeholder="Nhập mật khẩu"
+                    errors.mat_khau
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-300 focus:border-[#518581]"
+                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] sm:text-sm transition-colors`}
+                  placeholder="Ít nhất 6 ký tự với chữ hoa, thường và số"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <button
@@ -292,8 +441,73 @@ const TrangDangky: React.FC = () => {
                 </div>
               </div>
               {errors.mat_khau && (
-                <p className="mt-1 text-sm text-red-600">{errors.mat_khau}</p>
+                <div className="mt-1 flex items-start gap-1">
+                  <p className="text-red-600 text-sm flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.mat_khau}
+                  </p>
+                </div>
               )}
+              {!errors.mat_khau &&
+                formData.mat_khau &&
+                formData.mat_khau.length >= 6 &&
+                /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.mat_khau) && (
+                  <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                    <span>✅</span>
+                    Mật khẩu mạnh
+                  </p>
+                )}
+              {formData.mat_khau &&
+                (formData.mat_khau.length < 6 ||
+                  !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(
+                    formData.mat_khau
+                  )) && (
+                  <div className="mt-1 space-y-1">
+                    <p className="text-blue-600 text-sm">💡 Mật khẩu cần:</p>
+                    <div className="text-xs space-y-1 ml-4">
+                      <p
+                        className={
+                          formData.mat_khau.length >= 6
+                            ? "text-green-600"
+                            : "text-gray-500"
+                        }
+                      >
+                        {formData.mat_khau.length >= 6 ? "✅" : "⭕"} Ít nhất 6
+                        ký tự
+                      </p>
+                      <p
+                        className={
+                          /(?=.*[a-z])/.test(formData.mat_khau)
+                            ? "text-green-600"
+                            : "text-gray-500"
+                        }
+                      >
+                        {/(?=.*[a-z])/.test(formData.mat_khau) ? "✅" : "⭕"} Ít
+                        nhất 1 chữ thường
+                      </p>
+                      <p
+                        className={
+                          /(?=.*[A-Z])/.test(formData.mat_khau)
+                            ? "text-green-600"
+                            : "text-gray-500"
+                        }
+                      >
+                        {/(?=.*[A-Z])/.test(formData.mat_khau) ? "✅" : "⭕"} Ít
+                        nhất 1 chữ hoa
+                      </p>
+                      <p
+                        className={
+                          /(?=.*\d)/.test(formData.mat_khau)
+                            ? "text-green-600"
+                            : "text-gray-500"
+                        }
+                      >
+                        {/(?=.*\d)/.test(formData.mat_khau) ? "✅" : "⭕"} Ít
+                        nhất 1 chữ số
+                      </p>
+                    </div>
+                  </div>
+                )}
             </div>
 
             {/* Xác nhận mật khẩu */}
@@ -316,10 +530,10 @@ const TrangDangky: React.FC = () => {
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-10 py-2 border ${
                     errors.confirmPassword
-                      ? "border-red-300"
-                      : "border-gray-300"
-                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
-                  placeholder="Nhập lại mật khẩu"
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-300 focus:border-[#518581]"
+                  } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] sm:text-sm transition-colors`}
+                  placeholder="Nhập lại mật khẩu để xác nhận"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <button
@@ -336,24 +550,41 @@ const TrangDangky: React.FC = () => {
                 </div>
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.confirmPassword}
-                </p>
+                <div className="mt-1 flex items-start gap-1">
+                  <p className="text-red-600 text-sm flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.confirmPassword}
+                  </p>
+                </div>
               )}
+              {!errors.confirmPassword &&
+                formData.confirmPassword &&
+                formData.mat_khau === formData.confirmPassword && (
+                  <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                    <span>✅</span>
+                    Mật khẩu khớp
+                  </p>
+                )}
             </div>
 
             <div>
               <button
                 type="submit"
-                disabled={isLoading}
-                className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                  isLoading
+                disabled={isLoading || hasValidationErrors()}
+                className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white transition-colors duration-200 ${
+                  isLoading || hasValidationErrors()
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-[#518581] hover:bg-[#518581]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#518581]"
-                } transition-colors duration-200`}
+                }`}
               >
                 {isLoading ? "Đang xử lý..." : "Tạo tài khoản"}
               </button>
+              {hasValidationErrors() && (
+                <p className="mt-2 text-red-600 text-sm text-center flex items-center justify-center gap-1">
+                  <span>⚠️</span>
+                  Vui lòng sửa các lỗi trước khi tạo tài khoản
+                </p>
+              )}
             </div>
           </form>
 

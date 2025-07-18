@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { User, ChevronDown, Settings, LogOut } from "lucide-react";
+import {
+  User,
+  ChevronDown,
+  Settings,
+  LogOut,
+  Bell,
+  Search,
+  Menu,
+  Shield,
+  Activity,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import authApi from "../API/authApi";
 import { useAuth } from "../context/AuthContext";
@@ -8,11 +18,12 @@ interface AdminNavbarProps {
   toggleSidebar: () => void;
 }
 
-const AdminNavbar = ({}: AdminNavbarProps) => {
+const AdminNavbar = ({ toggleSidebar }: AdminNavbarProps) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [notifications] = useState(3); // Mock notifications count
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const handleLogout = async () => {
     if (!window.confirm("Bạn có chắc chắn muốn đăng xuất không?")) return;
@@ -34,52 +45,169 @@ const AdminNavbar = ({}: AdminNavbarProps) => {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+    <nav className="bg-white shadow-lg border-b border-gray-200 px-6 py-4 sticky top-0 z-50">
       <div className="flex items-center justify-between">
+        {/* Left side - Logo and Menu */}
         <div className="flex items-center space-x-4">
+          <button
+            onClick={toggleSidebar}
+            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Toggle Sidebar"
+          >
+            <Menu size={20} className="text-gray-600" />
+          </button>
+
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <Shield size={20} className="text-white" />
+            </div>
+            <div className="hidden md:block">
+              <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>
+              <p className="text-xs text-gray-500">Quản trị hệ thống</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Center - Search (hidden on mobile) */}
+        <div className="hidden md:flex flex-1 max-w-md mx-6">
+          <div className="relative w-full">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={16} className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Tìm kiếm..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Right side - Notifications and Profile */}
+        <div className="flex items-center space-x-4">
+          {/* Notifications */}
+          <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <Bell size={20} className="text-gray-600" />
+            {notifications > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {notifications}
+              </span>
+            )}
+          </button>
+
+          {/* System Status */}
+          <div className="hidden md:flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
+            <Activity size={16} className="text-green-600" />
+            <span className="text-sm font-medium text-green-700">Online</span>
+          </div>
+
+          {/* Profile Dropdown */}
           <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
+              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
               disabled={isLoggingOut}
             >
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                <User size={16} className="text-white" />
+              <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                <User size={18} className="text-white" />
               </div>
-              <span className="hidden md:block text-sm font-medium">Admin</span>
-              <ChevronDown size={16} className="text-gray-400" />
+              <div className="hidden md:block text-left">
+                <span className="block text-sm font-medium text-gray-700">
+                  {user?.ho_ten || "Admin"}
+                </span>
+                <span className="block text-xs text-gray-500">
+                  {user?.vai_tro === "admin" ? "Quản trị viên" : "Admin"}
+                </span>
+              </div>
+              <ChevronDown
+                size={16}
+                className={`text-gray-400 transition-transform duration-200 ${
+                  profileOpen ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                <button
-                  onClick={() => navigate("/admin/profile")}
-                  className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  <User size={16} className="mr-3" />
-                  Hồ sơ
-                </button>
-                <button
-                  onClick={() => navigate("/admin/settings")}
-                  className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  <Settings size={16} className="mr-3" />
-                  Cài đặt
-                </button>
-                <div className="border-t border-gray-200 my-2"></div>
-                <button
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className={`w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 ${
-                    isLoggingOut ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  <LogOut size={16} className="mr-3" />
-                  {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
-                </button>
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 animate-in slide-in-from-top-2 duration-200">
+                {/* Profile Header */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                      <User size={18} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        {user?.ho_ten || "Admin"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {user?.email || "admin@example.com"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
+                <div className="py-2">
+                  <button
+                    onClick={() => {
+                      navigate("/admin/profile");
+                      setProfileOpen(false);
+                    }}
+                    className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                  >
+                    <User size={16} className="mr-3" />
+                    <span>Hồ sơ cá nhân</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      navigate("/admin/settings");
+                      setProfileOpen(false);
+                    }}
+                    className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                  >
+                    <Settings size={16} className="mr-3" />
+                    <span>Cài đặt hệ thống</span>
+                  </button>
+
+                  <div className="border-t border-gray-100 my-2"></div>
+
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className={`w-full text-left flex items-center px-4 py-3 text-sm transition-colors ${
+                      isLoggingOut
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-red-600 hover:bg-red-50 hover:text-red-700"
+                    }`}
+                  >
+                    <LogOut size={16} className="mr-3" />
+                    <span>
+                      {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
+                    </span>
+                    {isLoggingOut && (
+                      <div className="ml-auto">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                      </div>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Search - Shows when needed */}
+      <div className="md:hidden mt-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search size={16} className="text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Tìm kiếm..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+          />
         </div>
       </div>
     </nav>

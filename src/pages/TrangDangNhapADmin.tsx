@@ -12,6 +12,9 @@ function TrangDangNhapADmin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
   const navigate = useNavigate();
   const { login, isAdmin } = useAuth(); // Lấy login và isAdmin từ AuthContext
 
@@ -47,9 +50,72 @@ function TrangDangNhapADmin() {
     return () => clearInterval(interval);
   }, []);
 
+  // Helper function to check if there are any validation errors
+  const hasValidationErrors = () => {
+    return Object.values(validationErrors).some((error) => error !== "");
+  };
+
+  // Xử lý thay đổi input với validation
+  const handleEmailChange = (value: string) => {
+    // Loại bỏ khoảng trắng và chuyển về chữ thường
+    const formattedValue = value.trim().toLowerCase();
+    setEmail(formattedValue);
+
+    // Xóa lỗi validation khi người dùng nhập
+    if (validationErrors.email) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        email: "",
+      }));
+    }
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+
+    // Xóa lỗi validation khi người dùng nhập
+    if (validationErrors.password) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        password: "",
+      }));
+    }
+  };
+
+  // Validation form
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    // Kiểm tra email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) {
+      newErrors.email = "❌ Vui lòng nhập email quản trị!";
+    } else if (!emailRegex.test(email.trim())) {
+      newErrors.email =
+        "❌ Email không đúng định dạng (ví dụ: admin@example.com)!";
+    }
+
+    // Kiểm tra mật khẩu
+    if (!password) {
+      newErrors.password = "❌ Vui lòng nhập mật khẩu!";
+    } else if (password.length < 6) {
+      newErrors.password = "❌ Mật khẩu phải có ít nhất 6 ký tự!";
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Validate form trước khi submit
+    if (!validateForm()) {
+      setError("Vui lòng kiểm tra lại thông tin đã nhập!");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -64,7 +130,7 @@ function TrangDangNhapADmin() {
         );
       }
 
-      // Gọi hàm login từ AuthContext để cập nhật trạng thái
+      // Gọi hàm login từ AuthContext để cập nhật trạng thái (không cần token)
       login(response.user);
 
       // Xử lý ghi nhớ đăng nhập
@@ -154,7 +220,8 @@ function TrangDangNhapADmin() {
 
           {/* Error message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-xl text-sm">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2">
+              <span>⚠️</span>
               {error}
             </div>
           )}
@@ -177,12 +244,32 @@ function TrangDangNhapADmin() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm"
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm ${
+                    validationErrors.email
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
+                  }`}
                   placeholder="admin@example.com"
                   required
                 />
               </div>
+              {validationErrors.email && (
+                <div className="mt-1 flex items-start gap-1">
+                  <p className="text-red-600 text-sm flex items-center gap-1">
+                    <span>⚠️</span>
+                    {validationErrors.email}
+                  </p>
+                </div>
+              )}
+              {!validationErrors.email &&
+                email &&
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && (
+                  <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                    <span>✅</span>
+                    Email hợp lệ
+                  </p>
+                )}
             </div>
 
             {/* Password field */}
@@ -201,9 +288,13 @@ function TrangDangNhapADmin() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm"
-                  placeholder="••••••••"
+                  onChange={(e) => handlePasswordChange(e.target.value)}
+                  className={`w-full pl-12 pr-12 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm ${
+                    validationErrors.password
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-blue-500"
+                  }`}
+                  placeholder="Nhập mật khẩu quản trị"
                   required
                 />
                 <button
@@ -218,6 +309,28 @@ function TrangDangNhapADmin() {
                   )}
                 </button>
               </div>
+              {validationErrors.password && (
+                <div className="mt-1 flex items-start gap-1">
+                  <p className="text-red-600 text-sm flex items-center gap-1">
+                    <span>⚠️</span>
+                    {validationErrors.password}
+                  </p>
+                </div>
+              )}
+              {!validationErrors.password &&
+                password &&
+                password.length >= 6 && (
+                  <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                    <span>✅</span>
+                    Mật khẩu hợp lệ
+                  </p>
+                )}
+              {password && password.length > 0 && password.length < 6 && (
+                <p className="mt-1 text-blue-600 text-sm flex items-center gap-1">
+                  <span>ℹ️</span>
+                  Mật khẩu cần có ít nhất 6 ký tự
+                </p>
+              )}
             </div>
 
             {/* Remember me & Forgot password */}
@@ -244,14 +357,22 @@ function TrangDangNhapADmin() {
             {/* Submit button */}
             <button
               type="submit"
-              disabled={loading}
-              className={`w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg ${
-                loading ? "opacity-75 cursor-not-allowed" : ""
+              disabled={loading || hasValidationErrors()}
+              className={`w-full py-3 px-6 rounded-xl font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg ${
+                loading || hasValidationErrors()
+                  ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                  : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
               }`}
             >
               <span>{loading ? "Đang đăng nhập..." : "Đăng nhập"}</span>
               {!loading && <ArrowRight className="h-5 w-5" />}
             </button>
+            {hasValidationErrors() && (
+              <p className="mt-2 text-red-600 text-sm text-center flex items-center justify-center gap-1">
+                <span>⚠️</span>
+                Vui lòng sửa các lỗi trước khi đăng nhập
+              </p>
+            )}
           </form>
 
           {/* Footer */}

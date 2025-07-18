@@ -4,6 +4,7 @@ export { default as TrangChu } from "../pages/TrangChu";
 export { default as TrangSanPham } from "../pages/TrangSanPham";
 export { default as ChiTietSanPham } from "../pages/TrangChiTietSanPham";
 export { default as TrangDichVu } from "../pages/TrangDichVu";
+export { default as TrangVeChungToi } from "../pages/TrangVeChungToi";
 export { default as TrangBaiBao } from "../pages/TrangBaiBao";
 export { default as TrangDangKy } from "./TrangDangKy";
 export { default as TrangDangNhap } from "./TrangDangNhap";
@@ -25,4 +26,5 @@ export { default as QLSize } from "../pages/QLKichThuoc";
 export { default as QLKhachHang } from "../pages/QLKhachHang";
 export { default as QLKhuyenMai } from "../pages/QLKhuyenMai";
 export { default as QLBanner } from "../pages/QLBanner";
-export { default as QLBaiBao } from "../pages/QLBaiBao";
+
+export { default as QLBaiBaoEnhanced } from "../pages/QLBaiBaoEnhanced";

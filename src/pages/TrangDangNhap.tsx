@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, LogOut } from "lucide-react";
 import authApi from "../API/authApi";
+import { useAuth } from "../context/AuthContext";
 
 const TrangDangNhap: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -14,9 +15,13 @@ const TrangDangNhap: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("user"));
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { login, logout } = useAuth();
 
   useEffect(() => {
     if (location.state?.message) {
@@ -24,14 +29,38 @@ const TrangDangNhap: React.FC = () => {
     }
   }, [location.state]);
 
+  // Helper function to check if there are any validation errors
+  const hasValidationErrors = () => {
+    return Object.values(validationErrors).some((error) => error !== "");
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    // Xử lý định dạng đặc biệt cho từng trường
+    let formattedValue = value;
+
+    switch (name) {
+      case "email":
+        // Loại bỏ khoảng trắng và chuyển về chữ thường
+        formattedValue = value.trim().toLowerCase();
+        break;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: formattedValue,
     }));
+
+    // Xóa lỗi validation khi người dùng nhập
     if (errors[name]) {
       setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => ({
         ...prev,
         [name]: "",
       }));
@@ -41,16 +70,23 @@ const TrangDangNhap: React.FC = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
+    // Kiểm tra email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
-      newErrors.email = "Vui lòng nhập email";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email không hợp lệ";
+      newErrors.email = "❌ Vui lòng nhập email!";
+    } else if (!emailRegex.test(formData.email.trim())) {
+      newErrors.email =
+        "❌ Email không đúng định dạng (ví dụ: name@example.com)!";
     }
 
+    // Kiểm tra mật khẩu
     if (!formData.mat_khau) {
-      newErrors.mat_khau = "Vui lòng nhập mật khẩu";
+      newErrors.mat_khau = "❌ Vui lòng nhập mật khẩu!";
+    } else if (formData.mat_khau.length < 6) {
+      newErrors.mat_khau = "❌ Mật khẩu phải có ít nhất 6 ký tự!";
     }
 
+    setValidationErrors(newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -69,7 +105,13 @@ const TrangDangNhap: React.FC = () => {
         mat_khau: formData.mat_khau,
       });
 
-      // Lưu thông tin người dùng vào localStorage
+      console.log("🔐 Login API response:", response);
+      console.log("- User data:", response.user);
+
+      // Sử dụng AuthContext để login (không cần token)
+      login(response.user);
+
+      // Lưu thông tin người dùng vào localStorage (cho tương thích)
       localStorage.setItem("user", JSON.stringify(response.user));
 
       // Xử lý ghi nhớ đăng nhập
@@ -97,6 +139,8 @@ const TrangDangNhap: React.FC = () => {
     setIsLoading(true);
     try {
       const response = await authApi.logout();
+      // Sử dụng AuthContext logout để xóa tất cả
+      logout();
       localStorage.removeItem("user");
       setSuccessMessage(response.success);
       setIsLoggedIn(false);
@@ -188,14 +232,29 @@ const TrangDangNhap: React.FC = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
-                      errors.email ? "border-red-300" : "border-gray-300"
-                    } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
-                    placeholder="Nhập địa chỉ email"
+                      errors.email
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-300 focus:border-[#518581]"
+                    } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] sm:text-sm transition-colors`}
+                    placeholder="name@example.com"
                   />
                 </div>
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  <div className="mt-1 flex items-start gap-1">
+                    <p className="text-red-600 text-sm flex items-center gap-1">
+                      <span>⚠️</span>
+                      {errors.email}
+                    </p>
+                  </div>
                 )}
+                {!errors.email &&
+                  formData.email &&
+                  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
+                    <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                      <span>✅</span>
+                      Email hợp lệ
+                    </p>
+                  )}
               </div>
 
               <div>
@@ -217,9 +276,11 @@ const TrangDangNhap: React.FC = () => {
                     value={formData.mat_khau}
                     onChange={handleInputChange}
                     className={`appearance-none block w-full pl-10 pr-10 py-2 border ${
-                      errors.mat_khau ? "border-red-300" : "border-gray-300"
-                    } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] focus:border-[#518581] sm:text-sm`}
-                    placeholder="Nhập mật khẩu"
+                      errors.mat_khau
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-300 focus:border-[#518581]"
+                    } rounded-md placeholder-gray-400 focus:outline-none focus:ring-[#518581] sm:text-sm transition-colors`}
+                    placeholder="Nhập mật khẩu của bạn"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                     <button
@@ -236,8 +297,21 @@ const TrangDangNhap: React.FC = () => {
                   </div>
                 </div>
                 {errors.mat_khau && (
-                  <p className="mt-1 text-sm text-red-600">{errors.mat_khau}</p>
+                  <div className="mt-1 flex items-start gap-1">
+                    <p className="text-red-600 text-sm flex items-center gap-1">
+                      <span>⚠️</span>
+                      {errors.mat_khau}
+                    </p>
+                  </div>
                 )}
+                {!errors.mat_khau &&
+                  formData.mat_khau &&
+                  formData.mat_khau.length >= 6 && (
+                    <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
+                      <span>✅</span>
+                      Mật khẩu hợp lệ
+                    </p>
+                  )}
               </div>
 
               <div className="flex items-center justify-between">
@@ -271,15 +345,21 @@ const TrangDangNhap: React.FC = () => {
               <div>
                 <button
                   type="submit"
-                  disabled={isLoading}
-                  className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                    isLoading
+                  disabled={isLoading || hasValidationErrors()}
+                  className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white transition-colors duration-200 ${
+                    isLoading || hasValidationErrors()
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-[#518581] hover:bg-[#518581]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#518581]"
-                  } transition-colors duration-200`}
+                  }`}
                 >
                   {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                 </button>
+                {hasValidationErrors() && (
+                  <p className="mt-2 text-red-600 text-sm text-center flex items-center justify-center gap-1">
+                    <span>⚠️</span>
+                    Vui lòng sửa các lỗi trước khi đăng nhập
+                  </p>
+                )}
               </div>
             </form>
           )}

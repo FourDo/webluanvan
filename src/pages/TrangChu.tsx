@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { motion, useInView, useAnimation, easeOut } from "framer-motion";
 import SwiperContainer from "../components/SwiperContainer";
+import SearchBox from "../components/SearchBox";
 
 const TrangChu: React.FC = () => {
   const stats = [
@@ -108,14 +109,12 @@ const TrangChu: React.FC = () => {
         >
           <div className="relative mx-auto w-[90%] sm:w-[95%] md:w-[600px] lg:w-[810px] h-12 sm:h-14 md:h-16 lg:h-[84px] mt-2 sm:mt-4 sm:absolute sm:top-6 md:absolute md:top-9 md:left-1/2 md:transform md:-translate-x-1/2 md:z-10">
             <div className="bg-white rounded-lg shadow-lg flex items-center px-3 sm:px-4 md:px-6 h-full">
-              <input
-                type="text"
+              <SearchBox
                 placeholder="Tìm kiếm sản phẩm"
-                className="flex-1 outline-none text-gray-700 text-sm sm:text-base md:text-lg bg-transparent"
+                showDropdown={true}
+                maxResults={5}
+                className="w-full"
               />
-              <button className="bg-[#518581] text-white rounded px-3 py-1 sm:px-4 sm:py-2 md:px-6 md:py-3 ml-2 hover:bg-green-800">
-                Tìm kiếm
-              </button>
             </div>
           </div>
           <div className="flex justify-center items-center w-full max-w-[90%] sm:max-w-[85%] md:max-w-full h-full mx-auto">

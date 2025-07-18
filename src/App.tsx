@@ -23,8 +23,9 @@ import {
   QLKhachHang,
   QLKhuyenMai,
   QLBanner,
-  QLBaiBao,
+  QLBaiBaoEnhanced,
   TrangDichVu,
+  TrangVeChungToi,
   TrangBaiBao,
   TrangDangKy,
   TrangDangNhap,
@@ -38,7 +39,8 @@ import {
 import AdminPrivateRoute from "./context/AdminPrivateRoute";
 import ProductDetail from "./components/ProductDetail";
 import AddProduct from "./components/AddProduct";
-import EditProduct from "./components/EditProduct";
+import EditProductEnhanced from "./components/EditProductEnhanced";
+import BaiBaoForm from "./components/BaiBaoForm";
 import PrivateRoute from "./context/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { useEffect } from "react";
@@ -105,7 +107,10 @@ const router = createBrowserRouter([
           { path: "sanpham", element: <QLSanPham /> },
           { path: "sanpham/:productId", element: <ProductDetail /> },
           { path: "sanpham/them", element: <AddProduct /> },
-          { path: "sanpham/sua/:productId", element: <EditProduct /> },
+          {
+            path: "sanpham/sua/:productId",
+            element: <EditProductEnhanced />,
+          },
           { path: "donhang", element: <QLDonHang /> },
           { path: "taikhoan", element: <QLTaiKhoan /> },
           { path: "mausac", element: <QLMauSac /> },
@@ -113,7 +118,9 @@ const router = createBrowserRouter([
           { path: "khachhang", element: <QLKhachHang /> },
           { path: "khuyenmai", element: <QLKhuyenMai /> },
           { path: "banner", element: <QLBanner /> },
-          { path: "baibao", element: <QLBaiBao /> },
+          { path: "baibao", element: <QLBaiBaoEnhanced /> },
+          { path: "baibao/them", element: <BaiBaoForm /> },
+          { path: "baibao/sua/:id", element: <BaiBaoForm /> },
           { path: "doanhmuc", element: <QLDoanhMuc /> },
         ],
       },
@@ -132,7 +139,7 @@ const router = createBrowserRouter([
         element: <TrangSanPham />,
       },
       {
-        path: "/san-pham/:id",
+        path: "/sanpham/:id",
         element: <ChiTietSanPham />,
       },
       {
@@ -140,8 +147,16 @@ const router = createBrowserRouter([
         element: <TrangDichVu />,
       },
       {
+        path: "/about-us",
+        element: <TrangVeChungToi />,
+      },
+      {
         path: "/baibao",
         element: <TrangBaiBao />,
+      },
+      {
+        path: "/baibao/:id", // Thêm dòng này
+        element: <TrangBaiBao />, // Component chi tiết bài báo
       },
       {
         path: "/dangky",

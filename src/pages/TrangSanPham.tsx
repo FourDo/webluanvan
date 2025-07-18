@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Filter, Search } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // Import API và Types từ trang quản lý
 import { productApi } from "../API/productApi";
@@ -28,6 +29,10 @@ const getProductDisplayInfo = (product: ApiProduct) => {
 };
 
 const TrangSanPham: React.FC = () => {
+  // --- HOOKS ---
+  const location = useLocation();
+  const navigate = useNavigate();
+
   // --- STATE MANAGEMENT ---
   const [allProducts, setAllProducts] = useState<ApiProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +50,15 @@ const TrangSanPham: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
+
+  // --- URL PARAMS HANDLING ---
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const searchParam = urlParams.get("search");
+    if (searchParam) {
+      setSearchTerm(searchParam);
+    }
+  }, [location.search]);
 
   // --- DATA FETCHING ---
   useEffect(() => {
@@ -79,9 +93,14 @@ const TrangSanPham: React.FC = () => {
       // Kiểm tra cache trước
       const cachedProducts = getCachedProducts();
       if (cachedProducts) {
-        // Lọc chỉ lấy sản phẩm có biến thể
+        // Lọc chỉ lấy sản phẩm có biến thể và hình ảnh
         const validProducts = cachedProducts.filter(
-          (p) => Array.isArray(p.bienthe) && p.bienthe.length > 0
+          (p) =>
+            Array.isArray(p.bienthe) &&
+            p.bienthe.length > 0 &&
+            p.bienthe[0].hinh_anh &&
+            Array.isArray(p.bienthe[0].hinh_anh) &&
+            p.bienthe[0].hinh_anh.length > 0
         );
         setAllProducts(validProducts);
         const prices = validProducts
@@ -96,20 +115,35 @@ const TrangSanPham: React.FC = () => {
 
       // Nếu không có cache hoặc cache hết hạn, gọi API
       try {
-        const response: ProductResponse = await productApi.getProducts();
-        if (
-          response.message === "Danh sách tìm kiếm sản phẩm" &&
-          Array.isArray(response.data)
-        ) {
-          // Lọc chỉ lấy sản phẩm có biến thể
+        let response: ProductResponse;
+
+        // Kiểm tra nếu có searchTerm từ URL, sử dụng API tìm kiếm
+        const urlParams = new URLSearchParams(location.search);
+        const searchParam = urlParams.get("search");
+
+        if (searchParam) {
+          response = await productApi.searchProducts(searchParam);
+        } else {
+          response = await productApi.getProducts();
+        }
+
+        if (response.message && Array.isArray(response.data)) {
+          // Lọc chỉ lấy sản phẩm có biến thể và hình ảnh
           const activeProducts = response.data.filter(
             (p) =>
               p.trang_thai_hoat_dong === "hoat_dong" &&
               Array.isArray(p.bienthe) &&
-              p.bienthe.length > 0
+              p.bienthe.length > 0 &&
+              p.bienthe[0].hinh_anh &&
+              Array.isArray(p.bienthe[0].hinh_anh) &&
+              p.bienthe[0].hinh_anh.length > 0
           );
           setAllProducts(activeProducts);
-          cacheProducts(activeProducts);
+
+          // Chỉ cache kết quả khi không phải tìm kiếm
+          if (!searchParam) {
+            cacheProducts(activeProducts);
+          }
 
           const prices = activeProducts
             .map((p) => getProductDisplayInfo(p).price)
@@ -124,9 +158,14 @@ const TrangSanPham: React.FC = () => {
         // Nếu API lỗi, thử lấy lại cache (nếu có)
         const cachedProductsFallback = getCachedProducts();
         if (cachedProductsFallback) {
-          // Lọc chỉ lấy sản phẩm có biến thể
+          // Lọc chỉ lấy sản phẩm có biến thể và hình ảnh
           const validProducts = cachedProductsFallback.filter(
-            (p) => Array.isArray(p.bienthe) && p.bienthe.length > 0
+            (p) =>
+              Array.isArray(p.bienthe) &&
+              p.bienthe.length > 0 &&
+              p.bienthe[0].hinh_anh &&
+              Array.isArray(p.bienthe[0].hinh_anh) &&
+              p.bienthe[0].hinh_anh.length > 0
           );
           setAllProducts(validProducts);
           const prices = validProducts
@@ -144,7 +183,7 @@ const TrangSanPham: React.FC = () => {
     };
 
     fetchProducts();
-  }, []);
+  }, [location.search]); // Thêm location.search để useEffect chạy lại khi URL thay đổi
 
   // --- LOGIC LỌC, SẮP XẾP VÀ PHÂN TRANG (CORE LOGIC) ---
   const filteredAndSortedProducts = useMemo(() => {
@@ -164,8 +203,11 @@ const TrangSanPham: React.FC = () => {
       return priceMatch && categoryMatch && colorMatch;
     });
 
-    // 2. Lọc theo Tìm kiếm (Search)
-    if (searchTerm) {
+    // 2. Lọc theo Tìm kiếm (Search) - chỉ áp dụng nếu không có search từ URL
+    const urlParams = new URLSearchParams(location.search);
+    const urlSearchParam = urlParams.get("search");
+
+    if (!urlSearchParam && searchTerm) {
       filtered = filtered.filter((product) =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -320,8 +362,14 @@ const TrangSanPham: React.FC = () => {
                 placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => {
-                  setSearchTerm(e.target.value);
+                  const newSearchTerm = e.target.value;
+                  setSearchTerm(newSearchTerm);
                   setCurrentPage(1);
+
+                  // Clear URL search param when user types in search box
+                  if (location.search.includes("search=")) {
+                    navigate(location.pathname, { replace: true });
+                  }
                 }}
                 className="w-full h-[44px] pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
@@ -388,10 +436,13 @@ const TrangSanPham: React.FC = () => {
                     (p) => p.ma_san_pham === product.ma_san_pham
                   );
                   if (!originalProduct) return null;
-                  // Nếu sản phẩm không có biến thể, không hiển thị
+                  // Nếu sản phẩm không có biến thể hoặc hình ảnh, không hiển thị
                   if (
                     !Array.isArray(originalProduct.bienthe) ||
-                    originalProduct.bienthe.length === 0
+                    originalProduct.bienthe.length === 0 ||
+                    !originalProduct.bienthe[0].hinh_anh ||
+                    !Array.isArray(originalProduct.bienthe[0].hinh_anh) ||
+                    originalProduct.bienthe[0].hinh_anh.length === 0
                   )
                     return null;
                   return (

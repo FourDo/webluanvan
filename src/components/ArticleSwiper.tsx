@@ -1,46 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { getAllBaiViet } from "../API/baibaoApi";
+import type { BaiViet } from "../types/BaiViet";
 
-interface Article {
-  image: string;
-  title: string;
-  category?: string;
-  author: string;
-  date: string;
-}
-
-const mockData: Article[] = [
-  {
-    image:
-      "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    title:
-      "This 400-Square-Foot New York Apartment Is Maximized With Custom Millwork",
-    category: "Tips and Trick",
-    author: "Morgan Goldberg",
-    date: "Tuesday, 17 May 2022",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    title: "Modern Living Room Design Ideas",
-    category: "Design Ideas",
-    author: "Jane Doe",
-    date: "Friday, 20 May 2022",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-    title: "Eco-Friendly Home Renovation Tips",
-    category: "Sustainability",
-    author: "John Smith",
-    date: "Monday, 23 May 2022",
-  },
-];
-
-const ArticleCard = ({ image, title, category, author, date }: Article) => {
+const ArticleCard = ({ baiviet }: { baiviet: BaiViet }) => {
   return (
-    <div className="relative w-full h-full overflow-hidden">
-      <img src={image} alt={title} className="w-full h-full object-cover" />
+    <Link
+      to={`/baibao/${baiviet.id}`}
+      className="relative w-full h-full overflow-hidden block"
+    >
+      <img
+        src={baiviet.anh_dai_dien}
+        alt={baiviet.tieu_de}
+        className="w-full h-full object-cover"
+      />
 
       {/* Overlay gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
@@ -48,44 +22,73 @@ const ArticleCard = ({ image, title, category, author, date }: Article) => {
       {/* Content at bottom */}
       <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
         <div className="max-w-4xl">
-          {category && (
+          {baiviet.danh_muc && (
             <span className="inline-block mb-3 px-3 py-1 text-sm bg-gray-600/80 text-white rounded-full backdrop-blur-sm">
-              {category}
+              {baiviet.danh_muc.ten_danh_muc}
             </span>
           )}
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold leading-tight mb-4">
-            {title}
+            {baiviet.tieu_de}
           </h2>
           <div className="flex items-center text-sm text-gray-200 space-x-2">
-            <img
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32"
-              alt={author}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-            <span>By {author}</span>
+            <div className="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center">
+              <span className="text-xs font-bold">A</span>
+            </div>
+            <span>Admin</span>
             <span>•</span>
-            <span>{date}</span>
+            <span>
+              {new Date(baiviet.ngay_tao ?? "").toLocaleDateString("vi-VN")}
+            </span>
+            <span>•</span>
+            <span>{baiviet.luot_xem} lượt xem</span>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
 function ArticleSwiper() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [baiviets, setBaiviets] = useState<BaiViet[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAllBaiViet()
+      .then((data) => {
+        // Chỉ lấy 3 bài viết đầu tiên cho swiper
+        setBaiviets(data.slice(0, 3));
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % mockData.length);
+    setCurrentSlide((prev) => (prev + 1) % baiviets.length);
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + mockData.length) % mockData.length);
+    setCurrentSlide((prev) => (prev - 1 + baiviets.length) % baiviets.length);
   };
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
   };
+
+  if (loading) {
+    return (
+      <div className="relative w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
+        <div className="text-gray-500">Đang tải...</div>
+      </div>
+    );
+  }
+
+  if (baiviets.length === 0) {
+    return (
+      <div className="relative w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
+        <div className="text-gray-500">Không có bài viết nào</div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-full">
@@ -110,9 +113,12 @@ function ArticleSwiper() {
           className="flex h-full transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
-          {mockData.map((item, index) => (
-            <div key={index} className="w-full h-full flex-shrink-0">
-              <ArticleCard {...item} />
+          {baiviets.map((baiviet, index) => (
+            <div
+              key={baiviet.id || index}
+              className="w-full h-full flex-shrink-0"
+            >
+              <ArticleCard baiviet={baiviet} />
             </div>
           ))}
         </div>
@@ -121,7 +127,7 @@ function ArticleSwiper() {
       {/* Pagination dots */}
       <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20">
         <div className="flex space-x-2">
-          {mockData.map((_, index) => (
+          {baiviets.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}

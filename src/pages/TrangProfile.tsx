@@ -33,6 +33,9 @@ function TrangProfile() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isRefreshingUserInfo, setIsRefreshingUserInfo] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
 
   // State cho đổi mật khẩu
   const [passwordData, setPasswordData] = useState({
@@ -157,9 +160,93 @@ function TrangProfile() {
     setSuccess(null);
   };
 
+  // Hàm validation dữ liệu
+  const validateProfileData = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    // Kiểm tra họ tên
+    if (!editData.name.trim()) {
+      newErrors.name = "❌ Vui lòng nhập họ tên!";
+    } else if (editData.name.trim().length < 2) {
+      newErrors.name = "❌ Họ tên phải có ít nhất 2 ký tự!";
+    } else if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(editData.name.trim())) {
+      newErrors.name = "❌ Họ tên chỉ được chứa chữ cái và khoảng trắng!";
+    } else if (editData.name.trim().split(" ").length < 2) {
+      newErrors.name = "❌ Vui lòng nhập đầy đủ họ và tên!";
+    }
+
+    // Kiểm tra email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!editData.email.trim()) {
+      newErrors.email = "❌ Vui lòng nhập email!";
+    } else if (!emailRegex.test(editData.email.trim())) {
+      newErrors.email =
+        "❌ Email không đúng định dạng (ví dụ: name@example.com)!";
+    }
+
+    // Kiểm tra số điện thoại Việt Nam
+    const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+    if (!editData.phone.trim()) {
+      newErrors.phone = "❌ Vui lòng nhập số điện thoại!";
+    } else if (!phoneRegex.test(editData.phone.trim().replace(/\s/g, ""))) {
+      newErrors.phone =
+        "❌ Số điện thoại không đúng định dạng (VD: 0901234567)!";
+    }
+
+    // Kiểm tra địa chỉ
+    if (!editData.address.trim()) {
+      newErrors.address = "❌ Vui lòng nhập địa chỉ!";
+    } else if (editData.address.trim().length < 10) {
+      newErrors.address = "❌ Địa chỉ phải có ít nhất 10 ký tự!";
+    }
+
+    // Kiểm tra ngày sinh
+    if (editData.birthDate && editData.birthDate !== "20/08/1985") {
+      const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+      const match = editData.birthDate.match(dateRegex);
+
+      if (!match) {
+        newErrors.birthDate = "❌ Ngày sinh phải theo định dạng dd/mm/yyyy!";
+      } else {
+        const day = parseInt(match[1]);
+        const month = parseInt(match[2]);
+        const year = parseInt(match[3]);
+
+        if (day < 1 || day > 31) {
+          newErrors.birthDate = "❌ Ngày không hợp lệ (1-31)!";
+        } else if (month < 1 || month > 12) {
+          newErrors.birthDate = "❌ Tháng không hợp lệ (1-12)!";
+        } else if (year < 1900 || year > new Date().getFullYear()) {
+          newErrors.birthDate = "❌ Năm sinh không hợp lệ!";
+        } else {
+          // Kiểm tra ngày tháng có hợp lệ không
+          const date = new Date(year, month - 1, day);
+          if (
+            date.getDate() !== day ||
+            date.getMonth() !== month - 1 ||
+            date.getFullYear() !== year
+          ) {
+            newErrors.birthDate = "❌ Ngày tháng không tồn tại!";
+          } else if (date > new Date()) {
+            newErrors.birthDate = "❌ Ngày sinh không thể trong tương lai!";
+          }
+        }
+      }
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSave = async () => {
     if (!user) {
       setError("Không tìm thấy thông tin người dùng");
+      return;
+    }
+
+    // Validate dữ liệu trước khi gửi
+    if (!validateProfileData()) {
+      setError("Vui lòng kiểm tra lại thông tin đã nhập!");
       return;
     }
 
@@ -187,7 +274,7 @@ function TrangProfile() {
       // Cập nhật state local
       setProfileData(editData);
       setIsEditing(false);
-      setSuccess("Cập nhật thông tin thành công!");
+      setSuccess("✅ Cập nhật thông tin thành công!");
 
       // Tự động ẩn thông báo thành công sau 3 giây
       setTimeout(() => setSuccess(null), 3000);
@@ -203,13 +290,78 @@ function TrangProfile() {
     setIsEditing(false);
     setError(null);
     setSuccess(null);
+    setValidationErrors({});
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  // Helper function to check if there are any validation errors
+  const hasValidationErrors = () => {
+    return Object.values(validationErrors).some((error) => error !== "");
+  };
+
+  const handleInputChange = (field: keyof typeof editData, value: string) => {
+    // Xử lý định dạng đặc biệt cho từng trường
+    let formattedValue = value;
+
+    switch (field) {
+      case "name":
+        // Chỉ cho phép chữ cái và khoảng trắng, loại bỏ số và ký tự đặc biệt
+        formattedValue = value.replace(/[^a-zA-ZÀ-ỹ\s]/g, "");
+        // Viết hoa chữ cái đầu mỗi từ
+        formattedValue = formattedValue.replace(/\b\w/g, (l) =>
+          l.toUpperCase()
+        );
+        break;
+
+      case "phone":
+        // Chỉ cho phép số và loại bỏ khoảng trắng
+        formattedValue = value.replace(/[^\d]/g, "");
+        // Giới hạn 10-11 số
+        if (formattedValue.length > 11) {
+          formattedValue = formattedValue.slice(0, 11);
+        }
+        break;
+
+      case "email":
+        // Loại bỏ khoảng trắng và chuyển về chữ thường
+        formattedValue = value.trim().toLowerCase();
+        break;
+
+      case "address":
+        // Viết hoa chữ cái đầu
+        formattedValue = value.charAt(0).toUpperCase() + value.slice(1);
+        break;
+
+      case "birthDate":
+        // Định dạng ngày sinh dd/mm/yyyy
+        formattedValue = value.replace(/[^\d\/]/g, "");
+        // Thêm dấu / tự động
+        if (formattedValue.length === 2 && !formattedValue.includes("/")) {
+          formattedValue += "/";
+        } else if (
+          formattedValue.length === 5 &&
+          formattedValue.split("/").length === 2
+        ) {
+          formattedValue += "/";
+        }
+        // Giới hạn độ dài
+        if (formattedValue.length > 10) {
+          formattedValue = formattedValue.slice(0, 10);
+        }
+        break;
+    }
+
     setEditData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: formattedValue,
     }));
+
+    // Xóa lỗi validation khi người dùng nhập
+    if (validationErrors[field]) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
   };
 
   // Xử lý đổi mật khẩu
@@ -319,7 +471,9 @@ function TrangProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-4 pt-20">
+      {" "}
+      {/* Thêm pt-20 để tránh navbar */}
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -482,14 +636,27 @@ function TrangProfile() {
                     </div>
                     <div className="flex-1 pt-4">
                       {isEditing ? (
-                        <input
-                          type="text"
-                          value={editData.name}
-                          onChange={(e) =>
-                            handleInputChange("name", e.target.value)
-                          }
-                          className="text-2xl font-bold text-gray-800 bg-gray-50 rounded-lg px-3 py-2 border-2 border-blue-200 focus:border-blue-500 outline-none transition-colors w-full max-w-md"
-                        />
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={editData.name}
+                            onChange={(e) =>
+                              handleInputChange("name", e.target.value)
+                            }
+                            className={`text-2xl font-bold text-gray-800 bg-gray-50 rounded-lg px-3 py-2 border-2 ${
+                              validationErrors.name
+                                ? "border-red-300 focus:border-red-500"
+                                : "border-blue-200 focus:border-blue-500"
+                            } outline-none transition-colors w-full max-w-md`}
+                            placeholder="Nguyễn Văn A"
+                          />
+                          {validationErrors.name && (
+                            <p className="text-red-600 text-sm flex items-center gap-1">
+                              <span>⚠️</span>
+                              {validationErrors.name}
+                            </p>
+                          )}
+                        </div>
                       ) : (
                         <h2 className="text-2xl font-bold text-gray-800">
                           {profileData.name}
@@ -510,14 +677,30 @@ function TrangProfile() {
                           Email
                         </label>
                         {isEditing ? (
-                          <input
-                            type="email"
-                            value={editData.email}
-                            onChange={(e) =>
-                              handleInputChange("email", e.target.value)
-                            }
-                            className="w-full p-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none"
-                          />
+                          <div className="space-y-2">
+                            <input
+                              type="email"
+                              value={editData.email}
+                              onChange={(e) =>
+                                handleInputChange("email", e.target.value)
+                              }
+                              className={`w-full p-3 border rounded-lg outline-none transition-colors ${
+                                validationErrors.email
+                                  ? "border-red-300 focus:border-red-500 bg-red-50"
+                                  : "border-gray-300 focus:border-blue-500"
+                              }`}
+                              placeholder="example@gmail.com"
+                            />
+                            {validationErrors.email && (
+                              <p className="text-red-600 text-sm flex items-center gap-1">
+                                <span>⚠️</span>
+                                {validationErrors.email}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              📧 Email để nhận thông báo và liên hệ
+                            </p>
+                          </div>
                         ) : (
                           <p className="text-gray-800 font-medium">
                             {profileData.email}
@@ -531,14 +714,30 @@ function TrangProfile() {
                           Số điện thoại
                         </label>
                         {isEditing ? (
-                          <input
-                            type="tel"
-                            value={editData.phone}
-                            onChange={(e) =>
-                              handleInputChange("phone", e.target.value)
-                            }
-                            className="w-full p-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none"
-                          />
+                          <div className="space-y-2">
+                            <input
+                              type="tel"
+                              value={editData.phone}
+                              onChange={(e) =>
+                                handleInputChange("phone", e.target.value)
+                              }
+                              className={`w-full p-3 border rounded-lg outline-none transition-colors ${
+                                validationErrors.phone
+                                  ? "border-red-300 focus:border-red-500 bg-red-50"
+                                  : "border-gray-300 focus:border-blue-500"
+                              }`}
+                              placeholder="0901234567"
+                            />
+                            {validationErrors.phone && (
+                              <p className="text-red-600 text-sm flex items-center gap-1">
+                                <span>⚠️</span>
+                                {validationErrors.phone}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              📱 Số điện thoại Việt Nam (10-11 số)
+                            </p>
+                          </div>
                         ) : (
                           <p className="text-gray-800 font-medium">
                             {profileData.phone}
@@ -554,14 +753,30 @@ function TrangProfile() {
                           Địa chỉ
                         </label>
                         {isEditing ? (
-                          <input
-                            type="text"
-                            value={editData.address}
-                            onChange={(e) =>
-                              handleInputChange("address", e.target.value)
-                            }
-                            className="w-full p-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none"
-                          />
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={editData.address}
+                              onChange={(e) =>
+                                handleInputChange("address", e.target.value)
+                              }
+                              className={`w-full p-3 border rounded-lg outline-none transition-colors ${
+                                validationErrors.address
+                                  ? "border-red-300 focus:border-red-500 bg-red-50"
+                                  : "border-gray-300 focus:border-blue-500"
+                              }`}
+                              placeholder="Số 123, Đường ABC, Quận XYZ..."
+                            />
+                            {validationErrors.address && (
+                              <p className="text-red-600 text-sm flex items-center gap-1">
+                                <span>⚠️</span>
+                                {validationErrors.address}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              🏠 Địa chỉ chi tiết để giao hàng
+                            </p>
+                          </div>
                         ) : (
                           <p className="text-gray-800 font-medium">
                             {profileData.address}
@@ -575,14 +790,30 @@ function TrangProfile() {
                           Ngày sinh
                         </label>
                         {isEditing ? (
-                          <input
-                            type="text"
-                            value={editData.birthDate}
-                            onChange={(e) =>
-                              handleInputChange("birthDate", e.target.value)
-                            }
-                            className="w-full p-2 border border-gray-300 rounded-md focus:border-blue-500 outline-none"
-                          />
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={editData.birthDate}
+                              onChange={(e) =>
+                                handleInputChange("birthDate", e.target.value)
+                              }
+                              className={`w-full p-3 border rounded-lg outline-none transition-colors ${
+                                validationErrors.birthDate
+                                  ? "border-red-300 focus:border-red-500 bg-red-50"
+                                  : "border-gray-300 focus:border-blue-500"
+                              }`}
+                              placeholder="dd/mm/yyyy"
+                            />
+                            {validationErrors.birthDate && (
+                              <p className="text-red-600 text-sm flex items-center gap-1">
+                                <span>⚠️</span>
+                                {validationErrors.birthDate}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              🎂 Định dạng: ngày/tháng/năm (VD: 15/08/1990)
+                            </p>
+                          </div>
                         ) : (
                           <p className="text-gray-800 font-medium">
                             {profileData.birthDate}
@@ -605,8 +836,12 @@ function TrangProfile() {
                       </button>
                       <button
                         onClick={handleSave}
-                        disabled={isLoading}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        disabled={isLoading || hasValidationErrors()}
+                        className={`px-6 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 ${
+                          hasValidationErrors()
+                            ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                            : "bg-blue-600 text-white hover:bg-blue-700"
+                        }`}
                       >
                         {isLoading ? (
                           <>
@@ -620,6 +855,12 @@ function TrangProfile() {
                           </>
                         )}
                       </button>
+                      {hasValidationErrors() && (
+                        <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
+                          <span>⚠️</span>
+                          Vui lòng sửa các lỗi trước khi lưu
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

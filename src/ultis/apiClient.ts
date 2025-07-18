@@ -1,5 +1,4 @@
 import axios from "axios";
-import Cookies from "js-cookie";
 
 const apiClient = axios.create({
   baseURL: "http://127.0.0.1:8000/api",
@@ -9,13 +8,6 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = Cookies.get("token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// Không cần token interceptor nữa vì backend không sử dụng JWT token
 
 export default apiClient;

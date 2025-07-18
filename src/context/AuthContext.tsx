@@ -12,7 +12,6 @@ interface AuthContextType {
   user: any;
   login: (userData: any) => void;
   logout: () => void;
-  getToken: () => string | undefined;
   isLoading: boolean;
 }
 
@@ -21,7 +20,6 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   login: () => {},
   logout: () => {},
-  getToken: () => undefined,
   isLoading: true,
 });
 
@@ -85,36 +83,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   // Lưu user vào cookie đúng loại, KHÔNG set domain
-  const login = (userData: any, token?: string) => {
+  const login = (userData: any) => {
     setUser(userData);
     setIsAdmin(userData.vai_tro === "admin");
     setIsLoading(false);
+
+    // Kiểm tra môi trường để set secure flag
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+
     if (userData.vai_tro === "admin") {
       Cookies.set("admin_data", JSON.stringify(userData), {
         expires: 7,
         sameSite: "Lax",
-        secure: true,
+        secure: !isLocalhost,
       });
       Cookies.remove("user_data");
     } else {
       Cookies.set("user_data", JSON.stringify(userData), {
         expires: 7,
         sameSite: "Lax",
-        secure: true,
+        secure: !isLocalhost,
       });
       Cookies.remove("admin_data");
     }
-    // Lưu token vào cookie nếu có
-    if (token) {
-      Cookies.set("token", token, {
-        expires: 7,
-        sameSite: "Lax",
-        secure: true,
-      });
-    }
+
+    console.log("✅ User data saved to cookies");
   };
 
   const logout = () => {
+    console.log("🚪 AuthContext logout called");
     setUser(null);
     setIsAdmin(false);
     setIsLoading(false);
@@ -122,16 +121,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     Cookies.remove("user_data");
     Cookies.remove("admin_rememberMe");
     Cookies.remove("admin_rememberMeEmail");
-  };
-
-  const getToken = () => {
-    return Cookies.get("token");
+    console.log("✅ All cookies cleared");
   };
 
   return (
-    <AuthContext.Provider
-      value={{ isAdmin, user, login, logout, getToken, isLoading }}
-    >
+    <AuthContext.Provider value={{ isAdmin, user, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

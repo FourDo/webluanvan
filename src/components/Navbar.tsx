@@ -12,22 +12,13 @@ import {
   Package,
   FileText,
   Info,
-  Heart,
-  Bell,
   ChevronRight,
 } from "lucide-react";
+import Cookies from "js-cookie";
 
 import { useCategoryProduct } from "../context/CategoryProductContext";
-
-// --- Giả lập các hook và API để code có thể chạy độc lập ---
-// Bạn có thể xóa phần này nếu đã có các file này trong dự án của mình
-const useGioHang = () => ({ demSoLuongSanPham: () => 5 });
-const authApi = {
-  logout: async () => {
-    console.log("Logged out");
-    return Promise.resolve();
-  },
-};
+import { useGioHang } from "../context/GioHangContext";
+import authApi from "../API/authApi";
 
 // --- Định nghĩa các Type/Interface cho dữ liệu ---
 
@@ -50,8 +41,6 @@ const Navbar: React.FC = () => {
 
   // State cho menu sản phẩm động
   const { categories, products } = useCategoryProduct();
-console.log("Categories:", categories);
-console.log("Products:", products);
   // Gom sản phẩm theo tên danh mục từ context, đảm bảo có image fallback
   const productsByCategory = React.useMemo(() => {
     const grouped: Record<string, any[]> = {};
@@ -116,6 +105,8 @@ console.log("Products:", products);
     } finally {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
+      // Xóa cookie token
+      Cookies.remove("token");
       setIsLoggedIn(false);
       setUser(null);
       setIsUserDropdownOpen(false);
@@ -227,7 +218,7 @@ console.log("Products:", products);
                   </button>
                   {isProductMenuOpen && (
                     <div
-                      className="absolute left-0 top-full mt-2 flex z-50 w-[600px] bg-white rounded-xl shadow-xl border border-gray-100"
+                      className="absolute left-0 top-full flex z-50 w-[600px] bg-white rounded-xl shadow-xl border border-gray-100"
                       // KHÔNG dùng margin giữa hai panel
                     >
                       {/* Bên trái: danh mục */}
@@ -238,7 +229,9 @@ console.log("Products:", products);
                             className={`px-4 py-2 cursor-pointer text-sm rounded-lg flex items-center justify-between
                               ${selectedCategory === cat.ten_danh_muc ? "bg-gray-100 text-[#518581]" : "text-gray-700 hover:bg-gray-50"}
                             `}
-                            onMouseEnter={() => setSelectedCategory(cat.ten_danh_muc)}
+                            onMouseEnter={() =>
+                              setSelectedCategory(cat.ten_danh_muc)
+                            }
                           >
                             {cat.ten_danh_muc}
                             <ChevronRight className="w-4 h-4" />
@@ -246,29 +239,43 @@ console.log("Products:", products);
                         ))}
                       </div>
                       {/* Bên phải: sản phẩm */}
-                      <div className="flex-1 p-4 grid grid-cols-3 gap-4 max-h-80 overflow-y-auto">
-                        {selectedCategory && productsByCategory[selectedCategory]?.length ? (
-                          productsByCategory[selectedCategory].map((product) => (
-                            <Link
-                              key={product.ma_san_pham}
-                              to={`/sanpham/${product.ma_san_pham}`}
-                              className="flex flex-col items-center text-center group"
-                              onClick={() => {
-                                setIsProductMenuOpen(false);
-                                setSelectedCategory(null);
-                              }}
-                            >
-                              <img
-                                src={product.image || "image/hetcuu3.png"}
-                                alt={product.ten_san_pham}
-                                className="w-14 h-14 object-cover rounded-md border border-gray-100 bg-gray-50 mb-2 group-hover:scale-105 transition"
-                                onError={(e) => (e.currentTarget.src = "image/hetcuu3.png")}
-                              />
-                              <span className="truncate text-xs">{product.ten_san_pham}</span>
-                            </Link>
-                          ))
+                      <div className="flex-1 p-4 grid grid-cols-4 gap-3 max-h-80 overflow-y-auto">
+                        {selectedCategory &&
+                        productsByCategory[selectedCategory]?.length ? (
+                          productsByCategory[selectedCategory].map(
+                            (product) => (
+                              <Link
+                                key={product.ma_san_pham}
+                                to={`/sanpham/${product.ma_san_pham}`}
+                                className="group relative"
+                                onClick={() => {
+                                  setIsProductMenuOpen(false);
+                                  setSelectedCategory(null);
+                                }}
+                                title={product.ten_san_pham} // Tooltip khi hover
+                              >
+                                <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-300 group-hover:border-[#AD7E5C]">
+                                  <img
+                                    src={product.image || "image/hetcuu3.png"}
+                                    alt={product.ten_san_pham}
+                                    className="w-full h-20 object-cover group-hover:scale-110 transition-transform duration-300"
+                                    onError={(e) =>
+                                      (e.currentTarget.src =
+                                        "image/hetcuu3.png")
+                                    }
+                                  />
+                                  {/* Overlay khi hover */}
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
+                                    <div className="opacity-0 group-hover:opacity-100 bg-white/90 text-[#AD7E5C] px-2 py-1 rounded text-xs font-medium transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                                      Xem chi tiết
+                                    </div>
+                                  </div>
+                                </div>
+                              </Link>
+                            )
+                          )
                         ) : (
-                          <div className="col-span-3 text-gray-400 text-sm flex items-center justify-center h-full">
+                          <div className="col-span-4 text-gray-400 text-sm flex items-center justify-center h-full">
                             Không có sản phẩm
                           </div>
                         )}
@@ -299,13 +306,6 @@ console.log("Products:", products);
 
         {/* Action Buttons & User Menu */}
         <div className="flex items-center gap-2 sm:gap-4">
-          <button className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors duration-200 group">
-            <Heart className="w-5 h-5 text-gray-600 group-hover:text-red-500 transition-colors duration-200" />
-          </button>
-          <button className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors duration-200 group relative">
-            <Bell className="w-5 h-5 text-gray-600 group-hover:text-blue-500 transition-colors duration-200" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-          </button>
           <Link
             to="/gio-hang"
             aria-label="Giỏ hàng"
