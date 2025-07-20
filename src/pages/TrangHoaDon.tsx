@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getOrderDetail } from "../API/orderApi";
-import type { DonHang } from "../API/orderApi";
+import type { DonHang, ChiTietDonHang } from "../API/orderApi";
 
 const TrangHoaDon: React.FC = () => {
   const location = useLocation();
@@ -9,6 +9,7 @@ const TrangHoaDon: React.FC = () => {
   const [order, setOrder] = useState<DonHang | null>(
     location.state?.order || null
   );
+  const [orderDetails, setOrderDetails] = useState<ChiTietDonHang[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,11 +22,12 @@ const TrangHoaDon: React.FC = () => {
   const status = queryParams.get("status");
 
   // Helper functions
-  const formatCurrency = (amount: number): string => {
+  const formatCurrency = (amount: string | number): string => {
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(amount);
+    }).format(numAmount);
   };
 
   const formatDate = (dateString: string): string => {
@@ -104,10 +106,11 @@ const TrangHoaDon: React.FC = () => {
 
       // Gọi API để lấy chi tiết đơn hàng
       getOrderDetail(targetOrderId)
-        .then((data) => {
-          console.log("Order detail from API:", data);
-          if (data && data.data) {
-            setOrder(data.data);
+        .then((response) => {
+          console.log("Order detail from API:", response);
+          if (response && response.don_hang) {
+            setOrder(response.don_hang);
+            setOrderDetails(response.chi_tiet || []);
           } else {
             setError("Không tìm thấy thông tin đơn hàng");
           }
@@ -234,14 +237,14 @@ const TrangHoaDon: React.FC = () => {
               <div className="flex justify-between">
                 <span className="font-medium text-gray-600">Mã đơn hàng:</span>
                 <span className="font-bold text-blue-600">
-                  #{order.ma_don_hang || order.id}
+                  #{order.ma_don_hang}
                 </span>
               </div>
-              {order.ngay_tao && (
+              {order.Ngay_Tao && (
                 <div className="flex justify-between">
                   <span className="font-medium text-gray-600">Ngày đặt:</span>
                   <span className="text-gray-800">
-                    {formatDate(order.ngay_tao)}
+                    {formatDate(order.Ngay_Tao)}
                   </span>
                 </div>
               )}
@@ -268,6 +271,32 @@ const TrangHoaDon: React.FC = () => {
                   }
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">
+                  Trạng thái thanh toán:
+                </span>
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    order.da_thanh_toan === 1
+                      ? "text-green-700 bg-green-100"
+                      : "text-yellow-700 bg-yellow-100"
+                  }`}
+                >
+                  {order.da_thanh_toan === 1
+                    ? "Đã thanh toán"
+                    : "Chưa thanh toán"}
+                </span>
+              </div>
+              {order.ngay_thanh_toan && (
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-600">
+                    Ngày thanh toán:
+                  </span>
+                  <span className="text-gray-800">
+                    {formatDate(order.ngay_thanh_toan)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -333,7 +362,7 @@ const TrangHoaDon: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {order.chi_tiet?.map((sp, idx) => (
+                  {orderDetails?.map((sp, idx) => (
                     <tr key={idx} className="bg-white hover:bg-gray-50">
                       <td className="px-4 py-4">
                         <div>
