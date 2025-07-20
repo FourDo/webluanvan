@@ -43,6 +43,18 @@ export interface OrderDetailResponse {
   chi_tiet: ChiTietDonHang[];
 }
 
+export interface ChiTietDonHangPayload {
+  ma_bien_the: number;
+  ten_san_pham: string;
+  mau_sac: string;
+  kich_thuoc: string;
+  so_luong: number;
+  gia_goc: number;
+  loai_khuyen_mai: string;
+  gia_khuyen_mai: number;
+  gia_sau_km: number;
+}
+
 export interface DonHangPayload {
   ma_nguoi_dung: number;
   ten_nguoi_nhan: string;
@@ -53,7 +65,7 @@ export interface DonHangPayload {
   phi_van_chuyen: number;
   tong_thanh_toan: number;
   ghi_chu?: string;
-  chi_tiet: ChiTietDonHang[];
+  chi_tiet: ChiTietDonHangPayload[];
 }
 
 export async function createOrder(payload: DonHangPayload) {
