@@ -63,6 +63,10 @@ const RedirectHandler: React.FC = () => {
   const apptransid = queryParams.get("apptransid");
   const status = queryParams.get("status");
 
+  // ZaloPay parameters
+  const app_trans_id = queryParams.get("app_trans_id");
+  const zp_status = queryParams.get("status"); // ZaloPay cũng dùng status
+
   useEffect(() => {
     // Xử lý VNPay callback
     if (
@@ -92,6 +96,22 @@ const RedirectHandler: React.FC = () => {
       return;
     }
 
+    // Xử lý ZaloPay callback
+    if (app_trans_id) {
+      console.log("ZaloPay callback detected, order ID:", app_trans_id);
+      // Giả sử ZaloPay trả về status = 1 khi thành công
+      if (zp_status === "1") {
+        navigate(`/hoa-don?orderId=${app_trans_id}&paymentMethod=zalopay`, {
+          replace: true,
+        });
+      } else {
+        navigate(`/thanh-toan?error=payment_failed&orderId=${app_trans_id}`, {
+          replace: true,
+        });
+      }
+      return;
+    }
+
     // Xử lý MoMo callback
     if (apptransid && status === "1") {
       console.log("MoMo payment successful, redirecting to invoice");
@@ -105,13 +125,19 @@ const RedirectHandler: React.FC = () => {
     vnp_ResponseCode,
     vnp_TransactionStatus,
     apptransid,
+    app_trans_id,
+    zp_status,
     status,
     navigate,
     location.search,
   ]);
 
   // Đợi điều hướng, không render TrangChu ngay
-  if ((vnp_TxnRef && vnp_ResponseCode) || (apptransid && status)) {
+  if (
+    (vnp_TxnRef && vnp_ResponseCode) ||
+    (apptransid && status) ||
+    app_trans_id
+  ) {
     return null; // hoặc spinner, hoặc loading
   }
 

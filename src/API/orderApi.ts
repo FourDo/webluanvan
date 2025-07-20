@@ -14,6 +14,23 @@ export interface ChiTietDonHang {
   gia_sau_km: number;
 }
 
+export interface DonHang {
+  id: number;
+  ma_don_hang: string;
+  ma_nguoi_dung: number;
+  ten_nguoi_nhan: string;
+  so_dien_thoai: string;
+  dia_chi_giao: string;
+  hinh_thuc_thanh_toan: string;
+  tong_tien: number;
+  phi_van_chuyen: number;
+  tong_thanh_toan: number;
+  ghi_chu?: string;
+  trang_thai: string;
+  ngay_tao: string;
+  chi_tiet: ChiTietDonHang[];
+}
+
 export interface DonHangPayload {
   ma_nguoi_dung: number;
   ten_nguoi_nhan: string;
@@ -33,7 +50,9 @@ export async function createOrder(payload: DonHangPayload) {
 }
 
 // Lấy chi tiết đơn hàng theo ID
-export async function getOrderDetail(orderId: string | number) {
+export async function getOrderDetail(
+  orderId: string | number
+): Promise<{ data: DonHang }> {
   const response = await axios.get(
     `${BASE_URL}/donhang/chitietdonhang/${orderId}`
   );

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getOrderDetail } from "../API/orderApi";
+import type { DonHang } from "../API/orderApi";
 
 const TrangHoaDon: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [order, setOrder] = useState<any>(location.state?.order || null);
+  const [order, setOrder] = useState<DonHang | null>(
+    location.state?.order || null
+  );
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,6 +19,62 @@ const TrangHoaDon: React.FC = () => {
   const orderId = queryParams.get("orderId"); // VNPay hoặc COD
   const paymentMethod = queryParams.get("paymentMethod");
   const status = queryParams.get("status");
+
+  // Helper functions
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getPaymentMethodDisplay = (method: string): string => {
+    switch (method?.toLowerCase()) {
+      case "vnpay":
+        return "VNPay";
+      case "zalopay":
+        return "ZaloPay";
+      case "momo":
+        return "MoMo";
+      case "cod":
+        return "COD (Thanh toán khi nhận hàng)";
+      default:
+        return method || "Chưa xác định";
+    }
+  };
+
+  const getStatusDisplay = (
+    status: string
+  ): { text: string; color: string } => {
+    switch (status?.toLowerCase()) {
+      case "pending":
+        return { text: "Chờ xử lý", color: "text-yellow-600 bg-yellow-100" };
+      case "confirmed":
+        return { text: "Đã xác nhận", color: "text-blue-600 bg-blue-100" };
+      case "shipping":
+        return {
+          text: "Đang giao hàng",
+          color: "text-orange-600 bg-orange-100",
+        };
+      case "delivered":
+        return { text: "Đã giao hàng", color: "text-green-600 bg-green-100" };
+      case "cancelled":
+        return { text: "Đã hủy", color: "text-red-600 bg-red-100" };
+      default:
+        return { text: "Đã đặt hàng", color: "text-green-600 bg-green-100" };
+    }
+  };
 
   useEffect(() => {
     console.log("Query params:", {
@@ -38,6 +97,11 @@ const TrangHoaDon: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      console.log(`Attempting to fetch order detail for ID: ${targetOrderId}`);
+      console.log(
+        `API URL: http://127.0.0.1:8000/api/donhang/chitietdonhang/${targetOrderId}`
+      );
+
       // Gọi API để lấy chi tiết đơn hàng
       getOrderDetail(targetOrderId)
         .then((data) => {
@@ -51,6 +115,27 @@ const TrangHoaDon: React.FC = () => {
         .catch((err) => {
           console.error("API error:", err);
 
+          // Hiển thị thông tin lỗi chi tiết hơn
+          if (err.response) {
+            const status = err.response.status;
+            const message = err.response.data?.message || "Lỗi không xác định";
+            console.error(`API Error ${status}:`, message);
+
+            if (status === 404) {
+              setError(`Không tìm thấy đơn hàng với ID: ${targetOrderId}`);
+            } else if (status === 500) {
+              setError("Lỗi server, vui lòng thử lại sau");
+            } else {
+              setError(`Lỗi ${status}: ${message}`);
+            }
+          } else if (err.request) {
+            setError(
+              "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng."
+            );
+          } else {
+            setError("Có lỗi xảy ra khi tải thông tin đơn hàng");
+          }
+
           // Fallback: thử tìm trong localStorage
           try {
             const storedOrder = localStorage.getItem("orderData");
@@ -61,14 +146,13 @@ const TrangHoaDon: React.FC = () => {
                 parsedOrder.id === targetOrderId
               ) {
                 setOrder(parsedOrder);
+                setError(null); // Clear error nếu tìm thấy trong localStorage
                 return;
               }
             }
           } catch (parseErr) {
             console.error("Error parsing stored order:", parseErr);
           }
-
-          setError("Không thể tải thông tin đơn hàng từ server");
         })
         .finally(() => {
           setLoading(false);
@@ -94,15 +178,26 @@ const TrangHoaDon: React.FC = () => {
     return (
       <div className="container mx-auto p-4">
         <div className="bg-white p-8 rounded-lg text-center">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4">
+          <h2 className="text-xl font-semibold text-red-600 mb-4">
             {error || "Không tìm thấy thông tin hóa đơn"}
           </h2>
-          <button
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            onClick={() => navigate("/")}
-          >
-            Quay về trang chủ
-          </button>
+          {orderId && (
+            <p className="text-sm text-gray-600 mb-4">Mã đơn hàng: {orderId}</p>
+          )}
+          <div className="space-x-4">
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              onClick={() => window.location.reload()}
+            >
+              Thử lại
+            </button>
+            <button
+              className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+              onClick={() => navigate("/")}
+            >
+              Quay về trang chủ
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -113,104 +208,243 @@ const TrangHoaDon: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
-      <div className="bg-white rounded-lg shadow-md p-8">
-        <h1 className="text-2xl font-bold mb-4 text-center text-green-600">
-          {paymentMethod
-            ? "Thanh toán thành công!"
-            : order.hinh_thuc_thanh_toan === "COD"
-              ? "Đặt hàng thành công!"
-              : "Đơn hàng đã được xác nhận!"}
-        </h1>
-        <p className="text-center text-gray-600 mb-6">
-          Cảm ơn bạn đã mua hàng. Dưới đây là thông tin hóa đơn của bạn:
-        </p>
-        <div className="mb-4">
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">Mã đơn hàng:</span>
-            <span>{order.ma_don_hang || order.id || "-"}</span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">Người nhận:</span>
-            <span>{order.ten_nguoi_nhan}</span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">Số điện thoại:</span>
-            <span>{order.so_dien_thoai}</span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">Địa chỉ giao:</span>
-            <span>{order.dia_chi_giao}</span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">Hình thức thanh toán:</span>
-            <span>
-              {paymentMethod === "vnpay"
-                ? "VNPay"
-                : paymentMethod === "momo"
-                  ? "MoMo"
-                  : order.hinh_thuc_thanh_toan || "Chưa xác định"}
-            </span>
-          </div>
-          <div className="flex justify-between mb-2">
-            <span className="font-medium">Trạng thái:</span>
-            <span className="text-green-600 font-semibold">
-              {paymentMethod ? "Đã thanh toán" : "Đặt hàng thành công"}
-            </span>
-          </div>
+    <div className="container mx-auto p-4 max-w-4xl pt-20">
+      <div className="bg-white rounded-lg shadow-xl p-8">
+        {/* Header */}
+        <div className="text-center mb-8 border-b pb-6">
+          <h1 className="text-3xl font-bold mb-2 text-green-600">
+            {paymentMethod
+              ? "💳 Thanh toán thành công!"
+              : order.hinh_thuc_thanh_toan === "COD"
+                ? "📦 Đặt hàng thành công!"
+                : "✅ Đơn hàng đã được xác nhận!"}
+          </h1>
+          <p className="text-gray-600">
+            Cảm ơn bạn đã mua hàng. Dưới đây là thông tin chi tiết hóa đơn:
+          </p>
         </div>
-        <div className="mb-4">
-          <h2 className="font-semibold mb-2">Sản phẩm:</h2>
-          <div className="divide-y">
-            {order.chi_tiet?.map((sp: any, idx: number) => (
-              <div key={idx} className="py-2 flex justify-between">
-                <div className="flex-1">
-                  <span className="font-medium">{sp.ten_san_pham}</span>
-                  {(sp.mau_sac || sp.kich_thuoc) && (
-                    <div className="text-sm text-gray-500 mt-1">
-                      {sp.mau_sac && (
-                        <span className="mr-2">Màu: {sp.mau_sac}</span>
-                      )}
-                      {sp.kich_thuoc && <span>Size: {sp.kich_thuoc}</span>}
-                    </div>
-                  )}
-                  <div className="text-sm text-gray-600">
-                    Số lượng: {sp.so_luong}
-                  </div>
-                </div>
-                <span className="font-medium">
-                  {sp.gia_sau_km?.toLocaleString()}₫
+
+        {/* Order Information */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 border-l-4 border-blue-500 pl-3">
+              📋 Thông tin đơn hàng
+            </h3>
+            <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">Mã đơn hàng:</span>
+                <span className="font-bold text-blue-600">
+                  #{order.ma_don_hang || order.id}
                 </span>
               </div>
-            ))}
+              {order.ngay_tao && (
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-600">Ngày đặt:</span>
+                  <span className="text-gray-800">
+                    {formatDate(order.ngay_tao)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">
+                  Phương thức thanh toán:
+                </span>
+                <span className="text-gray-800">
+                  {getPaymentMethodDisplay(
+                    paymentMethod || order.hinh_thuc_thanh_toan
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">Trạng thái:</span>
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusDisplay(order.trang_thai || (paymentMethod ? "confirmed" : "pending")).color}`}
+                >
+                  {
+                    getStatusDisplay(
+                      order.trang_thai ||
+                        (paymentMethod ? "confirmed" : "pending")
+                    ).text
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 border-l-4 border-green-500 pl-3">
+              🚚 Thông tin giao hàng
+            </h3>
+            <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">Người nhận:</span>
+                <span className="text-gray-800">{order.ten_nguoi_nhan}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">
+                  Số điện thoại:
+                </span>
+                <span className="text-gray-800">{order.so_dien_thoai}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="font-medium text-gray-600 mb-2">
+                  Địa chỉ giao hàng:
+                </span>
+                <span className="text-gray-800 bg-white p-2 rounded border">
+                  {order.dia_chi_giao}
+                </span>
+              </div>
+              {order.ghi_chu && (
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-600 mb-2">
+                    Ghi chú:
+                  </span>
+                  <span className="text-gray-800 bg-white p-2 rounded border italic">
+                    {order.ghi_chu}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        <div className="border-t pt-4 space-y-2">
-          <div className="flex justify-between">
-            <span>Tạm tính:</span>
-            <span>{order.tong_tien?.toLocaleString()}₫</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Phí vận chuyển:</span>
-            <span>{order.phi_van_chuyen?.toLocaleString()}₫</span>
-          </div>
-          <div className="flex justify-between font-bold text-lg">
-            <span>Tổng thanh toán:</span>
-            <span className="text-blue-600">
-              {order.tong_thanh_toan?.toLocaleString()}₫
-            </span>
+
+        {/* Products */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 border-l-4 border-purple-500 pl-3 mb-4">
+            🛍️ Chi tiết sản phẩm
+          </h3>
+          <div className="bg-gray-50 rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">
+                      Sản phẩm
+                    </th>
+                    <th className="px-4 py-3 text-center font-medium text-gray-700">
+                      Số lượng
+                    </th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-700">
+                      Đơn giá
+                    </th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-700">
+                      Thành tiền
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {order.chi_tiet?.map((sp, idx) => (
+                    <tr key={idx} className="bg-white hover:bg-gray-50">
+                      <td className="px-4 py-4">
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {sp.ten_san_pham}
+                          </div>
+                          {(sp.mau_sac || sp.kich_thuoc) && (
+                            <div className="text-sm text-gray-500 mt-1">
+                              {sp.mau_sac && (
+                                <span className="inline-block bg-gray-100 px-2 py-1 rounded mr-2">
+                                  Màu: {sp.mau_sac}
+                                </span>
+                              )}
+                              {sp.kich_thuoc && (
+                                <span className="inline-block bg-gray-100 px-2 py-1 rounded">
+                                  Size: {sp.kich_thuoc}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
+                          {sp.so_luong}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-right text-gray-900">
+                        {formatCurrency(sp.gia_goc)}
+                      </td>
+                      <td className="px-4 py-4 text-right font-medium text-gray-900">
+                        {formatCurrency(sp.gia_sau_km * sp.so_luong)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <div className="mt-6 text-center">
-          <button
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            onClick={() => {
-              localStorage.removeItem("orderData"); // Xóa sau khi hiển thị
-              navigate("/");
-            }}
-          >
-            Quay về trang chủ
-          </button>
+
+        {/* Payment Summary */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 border-l-4 border-orange-500 pl-3">
+            💰 Tổng kết thanh toán
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between text-gray-700">
+              <span>Tạm tính:</span>
+              <span className="font-medium">
+                {formatCurrency(order.tong_tien)}
+              </span>
+            </div>
+            <div className="flex justify-between text-gray-700">
+              <span>Phí vận chuyển:</span>
+              <span className="font-medium">
+                {formatCurrency(order.phi_van_chuyen)}
+              </span>
+            </div>
+            <div className="border-t border-gray-300 pt-3">
+              <div className="flex justify-between text-xl font-bold text-gray-900">
+                <span>Tổng thanh toán:</span>
+                <span className="text-green-600">
+                  {formatCurrency(order.tong_thanh_toan)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="text-center space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <p className="text-green-800 font-medium">
+              ✅ Đơn hàng của bạn đã được ghi nhận thành công!
+            </p>
+            <p className="text-green-700 text-sm mt-1">
+              Chúng tôi sẽ liên hệ với bạn để xác nhận và giao hàng trong thời
+              gian sớm nhất.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              onClick={() => {
+                localStorage.removeItem("orderData");
+                localStorage.removeItem("pendingOrder");
+                navigate("/");
+              }}
+            >
+              <span className="mr-2">🏠</span>
+              Quay về trang chủ
+            </button>
+
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              onClick={() => navigate("/sanpham")}
+            >
+              <span className="mr-2">🛍️</span>
+              Tiếp tục mua sắm
+            </button>
+
+            <button
+              className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              onClick={() => window.print()}
+            >
+              <span className="mr-2">🖨️</span>
+              In hóa đơn
+            </button>
+          </div>
         </div>
       </div>
     </div>
