@@ -510,34 +510,151 @@ const ThanhToan: React.FC = () => {
     setFieldErrors({}); // Xóa tất cả lỗi khi bắt đầu xử lý
 
     try {
+      // Kiểm tra giỏ hàng trước khi xử lý
+      if (!items || items.length === 0) {
+        setError(
+          "Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán."
+        );
+        return;
+      }
+
+      // Validate items data
+      const invalidItems = items.filter(
+        (item) =>
+          !item.sanPham ||
+          !item.sanPham.id ||
+          !item.sanPham.ten ||
+          !item.sanPham.gia ||
+          !item.soLuong ||
+          item.soLuong <= 0
+      );
+
+      if (invalidItems.length > 0) {
+        setError(
+          "Có sản phẩm trong giỏ hàng bị lỗi dữ liệu. Vui lòng cập nhật lại giỏ hàng."
+        );
+        console.error("Sản phẩm lỗi:", invalidItems);
+        return;
+      }
+
       // Chuẩn bị dữ liệu chung cho đơn hàng
+      const tinhTongTienSanPham = () => {
+        return items.reduce((total, item) => {
+          return total + Number(item.sanPham.gia) * Number(item.soLuong);
+        }, 0);
+      };
+
+      const tongTienSanPham = tinhTongTienSanPham();
+      const phiVanChuyenNumber = Number(phiVanChuyen) || 0;
+      const tongThanhToanFinal = tongTienSanPham + phiVanChuyenNumber;
+
+      // Log để debug tính toán
+      console.log("💰 Chi tiết tính toán:", {
+        tongTienSanPham,
+        phiVanChuyenNumber,
+        tongThanhToanFinal,
+        tinhTongTien: tinhTongTien(), // So sánh với function có sẵn
+      });
+
       const orderData = {
-        ten_nguoi_nhan: thongTinKhachHang.hoTen,
-        so_dien_thoai: thongTinKhachHang.soDienThoai,
+        ten_nguoi_nhan: thongTinKhachHang.hoTen.trim(),
+        so_dien_thoai: thongTinKhachHang.soDienThoai.trim(),
         dia_chi_giao: `${thongTinKhachHang.diaChi}, ${thongTinKhachHang.phuongXa}, ${thongTinKhachHang.quanHuyen}, ${thongTinKhachHang.thanhPho}`,
         hinh_thuc_thanh_toan: phuongThucThanhToan,
-        tong_tien: tinhTongTien(),
-        phi_van_chuyen: phiVanChuyen,
-        tong_thanh_toan: tinhTongTien() + phiVanChuyen,
-        ghi_chu: thongTinKhachHang.ghiChu,
-        chi_tiet: items.map((item) => ({
-          ma_bien_the: item.sanPham.id,
-          ten_san_pham: item.sanPham.ten,
-          mau_sac: item.sanPham.mauSac || "",
-          kich_thuoc: item.sanPham.kichThuoc || "",
-          so_luong: item.soLuong,
-          gia_goc: item.sanPham.gia,
-          loai_khuyen_mai: "",
-          gia_khuyen_mai: 0,
-          gia_sau_km: item.sanPham.gia,
-        })),
+        tong_tien: tongTienSanPham, // Chỉ tổng tiền sản phẩm
+        phi_van_chuyen: phiVanChuyenNumber,
+        tong_thanh_toan: tongThanhToanFinal, // Tổng cuối cùng = sản phẩm + vận chuyển
+        ghi_chu: thongTinKhachHang.ghiChu || "",
+        chi_tiet: items.map((item) => {
+          const giaGoc = Number(item.sanPham.gia);
+          const soLuong = Number(item.soLuong);
+
+          return {
+            ma_bien_the: Number(item.sanPham.id),
+            ten_san_pham: String(item.sanPham.ten || "").trim(),
+            mau_sac: String(item.sanPham.mauSac || "").trim(),
+            kich_thuoc: String(item.sanPham.kichThuoc || "").trim(),
+            so_luong: soLuong,
+            gia_goc: giaGoc,
+            loai_khuyen_mai: "", // Mặc định không có khuyến mãi
+            gia_khuyen_mai: 0,
+            gia_sau_km: giaGoc, // Giá sau khuyến mãi = giá gốc (không có KM)
+          };
+        }),
       };
 
       // Sử dụng API với ID người dùng hoặc ID mặc định
+      const userId = user?.id || 1;
+      console.log("👤 User info:", { user, userId });
+
       const donHangPayload = {
         ...orderData,
-        ma_nguoi_dung: user?.id || 1, // Thay đổi từ null thành 1 (ID khách hàng mặc định)
+        ma_nguoi_dung: Number(userId), // Đảm bảo là number
+        // Đảm bảo các giá trị số được convert đúng kiểu
+        tong_tien: Number(orderData.tong_tien),
+        phi_van_chuyen: Number(orderData.phi_van_chuyen),
+        tong_thanh_toan: Number(orderData.tong_thanh_toan),
       };
+
+      // Validation final payload
+      if (donHangPayload.tong_tien <= 0) {
+        setError("Tổng tiền phải lớn hơn 0");
+        return;
+      }
+
+      if (
+        donHangPayload.tong_thanh_toan !==
+        donHangPayload.tong_tien + donHangPayload.phi_van_chuyen
+      ) {
+        setError(
+          "Lỗi tính toán: Tổng thanh toán không khớp với tổng tiền + phí vận chuyển"
+        );
+        console.error("Lỗi tính toán:", {
+          tong_tien: donHangPayload.tong_tien,
+          phi_van_chuyen: donHangPayload.phi_van_chuyen,
+          tong_thanh_toan: donHangPayload.tong_thanh_toan,
+          tinh_lai: donHangPayload.tong_tien + donHangPayload.phi_van_chuyen,
+        });
+        return;
+      }
+
+      if (!donHangPayload.chi_tiet || donHangPayload.chi_tiet.length === 0) {
+        setError("Không có sản phẩm nào trong đơn hàng");
+        return;
+      }
+
+      // Validate từng chi tiết sản phẩm
+      for (const item of donHangPayload.chi_tiet) {
+        if (
+          !item.ma_bien_the ||
+          !item.ten_san_pham ||
+          item.so_luong <= 0 ||
+          item.gia_goc <= 0
+        ) {
+          setError(`Sản phẩm "${item.ten_san_pham}" có dữ liệu không hợp lệ`);
+          console.error("Sản phẩm lỗi:", item);
+          return;
+        }
+      }
+
+      // Debug: Log payload trước khi gửi
+      console.log(
+        "📋 Payload gửi đến API:",
+        JSON.stringify(donHangPayload, null, 2)
+      );
+
+      // So sánh với example payload để debug
+      console.log("🔍 So sánh với example:", {
+        "Example tong_tien": 700000,
+        "Our tong_tien": donHangPayload.tong_tien,
+        "Example tong_thanh_toan": 500000,
+        "Our tong_thanh_toan": donHangPayload.tong_thanh_toan,
+        "Example phi_van_chuyen": 0,
+        "Our phi_van_chuyen": donHangPayload.phi_van_chuyen,
+        "Is calculation consistent":
+          donHangPayload.tong_thanh_toan ===
+          donHangPayload.tong_tien + donHangPayload.phi_van_chuyen,
+      });
 
       const orderResult = await createOrder(donHangPayload);
       if (orderResult && orderResult.payment_url) {
@@ -551,36 +668,55 @@ const ThanhToan: React.FC = () => {
         return;
       }
     } catch (error: any) {
-      if (error.response && error.response.status === 422) {
-        // Hiển thị lỗi chi tiết cho từng trường
-        const serverErrors = error.response.data.errors || {};
-        const newFieldErrors: { [key: string]: string } = {};
+      console.error("🚨 Chi tiết lỗi thanh toán:", error);
 
-        // Mapping server field names to client field names
-        const fieldMapping: { [key: string]: string } = {
-          ma_nguoi_dung: "Mã người dùng",
-          ten_nguoi_nhan: "Họ tên",
-          so_dien_thoai: "Số điện thoại",
-          dia_chi_giao: "Địa chỉ giao hàng",
-          hinh_thuc_thanh_toan: "Phương thức thanh toán",
-        };
+      if (error.response) {
+        console.error("📊 Response data:", error.response.data);
+        console.error("📊 Response status:", error.response.status);
+        console.error("📊 Response headers:", error.response.headers);
 
-        Object.keys(serverErrors).forEach((serverField) => {
-          const clientField = fieldMapping[serverField] || serverField;
-          const errorMessages = serverErrors[serverField];
-          if (Array.isArray(errorMessages) && errorMessages.length > 0) {
-            newFieldErrors[serverField] = `${clientField}: ${errorMessages[0]}`;
-          }
-        });
+        if (error.response.status === 422) {
+          // Hiển thị lỗi chi tiết cho từng trường
+          const serverErrors = error.response.data.errors || {};
+          const newFieldErrors: { [key: string]: string } = {};
 
-        setFieldErrors(newFieldErrors);
+          // Mapping server field names to client field names
+          const fieldMapping: { [key: string]: string } = {
+            ma_nguoi_dung: "Mã người dùng",
+            ten_nguoi_nhan: "Họ tên",
+            so_dien_thoai: "Số điện thoại",
+            dia_chi_giao: "Địa chỉ giao hàng",
+            hinh_thuc_thanh_toan: "Phương thức thanh toán",
+          };
+
+          Object.keys(serverErrors).forEach((serverField) => {
+            const clientField = fieldMapping[serverField] || serverField;
+            const errorMessages = serverErrors[serverField];
+            if (Array.isArray(errorMessages) && errorMessages.length > 0) {
+              newFieldErrors[serverField] =
+                `${clientField}: ${errorMessages[0]}`;
+            }
+          });
+
+          setFieldErrors(newFieldErrors);
+          setError(
+            `Lỗi từ server: ${error.response.data.message || "Dữ liệu không hợp lệ"}`
+          );
+        } else if (error.response.status === 500) {
+          setError(
+            `Lỗi server (500): ${error.response.data.message || error.response.data.error || "Có lỗi xảy ra trên server. Vui lòng thử lại sau hoặc liên hệ hỗ trợ."}`
+          );
+        } else {
+          setError(
+            `Lỗi ${error.response.status}: ${error.response.data.message || "Có lỗi không xác định xảy ra"}`
+          );
+        }
+      } else if (error.request) {
         setError(
-          `Lỗi từ server: ${error.response.data.message || "Dữ liệu không hợp lệ"}`
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng."
         );
-        console.error("Lỗi 422 khi gửi đơn hàng:", error.response.data);
       } else {
         setError("Đã có lỗi xảy ra khi xử lý thanh toán");
-        console.error("Lỗi thanh toán:", error);
       }
     } finally {
       setLoading(false);

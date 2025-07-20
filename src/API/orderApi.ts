@@ -69,8 +69,56 @@ export interface DonHangPayload {
 }
 
 export async function createOrder(payload: DonHangPayload) {
-  const response = await axios.post(`${BASE_URL}/don-hang`, payload);
-  return response.data;
+  try {
+    console.log("🚀 Gửi request tạo đơn hàng:", payload);
+
+    // Validate payload structure trước khi gửi
+    if (
+      !payload.ma_nguoi_dung ||
+      !payload.ten_nguoi_nhan ||
+      !payload.chi_tiet?.length
+    ) {
+      throw new Error("Payload thiếu thông tin bắt buộc");
+    }
+
+    const response = await axios.post(`${BASE_URL}/don-hang`, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    });
+
+    console.log("✅ Response từ API:", response.data);
+    console.log("📊 Response status:", response.status);
+    console.log("📋 Response headers:", response.headers);
+
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Lỗi khi tạo đơn hàng:", error);
+    if (error.response) {
+      console.error("📊 Chi tiết lỗi response:", {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers,
+      });
+
+      // Log cụ thể cho lỗi 500
+      if (error.response.status === 500) {
+        console.error("🚨 Lỗi server 500 - Chi tiết:", {
+          message: error.response.data?.message,
+          error: error.response.data?.error,
+          trace: error.response.data?.trace,
+          exception: error.response.data?.exception,
+        });
+      }
+    } else if (error.request) {
+      console.error("📡 Lỗi request:", error.request);
+    } else {
+      console.error("⚠️ Lỗi khác:", error.message);
+    }
+    throw error;
+  }
 }
 
 // Lấy chi tiết đơn hàng theo ID
