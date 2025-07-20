@@ -53,18 +53,65 @@ const RedirectHandler: React.FC = () => {
   const navigate = useNavigate();
 
   const queryParams = new URLSearchParams(location.search);
+
+  // VNPay parameters
+  const vnp_TxnRef = queryParams.get("vnp_TxnRef"); // Mã đơn hàng
+  const vnp_ResponseCode = queryParams.get("vnp_ResponseCode");
+  const vnp_TransactionStatus = queryParams.get("vnp_TransactionStatus");
+
+  // MoMo parameters
   const apptransid = queryParams.get("apptransid");
   const status = queryParams.get("status");
 
   useEffect(() => {
-    if (apptransid && status === "1") {
-      console.log("Redirecting to /hoa-don"); // Debug
-      navigate(`/hoa-don${location.search}`, { replace: true });
+    // Xử lý VNPay callback
+    if (
+      vnp_TxnRef &&
+      vnp_ResponseCode === "00" &&
+      vnp_TransactionStatus === "00"
+    ) {
+      console.log(
+        "VNPay payment successful, redirecting to invoice with order ID:",
+        vnp_TxnRef
+      );
+      navigate(`/hoa-don?orderId=${vnp_TxnRef}&paymentMethod=vnpay`, {
+        replace: true,
+      });
+      return;
     }
-  }, [apptransid, status, navigate]);
+
+    // Xử lý VNPay thất bại
+    if (
+      vnp_TxnRef &&
+      (vnp_ResponseCode !== "00" || vnp_TransactionStatus !== "00")
+    ) {
+      console.log("VNPay payment failed");
+      navigate(`/thanh-toan?error=payment_failed&orderId=${vnp_TxnRef}`, {
+        replace: true,
+      });
+      return;
+    }
+
+    // Xử lý MoMo callback
+    if (apptransid && status === "1") {
+      console.log("MoMo payment successful, redirecting to invoice");
+      navigate(`/hoa-don?orderId=${apptransid}&paymentMethod=momo`, {
+        replace: true,
+      });
+      return;
+    }
+  }, [
+    vnp_TxnRef,
+    vnp_ResponseCode,
+    vnp_TransactionStatus,
+    apptransid,
+    status,
+    navigate,
+    location.search,
+  ]);
 
   // Đợi điều hướng, không render TrangChu ngay
-  if (apptransid && status === "1") {
+  if ((vnp_TxnRef && vnp_ResponseCode) || (apptransid && status)) {
     return null; // hoặc spinner, hoặc loading
   }
 

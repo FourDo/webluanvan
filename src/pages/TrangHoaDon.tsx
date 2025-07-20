@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getOrderDetail } from "../API/orderApi";
 
 const TrangHoaDon: React.FC = () => {
   const location = useLocation();
@@ -12,56 +13,71 @@ const TrangHoaDon: React.FC = () => {
   const queryParams = new URLSearchParams(location.search);
   const apptransid = queryParams.get("apptransid"); // MoMo
   const app_trans_id = queryParams.get("app_trans_id"); // ZaloPay
-  const orderId = queryParams.get("orderId"); // COD
+  const orderId = queryParams.get("orderId"); // VNPay hoặc COD
+  const paymentMethod = queryParams.get("paymentMethod");
   const status = queryParams.get("status");
 
   useEffect(() => {
-    console.log("Query params:", { apptransid, app_trans_id, orderId, status });
+    console.log("Query params:", {
+      apptransid,
+      app_trans_id,
+      orderId,
+      paymentMethod,
+      status,
+    });
 
-    if (!order && (apptransid || app_trans_id || orderId)) {
+    // Nếu đã có thông tin đơn hàng từ state, không cần load lại
+    if (order) {
+      return;
+    }
+
+    // Xác định ID đơn hàng từ các nguồn khác nhau
+    const targetOrderId = orderId || apptransid || app_trans_id;
+
+    if (targetOrderId) {
       setLoading(true);
-      try {
-        const storedOrder = localStorage.getItem("orderData");
-        console.log("Stored orderData:", storedOrder);
-        if (storedOrder) {
-          const parsedOrder = JSON.parse(storedOrder);
-          // Kiểm tra khớp apptransid hoặc orderId
-          if (
-            parsedOrder.ma_don_hang === apptransid ||
-            parsedOrder.ma_don_hang === app_trans_id ||
-            parsedOrder.ma_don_hang === orderId
-          ) {
-            setOrder(parsedOrder);
+      setError(null);
+
+      // Gọi API để lấy chi tiết đơn hàng
+      getOrderDetail(targetOrderId)
+        .then((data) => {
+          console.log("Order detail from API:", data);
+          if (data && data.data) {
+            setOrder(data.data);
           } else {
-            // Gọi API để lấy thông tin đơn hàng nếu không khớp
-            fetch(`/api/confirm-order?apptransid=${apptransid}`)
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.order) {
-                  setOrder(data.order);
-                } else {
-                  setError("Không tìm thấy thông tin hóa đơn");
-                }
-              })
-              .catch((err) => {
-                console.error("API error:", err);
-                setError("Không thể tải thông tin hóa đơn");
-              });
+            setError("Không tìm thấy thông tin đơn hàng");
           }
-        } else {
-          setError("Không tìm thấy thông tin hóa đơn trong bộ nhớ");
-        }
-      } catch (err) {
-        console.error("Error parsing order data:", err);
-        setError("Không thể tải thông tin hóa đơn");
-      } finally {
-        setLoading(false);
-      }
+        })
+        .catch((err) => {
+          console.error("API error:", err);
+
+          // Fallback: thử tìm trong localStorage
+          try {
+            const storedOrder = localStorage.getItem("orderData");
+            if (storedOrder) {
+              const parsedOrder = JSON.parse(storedOrder);
+              if (
+                parsedOrder.ma_don_hang === targetOrderId ||
+                parsedOrder.id === targetOrderId
+              ) {
+                setOrder(parsedOrder);
+                return;
+              }
+            }
+          } catch (parseErr) {
+            console.error("Error parsing stored order:", parseErr);
+          }
+
+          setError("Không thể tải thông tin đơn hàng từ server");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     } else if (status && status !== "1") {
       setError("Giao dịch không thành công");
       setLoading(false);
     }
-  }, [order, apptransid, app_trans_id, orderId, status]);
+  }, [order, apptransid, app_trans_id, orderId, paymentMethod, status]);
   if (loading) {
     return (
       <div className="container mx-auto p-4">
@@ -100,9 +116,11 @@ const TrangHoaDon: React.FC = () => {
     <div className="container mx-auto p-4 max-w-2xl">
       <div className="bg-white rounded-lg shadow-md p-8">
         <h1 className="text-2xl font-bold mb-4 text-center text-green-600">
-          {order.hinh_thuc_thanh_toan === "COD"
-            ? "Đặt hàng thành công!"
-            : "Thanh toán thành công!"}
+          {paymentMethod
+            ? "Thanh toán thành công!"
+            : order.hinh_thuc_thanh_toan === "COD"
+              ? "Đặt hàng thành công!"
+              : "Đơn hàng đã được xác nhận!"}
         </h1>
         <p className="text-center text-gray-600 mb-6">
           Cảm ơn bạn đã mua hàng. Dưới đây là thông tin hóa đơn của bạn:
@@ -126,7 +144,19 @@ const TrangHoaDon: React.FC = () => {
           </div>
           <div className="flex justify-between mb-2">
             <span className="font-medium">Hình thức thanh toán:</span>
-            <span>{order.hinh_thuc_thanh_toan}</span>
+            <span>
+              {paymentMethod === "vnpay"
+                ? "VNPay"
+                : paymentMethod === "momo"
+                  ? "MoMo"
+                  : order.hinh_thuc_thanh_toan || "Chưa xác định"}
+            </span>
+          </div>
+          <div className="flex justify-between mb-2">
+            <span className="font-medium">Trạng thái:</span>
+            <span className="text-green-600 font-semibold">
+              {paymentMethod ? "Đã thanh toán" : "Đặt hàng thành công"}
+            </span>
           </div>
         </div>
         <div className="mb-4">

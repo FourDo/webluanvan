@@ -30,4 +30,12 @@ export interface DonHangPayload {
 export async function createOrder(payload: DonHangPayload) {
   const response = await axios.post(`${BASE_URL}/don-hang`, payload);
   return response.data;
-} 
+}
+
+// Lấy chi tiết đơn hàng theo ID
+export async function getOrderDetail(orderId: string | number) {
+  const response = await axios.get(
+    `${BASE_URL}/donhang/chitietdonhang/${orderId}`
+  );
+  return response.data;
+}
