@@ -86,6 +86,9 @@ const ThanhToan: React.FC = () => {
   const [phiVanChuyen, setPhiVanChuyen] = useState<number>(0);
   const [addressWarning, setAddressWarning] = useState<string | null>(null);
 
+  // State cho validation errors của từng trường
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+
   // Hàm định dạng tiền
   const dinhDangTien = (gia: number): string => {
     return new Intl.NumberFormat("vi-VN", {
@@ -328,7 +331,15 @@ const ThanhToan: React.FC = () => {
       [name]: formattedValue,
     }));
 
-    // Xóa lỗi khi người dùng bắt đầu nhập
+    // Xóa lỗi khi người dùng bắt đầu nhập vào trường
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+
+    // Xóa lỗi chung khi người dùng bắt đầu nhập
     if (error) {
       setError(null);
     }
@@ -394,88 +405,101 @@ const ThanhToan: React.FC = () => {
 
   const validateForm = (): boolean => {
     const { hoTen, email, soDienThoai, diaChi } = thongTinKhachHang;
+    const errors: { [key: string]: string } = {};
 
     // Kiểm tra họ tên (ít nhất 2 từ, không chứa số)
     if (!hoTen.trim()) {
-      setError("❌ Vui lòng nhập họ tên!");
-      return false;
-    }
-    if (hoTen.trim().length < 2) {
-      setError("❌ Họ tên phải có ít nhất 2 ký tự!");
-      return false;
-    }
-    if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(hoTen.trim())) {
-      setError("❌ Họ tên chỉ được chứa chữ cái và khoảng trắng!");
-      return false;
-    }
-    if (hoTen.trim().split(" ").length < 2) {
-      setError("❌ Vui lòng nhập đầy đủ họ và tên!");
-      return false;
+      errors.hoTen = "Vui lòng nhập họ tên!";
+    } else if (hoTen.trim().length < 2) {
+      errors.hoTen = "Họ tên phải có ít nhất 2 ký tự!";
+    } else if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(hoTen.trim())) {
+      errors.hoTen = "Họ tên chỉ được chứa chữ cái và khoảng trắng!";
+    } else if (hoTen.trim().split(" ").length < 2) {
+      errors.hoTen = "Vui lòng nhập đầy đủ họ và tên!";
     }
 
     // Kiểm tra email với regex chi tiết
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
-      setError("❌ Vui lòng nhập email!");
-      return false;
-    }
-    if (!emailRegex.test(email.trim())) {
-      setError("❌ Email không đúng định dạng (ví dụ: name@example.com)!");
-      return false;
+      errors.email = "Vui lòng nhập email!";
+    } else if (!emailRegex.test(email.trim())) {
+      errors.email = "Email không đúng định dạng (ví dụ: name@example.com)!";
     }
 
     // Kiểm tra số điện thoại Việt Nam
     const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
     if (!soDienThoai.trim()) {
-      setError("❌ Vui lòng nhập số điện thoại!");
-      return false;
-    }
-    if (!phoneRegex.test(soDienThoai.trim().replace(/\s/g, ""))) {
-      setError("❌ Số điện thoại không đúng định dạng (VD: 0901234567)!");
-      return false;
+      errors.soDienThoai = "Vui lòng nhập số điện thoại!";
+    } else if (!phoneRegex.test(soDienThoai.trim().replace(/\s/g, ""))) {
+      errors.soDienThoai =
+        "Số điện thoại không đúng định dạng (VD: 0901234567)!";
     }
 
     // Kiểm tra địa chỉ
     if (!diaChi.trim()) {
-      setError("❌ Vui lòng nhập địa chỉ cụ thể!");
-      return false;
-    }
-    if (diaChi.trim().length < 10) {
-      setError("❌ Địa chỉ phải có ít nhất 10 ký tự!");
-      return false;
+      errors.diaChi = "Vui lòng nhập địa chỉ cụ thể!";
+    } else if (diaChi.trim().length < 10) {
+      errors.diaChi = "Địa chỉ phải có ít nhất 10 ký tự!";
     }
 
     // Kiểm tra các trường địa chỉ
     if (!selectedProvince) {
-      setError("❌ Vui lòng chọn tỉnh/thành phố!");
-      return false;
+      errors.thanhPho = "Vui lòng chọn tỉnh/thành phố!";
     }
     if (!selectedDistrict) {
-      setError("❌ Vui lòng chọn quận/huyện!");
-      return false;
+      errors.quanHuyen = "Vui lòng chọn quận/huyện!";
     }
     if (!selectedWard) {
-      setError("❌ Vui lòng chọn phường/xã!");
-      return false;
+      errors.phuongXa = "Vui lòng chọn phường/xã!";
     }
 
     // Kiểm tra phương thức thanh toán
     if (!phuongThucThanhToan) {
-      setError("❌ Vui lòng chọn phương thức thanh toán!");
-      return false;
+      errors.phuongThucThanhToan = "Vui lòng chọn phương thức thanh toán!";
     }
 
     // Kiểm tra tính nhất quán địa chỉ
-    const addressConsistencyWarning = checkAddressConsistency(
-      diaChi,
-      selectedProvince
-    );
-    if (addressConsistencyWarning) {
-      setError(`⚠️ ${addressConsistencyWarning}. Vui lòng kiểm tra lại!`);
+    if (diaChi && selectedProvince) {
+      const addressConsistencyWarning = checkAddressConsistency(
+        diaChi,
+        selectedProvince
+      );
+      if (addressConsistencyWarning) {
+        errors.diaChi = `${addressConsistencyWarning}. Vui lòng kiểm tra lại!`;
+      }
+    }
+
+    // Cập nhật state với tất cả lỗi
+    setFieldErrors(errors);
+
+    // Nếu có lỗi, hiển thị thông báo tổng quan
+    if (Object.keys(errors).length > 0) {
+      setError(
+        `Vui lòng kiểm tra và sửa ${Object.keys(errors).length} lỗi trong form!`
+      );
       return false;
     }
 
     return true;
+  };
+
+  // Helper function để hiển thị lỗi cho từng trường
+  const renderFieldError = (fieldName: string) => {
+    if (fieldErrors[fieldName]) {
+      return (
+        <div className="mt-1 flex items-center text-red-600 text-xs animate-pulse">
+          <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <span>{fieldErrors[fieldName]}</span>
+        </div>
+      );
+    }
+    return null;
   };
 
   const handleXacNhanDatHang = async () => {
@@ -483,6 +507,7 @@ const ThanhToan: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    setFieldErrors({}); // Xóa tất cả lỗi khi bắt đầu xử lý
 
     try {
       // Chuẩn bị dữ liệu chung cho đơn hàng
@@ -508,10 +533,10 @@ const ThanhToan: React.FC = () => {
         })),
       };
 
-      // Sử dụng API với ID mặc định cho khách hàng chưa đăng nhập
+      // Sử dụng API với ID người dùng hoặc ID mặc định
       const donHangPayload = {
         ...orderData,
-        ma_nguoi_dung: user?.id || 1, // Sử dụng ID người dùng nếu đã đăng nhập, hoặc ID mặc định cho khách hàng chưa đăng nhập
+        ma_nguoi_dung: user?.id || 1, // Thay đổi từ null thành 1 (ID khách hàng mặc định)
       };
 
       const orderResult = await createOrder(donHangPayload);
@@ -527,8 +552,30 @@ const ThanhToan: React.FC = () => {
       }
     } catch (error: any) {
       if (error.response && error.response.status === 422) {
+        // Hiển thị lỗi chi tiết cho từng trường
+        const serverErrors = error.response.data.errors || {};
+        const newFieldErrors: { [key: string]: string } = {};
+
+        // Mapping server field names to client field names
+        const fieldMapping: { [key: string]: string } = {
+          ma_nguoi_dung: "Mã người dùng",
+          ten_nguoi_nhan: "Họ tên",
+          so_dien_thoai: "Số điện thoại",
+          dia_chi_giao: "Địa chỉ giao hàng",
+          hinh_thuc_thanh_toan: "Phương thức thanh toán",
+        };
+
+        Object.keys(serverErrors).forEach((serverField) => {
+          const clientField = fieldMapping[serverField] || serverField;
+          const errorMessages = serverErrors[serverField];
+          if (Array.isArray(errorMessages) && errorMessages.length > 0) {
+            newFieldErrors[serverField] = `${clientField}: ${errorMessages[0]}`;
+          }
+        });
+
+        setFieldErrors(newFieldErrors);
         setError(
-          "Dữ liệu gửi lên không hợp lệ: " + JSON.stringify(error.response.data)
+          `Lỗi từ server: ${error.response.data.message || "Dữ liệu không hợp lệ"}`
         );
         console.error("Lỗi 422 khi gửi đơn hàng:", error.response.data);
       } else {
@@ -566,15 +613,8 @@ const ThanhToan: React.FC = () => {
 
   // Kiểm tra đăng nhập trước khi hiển thị trang thanh toán
   const userDataCookie = Cookies.get("user_data");
-  const adminDataCookie = Cookies.get("admin_data");
   const localUserData = localStorage.getItem("user");
-  const hasUserData = userDataCookie || adminDataCookie || localUserData;
-
-  console.log("🔍 TrangThanhToan login check:");
-  console.log("- user_data cookie:", userDataCookie);
-  console.log("- admin_data cookie:", adminDataCookie);
-  console.log("- localStorage user:", localUserData);
-  console.log("- User from useAuth:", user);
+  const hasUserData = userDataCookie || localUserData;
 
   if (!hasUserData) {
     return (
@@ -730,12 +770,19 @@ const ThanhToan: React.FC = () => {
                   name="hoTen"
                   value={thongTinKhachHang.hoTen}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 ${
+                    fieldErrors.hoTen
+                      ? "border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
+                      : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+                  }`}
                   placeholder="Nguyễn Văn A"
                 />
-                <p className="text-xs text-gray-500">
-                  💡 Nhập đầy đủ họ và tên
-                </p>
+                {renderFieldError("hoTen")}
+                {!fieldErrors.hoTen && (
+                  <p className="text-xs text-gray-500">
+                    💡 Nhập đầy đủ họ và tên
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -747,12 +794,19 @@ const ThanhToan: React.FC = () => {
                   name="email"
                   value={thongTinKhachHang.email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 ${
+                    fieldErrors.email
+                      ? "border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
+                      : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+                  }`}
                   placeholder="example@gmail.com"
                 />
-                <p className="text-xs text-gray-500">
-                  📧 Email để nhận thông báo đơn hàng
-                </p>
+                {renderFieldError("email")}
+                {!fieldErrors.email && (
+                  <p className="text-xs text-gray-500">
+                    📧 Email để nhận thông báo đơn hàng
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -764,12 +818,19 @@ const ThanhToan: React.FC = () => {
                   name="soDienThoai"
                   value={thongTinKhachHang.soDienThoai}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 ${
+                    fieldErrors.soDienThoai
+                      ? "border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
+                      : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+                  }`}
                   placeholder="0901234567"
                 />
-                <p className="text-xs text-gray-500">
-                  📱 Để liên hệ khi giao hàng
-                </p>
+                {renderFieldError("soDienThoai")}
+                {!fieldErrors.soDienThoai && (
+                  <p className="text-xs text-gray-500">
+                    📱 Để liên hệ khi giao hàng
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -784,8 +845,19 @@ const ThanhToan: React.FC = () => {
                     );
                     setSelectedProvince(province);
                     if (error) setError(null);
+                    // Xóa lỗi khi chọn
+                    if (fieldErrors.thanhPho) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        thanhPho: "",
+                      }));
+                    }
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 ${
+                    fieldErrors.thanhPho
+                      ? "border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
+                      : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+                  }`}
                   disabled={apiLoading}
                 >
                   <option value="">-- Chọn tỉnh/thành phố --</option>
@@ -798,6 +870,7 @@ const ThanhToan: React.FC = () => {
                     </option>
                   ))}
                 </select>
+                {renderFieldError("thanhPho")}
               </div>
 
               <div className="space-y-2">
@@ -812,9 +885,20 @@ const ThanhToan: React.FC = () => {
                     );
                     setSelectedDistrict(district);
                     if (error) setError(null);
+                    // Xóa lỗi khi chọn
+                    if (fieldErrors.quanHuyen) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        quanHuyen: "",
+                      }));
+                    }
                   }}
                   disabled={!selectedProvince || apiLoading}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 disabled:bg-gray-100 ${
+                    fieldErrors.quanHuyen
+                      ? "border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
+                      : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+                  }`}
                 >
                   <option value="">-- Chọn quận/huyện --</option>
                   {districts.map((district) => (
@@ -826,7 +910,8 @@ const ThanhToan: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                {!selectedProvince && (
+                {renderFieldError("quanHuyen")}
+                {!selectedProvince && !fieldErrors.quanHuyen && (
                   <p className="text-xs text-amber-600">
                     ⚠️ Vui lòng chọn tỉnh/thành phố trước
                   </p>
@@ -845,9 +930,20 @@ const ThanhToan: React.FC = () => {
                     );
                     setSelectedWard(ward);
                     if (error) setError(null);
+                    // Xóa lỗi khi chọn
+                    if (fieldErrors.phuongXa) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        phuongXa: "",
+                      }));
+                    }
                   }}
                   disabled={!selectedDistrict || apiLoading}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 disabled:bg-gray-100 ${
+                    fieldErrors.phuongXa
+                      ? "border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
+                      : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+                  }`}
                 >
                   <option value="">-- Chọn phường/xã --</option>
                   {wards.map((ward) => (
@@ -856,7 +952,8 @@ const ThanhToan: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                {!selectedDistrict && (
+                {renderFieldError("phuongXa")}
+                {!selectedDistrict && !fieldErrors.phuongXa && (
                   <p className="text-xs text-amber-600">
                     ⚠️ Vui lòng chọn quận/huyện trước
                   </p>
@@ -872,28 +969,37 @@ const ThanhToan: React.FC = () => {
                   name="diaChi"
                   value={thongTinKhachHang.diaChi}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 ${
+                    fieldErrors.diaChi
+                      ? "border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
+                      : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+                  }`}
                   placeholder="Số 123, Đường ABC, Khu vực XYZ..."
                 />
+                {renderFieldError("diaChi")}
                 <div className="space-y-1">
-                  <p className="text-xs text-gray-500">
-                    🏠 Số nhà, tên đường, khu vực...
-                  </p>
-                  {selectedProvince && thongTinKhachHang.diaChi && (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-700 flex items-start">
-                        <span className="mr-2 mt-0.5">ℹ️</span>
-                        <span>
-                          <strong>Địa chỉ giao hàng:</strong>{" "}
-                          {thongTinKhachHang.diaChi},{" "}
-                          {selectedWard?.WardName || "..."},{" "}
-                          {selectedDistrict?.DistrictName || "..."},{" "}
-                          {selectedProvince.ProvinceName}
-                        </span>
-                      </p>
-                    </div>
+                  {!fieldErrors.diaChi && (
+                    <p className="text-xs text-gray-500">
+                      🏠 Số nhà, tên đường, khu vực...
+                    </p>
                   )}
-                  {addressWarning && (
+                  {selectedProvince &&
+                    thongTinKhachHang.diaChi &&
+                    !fieldErrors.diaChi && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs text-blue-700 flex items-start">
+                          <span className="mr-2 mt-0.5">ℹ️</span>
+                          <span>
+                            <strong>Địa chỉ giao hàng:</strong>{" "}
+                            {thongTinKhachHang.diaChi},{" "}
+                            {selectedWard?.WardName || "..."},{" "}
+                            {selectedDistrict?.DistrictName || "..."},{" "}
+                            {selectedProvince.ProvinceName}
+                          </span>
+                        </p>
+                      </div>
+                    )}
+                  {addressWarning && !fieldErrors.diaChi && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                       <p className="text-xs text-red-700 flex items-start">
                         <span className="mr-2 mt-0.5">🚨</span>
@@ -948,6 +1054,13 @@ const ThanhToan: React.FC = () => {
                     onChange={(e) => {
                       setPhuongThucThanhToan(e.target.value);
                       if (error) setError(null);
+                      // Xóa lỗi khi chọn phương thức thanh toán
+                      if (fieldErrors.phuongThucThanhToan) {
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          phuongThucThanhToan: "",
+                        }));
+                      }
                     }}
                     className="mt-1 mr-4 w-4 h-4 text-blue-600 focus:ring-blue-500"
                   />
@@ -1003,7 +1116,9 @@ const ThanhToan: React.FC = () => {
               ))}
             </div>
 
-            {!phuongThucThanhToan && (
+            {renderFieldError("phuongThucThanhToan")}
+
+            {!phuongThucThanhToan && !fieldErrors.phuongThucThanhToan && (
               <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="text-amber-700 text-sm flex items-center">
                   <span className="mr-2">⚠️</span>
@@ -1134,6 +1249,43 @@ const ThanhToan: React.FC = () => {
                     <p className="text-red-700 font-medium">{error}</p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Hiển thị tổng quan các lỗi nếu có nhiều hơn 1 lỗi */}
+            {Object.keys(fieldErrors).filter((key) => fieldErrors[key]).length >
+              1 && (
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 className="text-red-800 font-semibold mb-2 flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Cần khắc phục{" "}
+                  {
+                    Object.keys(fieldErrors).filter((key) => fieldErrors[key])
+                      .length
+                  }{" "}
+                  lỗi:
+                </h4>
+                <ul className="text-sm text-red-700 space-y-1">
+                  {Object.keys(fieldErrors).map(
+                    (key) =>
+                      fieldErrors[key] && (
+                        <li key={key} className="flex items-center">
+                          <span className="w-2 h-2 bg-red-400 rounded-full mr-2"></span>
+                          {fieldErrors[key]}
+                        </li>
+                      )
+                  )}
+                </ul>
               </div>
             )}
 

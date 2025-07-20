@@ -28,6 +28,23 @@ const getProductDisplayInfo = (product: ApiProduct) => {
   };
 };
 
+// Custom hook useDebounce để debounce giá trị search
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 const TrangSanPham: React.FC = () => {
   // --- HOOKS ---
   const location = useLocation();
@@ -44,7 +61,14 @@ const TrangSanPham: React.FC = () => {
 
   // State cho tìm kiếm và sắp xếp
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // Input thực tế mà user gõ
   const [sortOption, setSortOption] = useState("Featured");
+
+  // Debounce search term với delay 500ms
+  const debouncedSearchTerm = useDebounce(searchInput, 500);
+
+  // State để hiển thị loading khi đang debounce search
+  const [isSearching, setIsSearching] = useState(false);
 
   // State cho bộ lọc từ FilterMenu
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
@@ -57,8 +81,23 @@ const TrangSanPham: React.FC = () => {
     const searchParam = urlParams.get("search");
     if (searchParam) {
       setSearchTerm(searchParam);
+      setSearchInput(searchParam);
     }
   }, [location.search]);
+
+  // --- DEBOUNCED SEARCH EFFECT ---
+  useEffect(() => {
+    setSearchTerm(debouncedSearchTerm);
+    setCurrentPage(1); // Reset về trang đầu khi tìm kiếm
+    setIsSearching(false); // Tắt loading khi search hoàn tất
+  }, [debouncedSearchTerm]);
+
+  // --- SEARCH LOADING EFFECT ---
+  useEffect(() => {
+    if (searchInput !== debouncedSearchTerm) {
+      setIsSearching(true);
+    }
+  }, [searchInput, debouncedSearchTerm]);
 
   // --- DATA FETCHING ---
   useEffect(() => {
@@ -67,7 +106,6 @@ const TrangSanPham: React.FC = () => {
       const CACHE_TIMESTAMP_KEY = "cached_products_timestamp";
       const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
 
-      // Lấy dữ liệu từ localStorage nếu còn hạn
       const getCachedProducts = () => {
         const cachedData = localStorage.getItem(CACHE_KEY);
         const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
@@ -291,6 +329,8 @@ const TrangSanPham: React.FC = () => {
   // --- EVENT HANDLERS ---
   const resetAllFilters = () => {
     setSearchTerm("");
+    setSearchInput("");
+    setIsSearching(false);
     setSelectedCategories([]);
     setSelectedColors([]);
     setPriceRange([0, maxPrice]);
@@ -353,18 +393,23 @@ const TrangSanPham: React.FC = () => {
               <span>{isFilterMenuOpen ? "Hide" : "Show"} Filters</span>
             </button>
             <div className="flex-1 relative w-full">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                size={20}
-              />
+              {isSearching ? (
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400"></div>
+                </div>
+              ) : (
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
+              )}
               <input
                 type="text"
                 placeholder="Search products..."
-                value={searchTerm}
+                value={searchInput}
                 onChange={(e) => {
-                  const newSearchTerm = e.target.value;
-                  setSearchTerm(newSearchTerm);
-                  setCurrentPage(1);
+                  const newSearchInput = e.target.value;
+                  setSearchInput(newSearchInput);
 
                   // Clear URL search param when user types in search box
                   if (location.search.includes("search=")) {
@@ -373,6 +418,28 @@ const TrangSanPham: React.FC = () => {
                 }}
                 className="w-full h-[44px] pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
+              {searchInput && (
+                <button
+                  onClick={() => {
+                    setSearchInput("");
+                    setSearchTerm("");
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <label className="text-gray-700 font-medium whitespace-nowrap">

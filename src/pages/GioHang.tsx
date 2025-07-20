@@ -22,7 +22,7 @@ const GioHang: React.FC = () => {
   // State cho ghi chú đơn hàng và trạng thái đăng nhập
   const [ghiChu, setGhiChu] = useState<string>("");
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [user, setUser] = useState<any>(null);
+  const [, setUser] = useState<any>(null);
 
   // Kiểm tra trạng thái đăng nhập qua user_data cookie
   useEffect(() => {
@@ -149,7 +149,7 @@ const GioHang: React.FC = () => {
                 </div>
 
                 <div className="divide-y divide-gray-100">
-                  {items.map((item, index) => (
+                  {items.map((item) => (
                     <div
                       key={item.sanPham.id}
                       className="p-6 hover:bg-gray-50 transition-colors duration-200"

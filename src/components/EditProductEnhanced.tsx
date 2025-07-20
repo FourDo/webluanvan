@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import _ from "lodash";
 import {
   DndContext,
   closestCenter,
@@ -26,9 +25,7 @@ import type { ProductForEdit, VariantForEdit } from "../types/Product";
 import {
   ArrowLeft,
   Save,
-  Plus,
   Image,
-  Trash2,
   Edit3,
   CheckCircle2,
   AlertCircle,
@@ -56,20 +53,16 @@ interface InputVariant {
 const EditProductEnhanced: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
-
-  // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Yêu cầu kéo ít nhất 8px để kích hoạt drag
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  // Product basic info state
   const [product, setProduct] = useState<ProductForEdit | null>(null);
   const [originalProduct, setOriginalProduct] = useState<ProductForEdit | null>(
     null
@@ -77,8 +70,6 @@ const EditProductEnhanced: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Variants state
   const [editingVariant, setEditingVariant] = useState<VariantForEdit | null>(
     null
   );
@@ -86,7 +77,7 @@ const EditProductEnhanced: React.FC = () => {
     null
   );
   const [isAddingVariant, setIsAddingVariant] = useState(false);
-  const [deletedVariantIds, setDeletedVariantIds] = useState<number[]>([]);
+  // const [deletedVariantIds, setDeletedVariantIds] = useState<number[]>([]);
   const [newVariant, setNewVariant] = useState<VariantForEdit>({
     ten_mau_sac: "",
     hex_code: "",
@@ -107,7 +98,6 @@ const EditProductEnhanced: React.FC = () => {
     hinh_anh: [],
   };
 
-  // Form data
   const [categories, setCategories] = useState<string[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
   const [sizes, setSizes] = useState<Size[]>([]);
@@ -129,9 +119,6 @@ const EditProductEnhanced: React.FC = () => {
         sizeApi.fetchSizes(),
       ]);
 
-      console.log("Available colors:", colorsRes);
-      console.log("Available sizes:", sizesRes);
-
       setCategories(categoriesRes.data.map((cat: any) => cat.ten_danh_muc));
       setColors(colorsRes);
       setSizes(sizesRes);
@@ -145,10 +132,6 @@ const EditProductEnhanced: React.FC = () => {
     try {
       setLoading(true);
       const response = await productApi.getProductById(Number(productId));
-
-      console.log("Raw product data from API:", response);
-
-      // Convert Product to ProductForEdit
       const productForEdit: ProductForEdit = {
         ...response,
         bienthe: response.bienthe.map((variant) => ({
@@ -156,10 +139,6 @@ const EditProductEnhanced: React.FC = () => {
           gia_ban: parseFloat(variant.gia_ban),
         })),
       };
-
-      console.log("Product after conversion:", productForEdit);
-      console.log("First variant colors and sizes:", productForEdit.bienthe[0]);
-
       setProduct(productForEdit);
       setOriginalProduct(JSON.parse(JSON.stringify(productForEdit))); // Deep copy
     } catch (error) {
@@ -167,31 +146,6 @@ const EditProductEnhanced: React.FC = () => {
       setError("Lỗi khi tải thông tin sản phẩm");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Save product basic info only
-  const handleSaveProductInfo = async () => {
-    if (!product) return;
-
-    try {
-      const productData = {
-        ten_san_pham: product.ten_san_pham,
-        thuong_hieu: product.thuong_hieu,
-        mo_ta_ngan: product.mo_ta_ngan,
-        chat_lieu: product.chat_lieu,
-        trang_thai_hoat_dong: product.trang_thai_hoat_dong,
-        ma_khuyen_mai: product.ma_khuyen_mai,
-        ten_danh_muc: product.ten_danh_muc,
-      };
-
-      await productApi.updateProduct(product.ma_san_pham, productData);
-      setSuccess("Cập nhật thông tin sản phẩm thành công!");
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (error) {
-      console.error("Error updating product:", error);
-      setError("Lỗi khi cập nhật sản phẩm!");
-      setTimeout(() => setError(null), 3000);
     }
   };
 
@@ -236,7 +190,6 @@ const EditProductEnhanced: React.FC = () => {
   // Drag and drop handler for add variant images
   const handleAddVariantImageDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
     if (over && active.id !== over.id) {
       const activeIndex = parseInt(
         active.id.toString().replace("add-variant-image-", "")
@@ -337,13 +290,7 @@ const EditProductEnhanced: React.FC = () => {
       trang_thai_hoat_dong_btsp: variantToProcess.trang_thai_hoat_dong_btsp,
       hinh_anh: variantToProcess.hinh_anh,
     };
-
-    console.log("Variant to add/update:", variantToAdd);
-    console.log("editingVariantIndex:", editingVariantIndex);
-    console.log("Is this an update?", editingVariantIndex !== null);
-
     if (editingVariantIndex !== null) {
-      // Cập nhật biến thể
       const updatedVariants = [...product.bienthe];
       updatedVariants[editingVariantIndex] = variantToAdd;
       setProduct({
@@ -352,7 +299,6 @@ const EditProductEnhanced: React.FC = () => {
       });
       setSuccess("Cập nhật biến thể thành công!");
     } else {
-      // Thêm biến thể mới
       setProduct({
         ...product,
         bienthe: [...product.bienthe, variantToAdd],
@@ -368,18 +314,19 @@ const EditProductEnhanced: React.FC = () => {
     setTimeout(() => setSuccess(null), 3000);
   };
 
+  // Tạm thời comment out để test
   // Xóa biến thể
-  const removeVariant = (index: number) => {
-    if (!product) return;
-    const variant = product.bienthe[index];
-    if (variant.ma_bien_the_san_pham) {
-      setDeletedVariantIds((prev) => [...prev, variant.ma_bien_the_san_pham!]);
-    }
-    setProduct({
-      ...product,
-      bienthe: product.bienthe.filter((_, i) => i !== index),
-    });
-  };
+  // const removeVariant = (index: number) => {
+  //   if (!product) return;
+  //   const variant = product.bienthe[index];
+  //   if (variant.ma_bien_the_san_pham) {
+  //     setDeletedVariantIds((prev) => [...prev, variant.ma_bien_the_san_pham!]);
+  //   }
+  //   setProduct({
+  //     ...product,
+  //     bienthe: product.bienthe.filter((_, i) => i !== index),
+  //   });
+  // };
 
   // Bắt đầu chỉnh sửa biến thể
   const startEditingVariant = (index: number) => {
@@ -456,8 +403,6 @@ const EditProductEnhanced: React.FC = () => {
 
     const { bienthe, ...productMain } = product;
     try {
-      console.log("productMain gửi lên:", productMain);
-      console.log("Tên danh mục gửi lên:", product.ten_danh_muc, "|");
       await productApi.updateProduct(Number(productId), productMain);
 
       const promises: Promise<any>[] = [];
@@ -472,7 +417,10 @@ const EditProductEnhanced: React.FC = () => {
           trang_thai_hoat_dong_btsp: variant.trang_thai_hoat_dong_btsp,
           hinh_anh: variant.hinh_anh,
         };
-        if (!variant.ma_bien_the_san_pham) {
+        if (
+          variant.ma_bien_the_san_pham === undefined ||
+          variant.ma_bien_the_san_pham === null
+        ) {
           promises.push(
             productApi.addVariant(Number(productId), variantDataPayload)
           );
@@ -480,42 +428,34 @@ const EditProductEnhanced: React.FC = () => {
           const originalVariant = originalProduct.bienthe.find(
             (v) => v.ma_bien_the_san_pham === variant.ma_bien_the_san_pham
           );
-          console.log("Original variant:", originalVariant);
-          console.log("Current variant:", variant);
-          console.log("Are they equal?", isEqual(variant, originalVariant));
-
-          if (originalVariant && !isEqual(variant, originalVariant)) {
-            console.log(
-              "Adding updateVariant API call for variant:",
-              variant.ma_bien_the_san_pham
-            );
-            promises.push(
-              productApi.updateVariant(
-                variant.ma_bien_the_san_pham,
-                variantDataPayload
-              )
-            );
+          if (originalVariant) {
+            if (!isEqual(variant, originalVariant)) {
+              promises.push(
+                productApi.updateVariant(
+                  variant.ma_bien_the_san_pham,
+                  variantDataPayload
+                )
+              );
+            } else {
+            }
           } else {
-            console.log(
-              "No changes detected for variant:",
-              variant.ma_bien_the_san_pham
+            promises.push(
+              productApi.addVariant(Number(productId), variantDataPayload)
             );
           }
         }
       }
 
-      for (const variantId of deletedVariantIds) {
-        promises.push(productApi.deleteVariant(variantId));
-      }
-
-      console.log("Total promises to execute:", promises.length);
-      console.log("Promises:", promises);
+      // Tạm thời comment out phần xóa biến thể
+      // for (const variantId of deletedVariantIds) {
+      //   promises.push(productApi.deleteVariant(variantId));
+      // }
 
       await Promise.all(promises);
 
       setSuccess("Cập nhật sản phẩm thành công!");
       setTimeout(() => {
-        navigate("/admin/ql-san-pham");
+        navigate("/admin/sanpham");
       }, 2000);
     } catch (err: any) {
       setError(err.message || "Lỗi khi cập nhật sản phẩm.");
@@ -616,18 +556,9 @@ const EditProductEnhanced: React.FC = () => {
               <>
                 {/* Basic Product Info */}
                 <div className="bg-white rounded-lg shadow-sm p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      Thông tin cơ bản
-                    </h2>
-                    <button
-                      onClick={handleSaveProductInfo}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
-                    >
-                      <Save size={16} />
-                      Lưu thông tin
-                    </button>
-                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Thông tin cơ bản
+                  </h2>
 
                   <div className="space-y-4">
                     <div>
@@ -735,13 +666,7 @@ const EditProductEnhanced: React.FC = () => {
                       <h3 className="text-lg font-semibold text-gray-900">
                         Quản lý biến thể ({product.bienthe.length})
                       </h3>
-                      <button
-                        onClick={() => setIsAddingVariant(true)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
-                      >
-                        <Plus size={16} />
-                        Thêm biến thể
-                      </button>
+                      {/* Tạm thời ẩn button thêm biến thể để test */}
                     </div>
                   </div>
 
@@ -1101,7 +1026,8 @@ const EditProductEnhanced: React.FC = () => {
                             </div>
                             <div>
                               <div className="font-medium text-gray-900">
-                                {variant.ten_mau_sac} - {variant.ten_kich_thuoc}
+                                {variant.ten_cac_bien_the ||
+                                  `${variant.ten_mau_sac} - ${variant.ten_kich_thuoc}`}
                               </div>
                               <div className="text-sm text-gray-500">
                                 Giá: {variant.gia_ban.toLocaleString()}đ • SL:{" "}
@@ -1116,14 +1042,9 @@ const EditProductEnhanced: React.FC = () => {
                             <button
                               onClick={() => startEditingVariant(index)}
                               className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
+                              title="Sửa biến thể"
                             >
                               <Edit3 size={16} />
-                            </button>
-                            <button
-                              onClick={() => removeVariant(index)}
-                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
-                            >
-                              <Trash2 size={16} />
                             </button>
                           </div>
                         </div>

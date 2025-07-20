@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import categoryApi from '../API/categoryApi';
-import { getProducts } from '../API/productApi';
-import { 
-  saveWithTimestamp, 
-  getWithTimestamp, 
-  clearNavbarData 
-} from '../utils/sessionStorage';
+import { useState, useEffect } from "react";
+import categoryApi from "../API/categoryApi";
+import { productApi } from "../API/productApi";
+import {
+  saveWithTimestamp,
+  getWithTimestamp,
+  clearNavbarData,
+} from "../utils/sessionStorage";
 
 interface Category {
   ma_danh_muc: number;
@@ -27,7 +27,9 @@ interface NavbarData {
 
 export const useNavbarData = (): NavbarData => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [productsByCategory, setProductsByCategory] = useState<Record<string, Product[]>>({});
+  const [productsByCategory, setProductsByCategory] = useState<
+    Record<string, Product[]>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +40,8 @@ export const useNavbarData = (): NavbarData => {
 
       try {
         // Kiểm tra session storage trước
-        const savedCategories = getWithTimestamp('navbar_categories');
-        const savedProducts = getWithTimestamp('navbar_products');
+        const savedCategories = getWithTimestamp("navbar_categories");
+        const savedProducts = getWithTimestamp("navbar_products");
 
         // Nếu có dữ liệu đã lưu và không quá cũ, sử dụng dữ liệu đó
         if (savedCategories && savedProducts) {
@@ -52,16 +54,16 @@ export const useNavbarData = (): NavbarData => {
         // Nếu không có dữ liệu hoặc dữ liệu cũ, fetch từ API
         const [catRes, prodRes] = await Promise.all([
           categoryApi.getAll(),
-          getProducts()
+          productApi.getProducts(),
         ]);
 
         // Log dữ liệu trả về để debug
-        console.log('categoryApi.getAll() trả về:', catRes);
-        console.log('getProducts() trả về:', prodRes);
+        console.log("categoryApi.getAll() trả về:", catRes);
+        console.log("getProducts() trả về:", prodRes);
 
         if (Array.isArray(catRes.data) && Array.isArray(prodRes.data)) {
           setCategories(catRes.data);
-          
+
           // Gom sản phẩm theo tên danh mục
           const grouped: Record<string, Product[]> = {};
           prodRes.data.forEach((p: any) => {
@@ -73,22 +75,22 @@ export const useNavbarData = (): NavbarData => {
               ten_danh_muc: p.ten_danh_muc,
             });
           });
-          
+
           setProductsByCategory(grouped);
-          
+
           // Lưu vào session storage với timestamp
-          saveWithTimestamp('navbar_categories', catRes.data);
-          saveWithTimestamp('navbar_products', grouped);
+          saveWithTimestamp("navbar_categories", catRes.data);
+          saveWithTimestamp("navbar_products", grouped);
         } else {
           // Log lỗi chi tiết
-          console.error('catRes:', catRes);
-          console.error('prodRes:', prodRes);
-          throw new Error('Dữ liệu trả về không đúng định dạng');
+          console.error("catRes:", catRes);
+          console.error("prodRes:", prodRes);
+          throw new Error("Dữ liệu trả về không đúng định dạng");
         }
       } catch (err) {
-        console.error('Lỗi khi tải dữ liệu navbar:', err);
-        setError(err instanceof Error ? err.message : 'Lỗi không xác định');
-        
+        console.error("Lỗi khi tải dữ liệu navbar:", err);
+        setError(err instanceof Error ? err.message : "Lỗi không xác định");
+
         // Xóa dữ liệu cũ nếu có lỗi
         clearNavbarData();
       } finally {
@@ -103,6 +105,6 @@ export const useNavbarData = (): NavbarData => {
     categories,
     productsByCategory,
     loading,
-    error
+    error,
   };
-}; 
+};

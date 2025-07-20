@@ -22,12 +22,6 @@ import authApi from "../API/authApi";
 
 // --- Định nghĩa các Type/Interface cho dữ liệu ---
 
-interface Product {
-  ma_san_pham: number;
-  ten_san_pham: string;
-  ten_danh_muc: string | null;
-}
-
 const Navbar: React.FC = () => {
   const { demSoLuongSanPham } = useGioHang();
   const [isMenuOpen, setIsMenuOpen] = useState(false);

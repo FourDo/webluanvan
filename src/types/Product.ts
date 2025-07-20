@@ -53,6 +53,7 @@ export interface ProductResponse {
 
 export interface VariantForEdit {
   ma_bien_the_san_pham?: number;
+  ten_cac_bien_the?: string; // Backend trả về tên màu + size trong 1 string
   ten_mau_sac: string;
   hex_code: string;
   ten_kich_thuoc: string;

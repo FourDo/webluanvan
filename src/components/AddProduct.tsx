@@ -36,7 +36,6 @@ interface Size {
 const AddProduct: React.FC = () => {
   const navigate = useNavigate();
 
-  // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -72,6 +71,7 @@ const AddProduct: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"product" | "variants">("product");
+  const [showAddVariantForm, setShowAddVariantForm] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -130,17 +130,14 @@ const AddProduct: React.FC = () => {
   const uploadToCloudinary = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "webluanvan_upload"); // Thay bằng tên preset bạn vừa tạo
-
+    formData.append("upload_preset", "webluanvan_upload");
     const response = await axios.post(
       "https://api.cloudinary.com/v1_1/dubtdbe8z/image/upload",
       formData
     );
-
     return response.data.secure_url;
   };
 
-  // Drag and drop handler for variant images
   const handleVariantImageDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -163,8 +160,13 @@ const AddProduct: React.FC = () => {
 
   const handleColorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const colorName = e.target.value;
+    const selectedColorObject = colors.find((c) => c.ten_mau_sac === colorName);
     setSelectedColor(colorName);
-    setNewVariant({ ...newVariant, ten_mau_sac: colorName });
+    setNewVariant({
+      ...newVariant,
+      ten_mau_sac: colorName,
+      hex_code: selectedColorObject ? selectedColorObject.hex_code : "",
+    });
   };
 
   const handleSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -176,6 +178,7 @@ const AddProduct: React.FC = () => {
   const addVariant = () => {
     if (
       newVariant.ten_mau_sac &&
+      newVariant.hex_code &&
       newVariant.ten_kich_thuoc &&
       newVariant.gia_ban > 0 &&
       newVariant.so_luong_ton >= 0 &&
@@ -197,6 +200,7 @@ const AddProduct: React.FC = () => {
         bienthe: [...newProduct.bienthe, { ...newVariant }],
       });
 
+      // Reset form và ẩn form thêm biến thể
       setNewVariant({
         ten_mau_sac: "",
         hex_code: "",
@@ -208,6 +212,8 @@ const AddProduct: React.FC = () => {
       });
       setSelectedColor("");
       setSelectedSize("");
+      setShowAddVariantForm(false); // Ẩn form thêm biến thể
+      alert("Thêm biến thể thành công!");
     } else {
       alert("Vui lòng điền đầy đủ thông tin biến thể!");
     }
@@ -434,174 +440,216 @@ const AddProduct: React.FC = () => {
 
               {activeTab === "variants" && (
                 <>
-                  {/* Form thêm biến thể */}
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Thêm biến thể mới
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Màu sắc *
-                          </label>
-                          <select
-                            required
-                            value={selectedColor}
-                            onChange={handleColorChange}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            <option value="">Chọn màu sắc</option>
-                            {colors.map((color, index) => (
-                              <option
-                                key={`color-${color.ten_mau_sac}-${index}`}
-                                value={color.ten_mau_sac}
-                              >
-                                {color.ten_mau_sac}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Kích thước *
-                          </label>
-                          <select
-                            required
-                            value={selectedSize}
-                            onChange={handleSizeChange}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            <option value="">Chọn kích thước</option>
-                            {sizes.map((size, index) => (
-                              <option
-                                key={`size-${size.ten_kich_thuoc}-${index}`}
-                                value={size.ten_kich_thuoc}
-                              >
-                                {size.ten_kich_thuoc}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Giá bán *
-                          </label>
-                          <input
-                            type="number"
-                            required
-                            min="0"
-                            placeholder="0"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            value={newVariant.gia_ban}
-                            onChange={(e) =>
-                              setNewVariant({
-                                ...newVariant,
-                                gia_ban: parseFloat(e.target.value) || 0,
-                              })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Số lượng tồn *
-                          </label>
-                          <input
-                            type="number"
-                            required
-                            min="0"
-                            placeholder="0"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            value={newVariant.so_luong_ton}
-                            onChange={(e) =>
-                              setNewVariant({
-                                ...newVariant,
-                                so_luong_ton: parseInt(e.target.value) || 0,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      {/* Upload ảnh */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Hình ảnh biến thể *
-                        </label>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                          <Image className="mx-auto h-12 w-12 text-gray-400" />
-                          <div className="mt-2">
-                            <label className="cursor-pointer">
-                              <span className="text-blue-600 hover:text-blue-500">
-                                Tải ảnh lên
-                              </span>
-                              <input
-                                type="file"
-                                className="hidden"
-                                accept="image/*"
-                                multiple
-                                onChange={handleImageUpload}
-                                disabled={uploading}
-                              />
-                            </label>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">
-                            PNG, JPG, GIF up to 10MB
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Image Preview with Drag & Drop */}
-                      {newVariant.hinh_anh.length > 0 && (
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={handleVariantImageDragEnd}
-                        >
-                          <SortableContext
-                            items={newVariant.hinh_anh.map(
-                              (_, index) => `variant-image-${index}`
-                            )}
-                            strategy={horizontalListSortingStrategy}
-                          >
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                              {newVariant.hinh_anh.map((image, index) => (
-                                <SortableImage
-                                  key={`variant-image-${index}`}
-                                  id={`variant-image-${index}`}
-                                  image={image}
-                                  index={index}
-                                  onRemove={(index) => {
-                                    const updatedImages =
-                                      newVariant.hinh_anh.filter(
-                                        (_, i) => i !== index
-                                      );
-                                    setNewVariant({
-                                      ...newVariant,
-                                      hinh_anh: updatedImages,
-                                    });
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          </SortableContext>
-                        </DndContext>
-                      )}
-
+                  {/* Button thêm biến thể */}
+                  {!showAddVariantForm && (
+                    <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        Quản lý biến thể
+                      </h3>
                       <button
                         type="button"
-                        onClick={addVariant}
-                        disabled={uploading}
-                        className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => setShowAddVariantForm(true)}
+                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 mx-auto"
                       >
                         <Plus size={16} />
-                        Thêm biến thể
+                        Thêm biến thể mới
                       </button>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Form thêm biến thể */}
+                  {showAddVariantForm && (
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        Thêm biến thể mới
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Màu sắc *
+                            </label>
+                            <select
+                              required
+                              value={selectedColor}
+                              onChange={handleColorChange}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="">Chọn màu sắc</option>
+                              {colors.map((color, index) => (
+                                <option
+                                  key={`color-${color.ten_mau_sac}-${index}`}
+                                  value={color.ten_mau_sac}
+                                >
+                                  {color.ten_mau_sac}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Kích thước *
+                            </label>
+                            <select
+                              required
+                              value={selectedSize}
+                              onChange={handleSizeChange}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="">Chọn kích thước</option>
+                              {sizes.map((size, index) => (
+                                <option
+                                  key={`size-${size.ten_kich_thuoc}-${index}`}
+                                  value={size.ten_kich_thuoc}
+                                >
+                                  {size.ten_kich_thuoc}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Giá bán *
+                            </label>
+                            <input
+                              type="number"
+                              required
+                              min="0"
+                              placeholder="0"
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              value={newVariant.gia_ban}
+                              onChange={(e) =>
+                                setNewVariant({
+                                  ...newVariant,
+                                  gia_ban: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Số lượng tồn *
+                            </label>
+                            <input
+                              type="number"
+                              required
+                              min="0"
+                              placeholder="0"
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              value={newVariant.so_luong_ton}
+                              onChange={(e) =>
+                                setNewVariant({
+                                  ...newVariant,
+                                  so_luong_ton: parseInt(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        {/* Upload ảnh */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Hình ảnh biến thể *
+                          </label>
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <Image className="mx-auto h-12 w-12 text-gray-400" />
+                            <div className="mt-2">
+                              <label className="cursor-pointer">
+                                <span className="text-blue-600 hover:text-blue-500">
+                                  Tải ảnh lên
+                                </span>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={handleImageUpload}
+                                  disabled={uploading}
+                                />
+                              </label>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              PNG, JPG, GIF up to 10MB
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Image Preview with Drag & Drop */}
+                        {newVariant.hinh_anh.length > 0 && (
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleVariantImageDragEnd}
+                          >
+                            <SortableContext
+                              items={newVariant.hinh_anh.map(
+                                (_, index) => `variant-image-${index}`
+                              )}
+                              strategy={horizontalListSortingStrategy}
+                            >
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                                {newVariant.hinh_anh.map((image, index) => (
+                                  <SortableImage
+                                    key={`variant-image-${index}`}
+                                    id={`variant-image-${index}`}
+                                    image={image}
+                                    index={index}
+                                    onRemove={(index) => {
+                                      const updatedImages =
+                                        newVariant.hinh_anh.filter(
+                                          (_, i) => i !== index
+                                        );
+                                      setNewVariant({
+                                        ...newVariant,
+                                        hinh_anh: updatedImages,
+                                      });
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </SortableContext>
+                          </DndContext>
+                        )}
+
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAddVariantForm(false);
+                              // Reset form khi hủy
+                              setNewVariant({
+                                ten_mau_sac: "",
+                                hex_code: "",
+                                ten_kich_thuoc: "",
+                                gia_ban: 0,
+                                so_luong_ton: 0,
+                                trang_thai_hoat_dong_btsp: "hoat_dong",
+                                hinh_anh: [],
+                              });
+                              setSelectedColor("");
+                              setSelectedSize("");
+                            }}
+                            className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium flex items-center justify-center gap-2"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={addVariant}
+                            disabled={uploading}
+                            className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Plus size={16} />
+                            Thêm biến thể
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Danh sách biến thể */}
                   {newProduct.bienthe.length > 0 && (

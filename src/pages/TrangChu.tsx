@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { motion, useInView, useAnimation, easeOut } from "framer-motion";
 import SwiperContainer from "../components/SwiperContainer";
 import SearchBox from "../components/SearchBox";
+import PopularProducts from "../components/PopularProducts";
+import ProductRecommendations from "../components/ProductRecommendations";
 
 const TrangChu: React.FC = () => {
   const stats = [
@@ -245,6 +247,28 @@ const TrangChu: React.FC = () => {
             Sản Phẩm Tiêu Biểu
           </h2>
           <SwiperContainer />
+        </motion.div>
+
+        {/* Sản phẩm nổi bật */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={fadeUpVariants}
+          className="bg-gray-50 py-12"
+        >
+          <PopularProducts limit={8} />
+        </motion.div>
+
+        {/* Gợi ý sản phẩm */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={fadeUpVariants}
+          className="bg-white py-12"
+        >
+          <ProductRecommendations limit={8} />
         </motion.div>
 
         {/* Phần sản phẩm của chúng tôi */}

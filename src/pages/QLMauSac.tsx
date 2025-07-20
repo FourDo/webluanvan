@@ -20,9 +20,6 @@ import {
   getHexFromVietnameseName,
 } from "../utils/colorNameUtils";
 
-// --- Sub-Components ---
-
-// Color Form Modal Component
 const ColorFormModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;

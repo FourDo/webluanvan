@@ -30,7 +30,6 @@ const formatCurrency = (amount: number | string) => {
     currency: "VND",
   }).format(numericAmount);
 };
-
 // Tính toán các chỉ số từ biến thể của sản phẩm
 const getProductStats = (product: Product) => {
   if (!product.bienthe || product.bienthe.length === 0) {
@@ -56,8 +55,6 @@ const getProductStats = (product: Product) => {
 
   return { totalVariants, totalStock, minPrice, maxPrice, mainImage };
 };
-
-// --- Sub-Components ---
 
 // Product Card Component cho Grid View
 const ProductCard: React.FC<{
@@ -153,9 +150,7 @@ const ProductCard: React.FC<{
   );
 };
 
-// --- Main Component ---
-
-const ITEMS_PER_PAGE = 12; // Thêm hằng số cho số sản phẩm mỗi trang
+const ITEMS_PER_PAGE = 12;
 
 const QLSanPham: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
