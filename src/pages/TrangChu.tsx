@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { motion, useInView, useAnimation, easeOut } from "framer-motion";
-import SwiperContainer from "../components/SwiperContainer";
+
 import SearchBox from "../components/SearchBox";
 import PopularProducts from "../components/PopularProducts";
 import ProductRecommendations from "../components/ProductRecommendations";
