@@ -17,12 +17,13 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableImage } from "./SortableImage";
+import RichTextEditor from "./RichTextEditor";
 import { productApi } from "../API/productApi";
 import type { InputProduct, InputVariant } from "../types/Product";
 import categoryApi from "../API/categoryApi";
 import { colorApi } from "../API/colorApi";
 import { sizeApi } from "../API/sizeApi";
-import { Plus, Image, Trash2, ArrowLeft, Save } from "lucide-react";
+import { Plus, Image, Trash2, ArrowLeft, Save, Sparkles } from "lucide-react";
 
 interface Color {
   ten_mau_sac: string;
@@ -72,6 +73,7 @@ const AddProduct: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"product" | "variants">("product");
   const [showAddVariantForm, setShowAddVariantForm] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -103,6 +105,80 @@ const AddProduct: React.FC = () => {
       setSizes(response);
     } catch (error) {
       console.error("Error fetching sizes:", error);
+    }
+  };
+
+  // AI Generate Description
+  const generateAIDescription = async () => {
+    if (!newProduct.ten_san_pham.trim()) {
+      alert("Vui lòng nhập tên sản phẩm trước khi tạo mô tả AI!");
+      return;
+    }
+
+    setAiGenerating(true);
+    try {
+      const response = await axios.post(
+        "https://luanvan-7wv1.onrender.com/api/ai/generate",
+        {
+          ten_san_pham: newProduct.ten_san_pham,
+        },
+        {
+          timeout: 30000, // 30 seconds timeout
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data && response.data.mo_ta) {
+        setNewProduct({
+          ...newProduct,
+          mo_ta_ngan: response.data.mo_ta,
+        });
+        alert("Đã tạo mô tả sản phẩm bằng AI thành công!");
+      } else {
+        alert("API không trả về mô tả sản phẩm. Vui lòng thử lại!");
+      }
+    } catch (error) {
+      console.error("Error generating AI description:", error);
+
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          // Server responded with error status
+          const status = error.response.status;
+          const message =
+            error.response.data?.message ||
+            error.response.data?.error ||
+            "Unknown server error";
+
+          switch (status) {
+            case 500:
+              alert(
+                `Lỗi server (500): ${message}\n\nKiểm tra:\n- Server AI có đang chạy?\n- API key có hợp lệ?\n- Model AI có khả dụng?`
+              );
+              break;
+            case 404:
+              alert("API endpoint không tồn tại. Kiểm tra đường dẫn API.");
+              break;
+            case 400:
+              alert(`Dữ liệu không hợp lệ: ${message}`);
+              break;
+            default:
+              alert(`Lỗi API (${status}): ${message}`);
+          }
+        } else if (error.request) {
+          // Network error
+          alert(
+            "Không thể kết nối đến server AI. Kiểm tra:\n- Server có đang chạy tại http://127.0.0.1:8000?\n- Kết nối mạng"
+          );
+        } else {
+          alert(`Lỗi khi gửi request: ${error.message}`);
+        }
+      } else {
+        alert("Lỗi không xác định khi tạo mô tả sản phẩm bằng AI!");
+      }
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -362,24 +438,39 @@ const AddProduct: React.FC = () => {
 
                   {/* Mô tả sản phẩm */}
                   <div className="bg-white rounded-lg shadow-sm p-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mô tả ngắn *
-                    </label>
-                    <textarea
-                      required
-                      rows={4}
-                      placeholder="Viết mô tả ngắn gọn về sản phẩm..."
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Mô tả sản phẩm *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={generateAIDescription}
+                        disabled={
+                          aiGenerating || !newProduct.ten_san_pham.trim()
+                        }
+                        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-300 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        <Sparkles
+                          size={16}
+                          className={aiGenerating ? "animate-spin" : ""}
+                        />
+                        {aiGenerating ? "Đang tạo..." : "AI Generate"}
+                      </button>
+                    </div>
+                    <RichTextEditor
                       value={newProduct.mo_ta_ngan}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setNewProduct({
                           ...newProduct,
-                          mo_ta_ngan: e.target.value,
+                          mo_ta_ngan: value,
                         })
                       }
+                      placeholder="Viết mô tả chi tiết về sản phẩm..."
+                      height="200px"
                     />
                     <div className="mt-2 text-sm text-gray-500">
-                      {newProduct.mo_ta_ngan.length}/500 ký tự
+                      Sử dụng editor để định dạng mô tả sản phẩm với HTML hoặc
+                      nhấn nút AI Generate để tự động tạo mô tả.
                     </div>
                   </div>
 

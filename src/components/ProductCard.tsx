@@ -62,7 +62,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleCardClick = () => {
     // Điều hướng đến trang chi tiết sản phẩm, ví dụ: /san-pham/123
-    navigate(`/san-pham/${product.ma_san_pham}`);
+    navigate(`/sanpham/${product.ma_san_pham}`);
   };
 
   return (

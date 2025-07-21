@@ -309,7 +309,7 @@ const TrangDangNhap: React.FC = () => {
                   formData.mat_khau.length >= 6 && (
                     <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
                       <span>✅</span>
-                      Mật khẩu hợp lệ
+                      
                     </p>
                   )}
               </div>

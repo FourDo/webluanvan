@@ -1,13 +1,24 @@
 import type { Product } from "../types/Product";
 
 export interface PopularProductsResponse {
-  message: string;
-  data: Product[];
+  message?: string;
+  data: {
+    method: string;
+    products: Product[];
+  };
+  success: boolean;
 }
 
 export interface RecommendationResponse {
-  message: string;
-  data: Product[];
+  message?: string;
+  data: {
+    message: string;
+    method: string;
+    recommendations: Product[];
+    total_count: number;
+    user_id: number | null;
+  };
+  success: boolean;
 }
 
 export const recommendationApi = {

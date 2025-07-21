@@ -3,6 +3,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { getOrderDetail } from "../API/orderApi";
 import type { DonHang, ChiTietDonHang } from "../API/orderApi";
 
+interface GHNShippingInfo {
+  order_code: string;
+  total_fee: number;
+  expected_delivery_time: string;
+  sort_code: string;
+  orderId: string | number;
+}
+
 const TrangHoaDon: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -12,6 +20,8 @@ const TrangHoaDon: React.FC = () => {
   const [orderDetails, setOrderDetails] = useState<ChiTietDonHang[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [ghnShippingInfo, setGhnShippingInfo] =
+    useState<GHNShippingInfo | null>(null);
 
   // Parse query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -86,6 +96,18 @@ const TrangHoaDon: React.FC = () => {
       paymentMethod,
       status,
     });
+
+    // Load GHN shipping info từ localStorage
+    try {
+      const storedGHNInfo = localStorage.getItem("ghnShippingInfo");
+      if (storedGHNInfo) {
+        const parsedInfo = JSON.parse(storedGHNInfo) as GHNShippingInfo;
+        setGhnShippingInfo(parsedInfo);
+        console.log("📦 Thông tin vận chuyển GHN:", parsedInfo);
+      }
+    } catch (err) {
+      console.error("Lỗi parse GHN shipping info:", err);
+    }
 
     // Nếu đã có thông tin đơn hàng từ state, không cần load lại
     if (order) {
@@ -332,6 +354,66 @@ const TrangHoaDon: React.FC = () => {
                     {order.ghi_chu}
                   </span>
                 </div>
+              )}
+
+              {/* Thông tin vận chuyển GHN */}
+              {ghnShippingInfo && (
+                <>
+                  <div className="border-t pt-3 mt-3">
+                    <h4 className="font-medium text-gray-700 mb-2 flex items-center">
+                      📦 Thông tin vận chuyển GHN
+                    </h4>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-600">
+                      Mã vận đơn:
+                    </span>
+                    <span className="text-blue-600 font-mono text-sm font-bold">
+                      {ghnShippingInfo.order_code}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-600">
+                      Mã sắp xếp:
+                    </span>
+                    <span className="text-gray-800 font-mono text-sm">
+                      {ghnShippingInfo.sort_code}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-600">
+                      Phí vận chuyển GHN:
+                    </span>
+                    <span className="text-green-600 font-medium">
+                      {formatCurrency(ghnShippingInfo.total_fee)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-600 mb-1">
+                      Thời gian dự kiến giao:
+                    </span>
+                    <span className="text-orange-600 font-medium bg-orange-50 p-2 rounded border">
+                      {new Date(
+                        ghnShippingInfo.expected_delivery_time
+                      ).toLocaleString("vi-VN", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-700 flex items-center">
+                      <span className="mr-2">ℹ️</span>
+                      <span>
+                        Đơn hàng đã được đăng ký với GHN. Bạn có thể theo dõi
+                        tiến trình giao hàng qua mã vận đơn.
+                      </span>
+                    </p>
+                  </div>
+                </>
               )}
             </div>
           </div>

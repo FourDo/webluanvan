@@ -322,7 +322,7 @@ function TrangDangNhapADmin() {
                 password.length >= 6 && (
                   <p className="mt-1 text-green-600 text-sm flex items-center gap-1">
                     <span>✅</span>
-                    Mật khẩu hợp lệ
+                    
                   </p>
                 )}
               {password && password.length > 0 && password.length < 6 && (

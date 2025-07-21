@@ -17,6 +17,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableImage } from "./SortableImage";
+import RichTextEditor from "./RichTextEditor";
 import { productApi } from "../API/productApi";
 import categoryApi from "../API/categoryApi";
 import { colorApi } from "../API/colorApi";
@@ -29,6 +30,9 @@ import {
   Edit3,
   CheckCircle2,
   AlertCircle,
+  Trash2,
+  Plus,
+  Sparkles,
 } from "lucide-react";
 
 interface Color {
@@ -77,7 +81,7 @@ const EditProductEnhanced: React.FC = () => {
     null
   );
   const [isAddingVariant, setIsAddingVariant] = useState(false);
-  // const [deletedVariantIds, setDeletedVariantIds] = useState<number[]>([]);
+  const [deletedVariantIds, setDeletedVariantIds] = useState<number[]>([]);
   const [newVariant, setNewVariant] = useState<VariantForEdit>({
     ten_mau_sac: "",
     hex_code: "",
@@ -103,6 +107,7 @@ const EditProductEnhanced: React.FC = () => {
   const [sizes, setSizes] = useState<Size[]>([]);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"product" | "variants">("product");
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -136,7 +141,10 @@ const EditProductEnhanced: React.FC = () => {
         ...response,
         bienthe: response.bienthe.map((variant) => ({
           ...variant,
+          ma_bien_the: variant.ma_bien_the, // Mapping đúng field name từ API
           gia_ban: parseFloat(variant.gia_ban),
+          trang_thai_hoat_dong_btsp:
+            variant.trang_thai_hoat_dong_btsp || "hoat_dong",
         })),
       };
       setProduct(productForEdit);
@@ -146,6 +154,82 @@ const EditProductEnhanced: React.FC = () => {
       setError("Lỗi khi tải thông tin sản phẩm");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // AI Generate Description
+  const generateAIDescription = async () => {
+    if (!product?.ten_san_pham?.trim()) {
+      setError("Vui lòng nhập tên sản phẩm trước khi tạo mô tả AI!");
+      return;
+    }
+
+    setAiGenerating(true);
+    setError(null);
+    try {
+      const response = await axios.post(
+        "https://luanvan-7wv1.onrender.com/api/ai/generate",
+        {
+          ten_san_pham: product.ten_san_pham,
+        },
+        {
+          timeout: 30000, // 30 seconds timeout
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data && response.data.mo_ta) {
+        setProduct({
+          ...product,
+          mo_ta_ngan: response.data.mo_ta,
+        });
+        setSuccess("Đã tạo mô tả sản phẩm bằng AI thành công!");
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError("API không trả về mô tả sản phẩm. Vui lòng thử lại!");
+      }
+    } catch (error) {
+      console.error("Error generating AI description:", error);
+
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          // Server responded with error status
+          const status = error.response.status;
+          const message =
+            error.response.data?.message ||
+            error.response.data?.error ||
+            "Unknown server error";
+
+          switch (status) {
+            case 500:
+              setError(
+                `Lỗi server (500): ${message}. Kiểm tra server AI và API key.`
+              );
+              break;
+            case 404:
+              setError("API endpoint không tồn tại. Kiểm tra đường dẫn API.");
+              break;
+            case 400:
+              setError(`Dữ liệu không hợp lệ: ${message}`);
+              break;
+            default:
+              setError(`Lỗi API (${status}): ${message}`);
+          }
+        } else if (error.request) {
+          // Network error
+          setError(
+            "Không thể kết nối đến server AI. Kiểm tra server có đang chạy tại http://127.0.0.1:8000"
+          );
+        } else {
+          setError(`Lỗi khi gửi request: ${error.message}`);
+        }
+      } else {
+        setError("Lỗi không xác định khi tạo mô tả sản phẩm bằng AI!");
+      }
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -278,9 +362,9 @@ const EditProductEnhanced: React.FC = () => {
     }
 
     const variantToAdd: VariantForEdit = {
-      ma_bien_the_san_pham:
+      ma_bien_the:
         editingVariantIndex !== null
-          ? product.bienthe[editingVariantIndex].ma_bien_the_san_pham
+          ? product.bienthe[editingVariantIndex].ma_bien_the
           : undefined,
       ten_mau_sac: variantToProcess.ten_mau_sac,
       hex_code: variantToProcess.hex_code,
@@ -314,19 +398,18 @@ const EditProductEnhanced: React.FC = () => {
     setTimeout(() => setSuccess(null), 3000);
   };
 
-  // Tạm thời comment out để test
   // Xóa biến thể
-  // const removeVariant = (index: number) => {
-  //   if (!product) return;
-  //   const variant = product.bienthe[index];
-  //   if (variant.ma_bien_the_san_pham) {
-  //     setDeletedVariantIds((prev) => [...prev, variant.ma_bien_the_san_pham!]);
-  //   }
-  //   setProduct({
-  //     ...product,
-  //     bienthe: product.bienthe.filter((_, i) => i !== index),
-  //   });
-  // };
+  const removeVariant = (index: number) => {
+    if (!product) return;
+    const variant = product.bienthe[index];
+    if (variant.ma_bien_the) {
+      setDeletedVariantIds((prev) => [...prev, variant.ma_bien_the!]);
+    }
+    setProduct({
+      ...product,
+      bienthe: product.bienthe.filter((_, i) => i !== index),
+    });
+  };
 
   // Bắt đầu chỉnh sửa biến thể
   const startEditingVariant = (index: number) => {
@@ -417,26 +500,22 @@ const EditProductEnhanced: React.FC = () => {
           trang_thai_hoat_dong_btsp: variant.trang_thai_hoat_dong_btsp,
           hinh_anh: variant.hinh_anh,
         };
-        if (
-          variant.ma_bien_the_san_pham === undefined ||
-          variant.ma_bien_the_san_pham === null
-        ) {
+        if (variant.ma_bien_the === undefined || variant.ma_bien_the === null) {
           promises.push(
             productApi.addVariant(Number(productId), variantDataPayload)
           );
         } else {
           const originalVariant = originalProduct.bienthe.find(
-            (v) => v.ma_bien_the_san_pham === variant.ma_bien_the_san_pham
+            (v) => v.ma_bien_the === variant.ma_bien_the
           );
           if (originalVariant) {
             if (!isEqual(variant, originalVariant)) {
               promises.push(
                 productApi.updateVariant(
-                  variant.ma_bien_the_san_pham,
+                  variant.ma_bien_the,
                   variantDataPayload
                 )
               );
-            } else {
             }
           } else {
             promises.push(
@@ -446,10 +525,10 @@ const EditProductEnhanced: React.FC = () => {
         }
       }
 
-      // Tạm thời comment out phần xóa biến thể
-      // for (const variantId of deletedVariantIds) {
-      //   promises.push(productApi.deleteVariant(variantId));
-      // }
+      // Xóa các biến thể đã bị xóa
+      for (const variantId of deletedVariantIds) {
+        promises.push(productApi.deleteVariant(variantId));
+      }
 
       await Promise.all(promises);
 
@@ -490,7 +569,7 @@ const EditProductEnhanced: React.FC = () => {
             Sản phẩm có thể đã bị xóa hoặc không tồn tại.
           </p>
           <button
-            onClick={() => navigate("/admin/ql-san-pham")}
+            onClick={() => navigate("/admin/sanpham")}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Quay lại danh sách
@@ -596,17 +675,37 @@ const EditProductEnhanced: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mô tả ngắn *
-                      </label>
-                      <textarea
-                        rows={4}
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Mô tả sản phẩm *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={generateAIDescription}
+                          disabled={
+                            aiGenerating || !product.ten_san_pham?.trim()
+                          }
+                          className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-300 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                          <Sparkles
+                            size={16}
+                            className={aiGenerating ? "animate-spin" : ""}
+                          />
+                          {aiGenerating ? "Đang tạo..." : "AI Generate"}
+                        </button>
+                      </div>
+                      <RichTextEditor
                         value={product.mo_ta_ngan}
-                        onChange={(e) =>
-                          setProduct({ ...product, mo_ta_ngan: e.target.value })
+                        onChange={(value) =>
+                          setProduct({ ...product, mo_ta_ngan: value })
                         }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        placeholder="Mô tả chi tiết về sản phẩm..."
+                        height="200px"
                       />
+                      <div className="mt-2 text-sm text-gray-500">
+                        Sử dụng editor để định dạng mô tả sản phẩm với HTML hoặc
+                        nhấn nút AI Generate để tự động tạo mô tả.
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -666,7 +765,13 @@ const EditProductEnhanced: React.FC = () => {
                       <h3 className="text-lg font-semibold text-gray-900">
                         Quản lý biến thể ({product.bienthe.length})
                       </h3>
-                      {/* Tạm thời ẩn button thêm biến thể để test */}
+                      <button
+                        onClick={() => setIsAddingVariant(true)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                      >
+                        <Plus size={16} />
+                        Thêm biến thể mới
+                      </button>
                     </div>
                   </div>
 
@@ -1001,10 +1106,7 @@ const EditProductEnhanced: React.FC = () => {
                   {/* Variants List */}
                   <div className="divide-y divide-gray-200">
                     {product.bienthe.map((variant, index) => (
-                      <div
-                        key={variant.ma_bien_the_san_pham || index}
-                        className="p-6"
-                      >
+                      <div key={variant.ma_bien_the || index} className="p-6">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className="flex space-x-2">
@@ -1045,6 +1147,13 @@ const EditProductEnhanced: React.FC = () => {
                               title="Sửa biến thể"
                             >
                               <Edit3 size={16} />
+                            </button>
+                            <button
+                              onClick={() => removeVariant(index)}
+                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                              title="Xóa biến thể"
+                            >
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </div>

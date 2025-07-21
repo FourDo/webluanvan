@@ -52,7 +52,7 @@ export interface ProductResponse {
 }
 
 export interface VariantForEdit {
-  ma_bien_the_san_pham?: number;
+  ma_bien_the?: number; // Cập nhật từ ma_bien_the_san_pham thành ma_bien_the
   ten_cac_bien_the?: string; // Backend trả về tên màu + size trong 1 string
   ten_mau_sac: string;
   hex_code: string;
@@ -61,6 +61,7 @@ export interface VariantForEdit {
   so_luong_ton: number;
   trang_thai_hoat_dong_btsp: string;
   hinh_anh: string[];
+  ngay_tao?: string; // Thêm field này từ API response
 }
 
 /**

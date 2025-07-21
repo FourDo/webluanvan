@@ -144,9 +144,15 @@ const TrangSanPham: React.FC = () => {
         const prices = validProducts
           .map((p) => getProductDisplayInfo(p).price)
           .filter((price) => price > 0);
+
         const maxPrice =
           prices.length > 0 ? Math.ceil(Math.max(...prices)) : 1000;
-        setPriceRange([0, maxPrice]);
+        const minPrice = 0;
+
+        // Đảm bảo maxPrice luôn lớn hơn minPrice
+        const safeMaxPrice = Math.max(maxPrice, minPrice + 1);
+
+        setPriceRange([minPrice, safeMaxPrice]);
         setLoading(false);
         return;
       }
@@ -183,12 +189,19 @@ const TrangSanPham: React.FC = () => {
             cacheProducts(activeProducts);
           }
 
+          // Tính toán price range với fallback an toàn
           const prices = activeProducts
             .map((p) => getProductDisplayInfo(p).price)
             .filter((price) => price > 0);
+
           const maxPrice =
             prices.length > 0 ? Math.ceil(Math.max(...prices)) : 1000;
-          setPriceRange([0, maxPrice]);
+          const minPrice = 0;
+
+          // Đảm bảo maxPrice luôn lớn hơn minPrice
+          const safeMaxPrice = Math.max(maxPrice, minPrice + 1);
+
+          setPriceRange([minPrice, safeMaxPrice]);
         } else {
           setError("Dữ liệu sản phẩm không hợp lệ.");
         }
@@ -209,9 +222,15 @@ const TrangSanPham: React.FC = () => {
           const prices = validProducts
             .map((p) => getProductDisplayInfo(p).price)
             .filter((price) => price > 0);
+
           const maxPrice =
             prices.length > 0 ? Math.ceil(Math.max(...prices)) : 1000;
-          setPriceRange([0, maxPrice]);
+          const minPrice = 0;
+
+          // Đảm bảo maxPrice luôn lớn hơn minPrice
+          const safeMaxPrice = Math.max(maxPrice, minPrice + 1);
+
+          setPriceRange([minPrice, safeMaxPrice]);
         } else {
           setError((err as Error).message || "Không thể tải dữ liệu sản phẩm.");
         }
@@ -310,7 +329,7 @@ const TrangSanPham: React.FC = () => {
         count: value.count,
         hex: value.hex,
       })),
-      maxPrice: Math.ceil(maxPriceValue),
+      maxPrice: Math.max(Math.ceil(maxPriceValue), 1), // Đảm bảo maxPrice ít nhất là 1
     };
   }, [allProducts]);
 
@@ -333,7 +352,9 @@ const TrangSanPham: React.FC = () => {
     setIsSearching(false);
     setSelectedCategories([]);
     setSelectedColors([]);
-    setPriceRange([0, maxPrice]);
+    // Đảm bảo reset price range với giá trị an toàn
+    const safeMaxPrice = Math.max(maxPrice, 1);
+    setPriceRange([0, safeMaxPrice]);
     setSortOption("Featured");
     setCurrentPage(1);
   };

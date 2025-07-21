@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import RichTextEditor from "./RichTextEditor";
 import {
   ArrowLeft,
   Save,
@@ -297,10 +298,10 @@ const BaiBaoForm: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nội dung bài báo *
                   </label>
-                  <div className="border border-gray-300 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <span>Hỗ trợ HTML</span>
+                        <span>📝 Rich Text Editor</span>
                         <span>•</span>
                         <button
                           type="button"
@@ -311,20 +312,18 @@ const BaiBaoForm: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    <textarea
-                      required
-                      rows={15}
-                      placeholder="<h2>Tiêu đề phần</h2>&#10;<p>Nội dung bài viết của bạn...</p>&#10;<img src='URL_ảnh' alt='Mô tả ảnh'>&#10;<p>Tiếp tục nội dung...</p>"
-                      className="w-full px-4 py-3 border-0 focus:ring-0 font-mono text-sm resize-none"
+                    <RichTextEditor
                       value={formData.noi_dung}
-                      onChange={(e) =>
-                        setFormData({ ...formData, noi_dung: e.target.value })
+                      onChange={(value) =>
+                        setFormData({ ...formData, noi_dung: value })
                       }
+                      placeholder="Nhập nội dung bài báo của bạn..."
+                      height="300px"
                     />
                   </div>
                   <div className="mt-2 text-sm text-gray-500">
-                    Sử dụng HTML để định dạng nội dung. Ví dụ: &lt;h2&gt;,
-                    &lt;p&gt;, &lt;img&gt;, &lt;strong&gt;
+                    Sử dụng thanh công cụ để định dạng văn bản. Nội dung sẽ được
+                    lưu dưới dạng HTML.
                   </div>
                 </div>
               </div>

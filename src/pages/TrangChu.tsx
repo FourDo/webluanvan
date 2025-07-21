@@ -242,12 +242,7 @@ const TrangChu: React.FC = () => {
           animate={swiperRef.controls}
           variants={fadeUpVariants}
           className="max-w-7xl mx-auto py-8 sm:py-10 px-4 sm:px-6 md:px-8"
-        >
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
-            Sản Phẩm Tiêu Biểu
-          </h2>
-          <SwiperContainer />
-        </motion.div>
+        ></motion.div>
 
         {/* Sản phẩm nổi bật */}
         <motion.div

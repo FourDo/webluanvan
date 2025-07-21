@@ -430,9 +430,10 @@ const ChiTietSanPham: React.FC = () => {
             <div className="p-8">
               {activeTab === "description" && (
                 <div className="prose max-w-none">
-                  <p className="text-gray-700 leading-relaxed">
-                    {product.mo_ta_ngan}
-                  </p>
+                  <div
+                    className="text-gray-700 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: product.mo_ta_ngan }}
+                  />
                 </div>
               )}
               {activeTab === "features" && (

@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { recommendationApi } from "../API/recommendationApi";
 import type { Product } from "../types/Product";
 import { Link } from "react-router-dom";
+
+// Import Swiper styles
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+import "../styles/swiper-custom.css";
 
 interface PopularProductsProps {
   limit?: number;
@@ -20,12 +28,11 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ limit = 8 }) => {
         const response = await recommendationApi.getPopularProducts(limit);
 
         // Lọc sản phẩm có biến thể và hình ảnh hợp lệ
-        const validProducts = response.data.filter(
+        const products = response.data.products || [];
+        const validProducts = products.filter(
           (product) =>
             product.bienthe &&
             product.bienthe.length > 0 &&
-            product.bienthe[0].hinh_anh &&
-            product.bienthe[0].hinh_anh.length > 0 &&
             product.trang_thai_hoat_dong === "hoat_dong"
         );
 
@@ -89,58 +96,83 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ limit = 8 }) => {
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <Swiper
+        modules={[Navigation, Pagination, Autoplay]}
+        spaceBetween={24}
+        slidesPerView={1}
+        navigation
+        pagination={{ clickable: true }}
+        autoplay={{
+          delay: 4000,
+          disableOnInteraction: false,
+        }}
+        breakpoints={{
+          640: {
+            slidesPerView: 2,
+            spaceBetween: 20,
+          },
+          1024: {
+            slidesPerView: 4,
+            spaceBetween: 24,
+          },
+        }}
+        className="product-swiper mb-16"
+      >
         {products.map((product, index) => {
           const mainVariant = product.bienthe[0];
-          const imageUrl = mainVariant.hinh_anh[0];
+          const imageUrl =
+            mainVariant.hinh_anh && mainVariant.hinh_anh.length > 0
+              ? mainVariant.hinh_anh[0]
+              : "/image/product1.png"; // Fallback image
 
           return (
-            <motion.div
-              key={product.ma_san_pham}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-            >
-              <Link to={`/san-pham/${product.ma_san_pham}`}>
-                <div className="relative group">
-                  <img
-                    src={imageUrl}
-                    alt={product.ten_san_pham}
-                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      Nổi Bật
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-[#518581] transition-colors">
-                    {product.ten_san_pham}
-                  </h3>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-[#518581]">
-                      {formatPrice(mainVariant.gia_ban)}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {product.thuong_hieu}
-                    </span>
+            <SwiperSlide key={product.ma_san_pham}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+              >
+                <Link to={`/sanpham/${product.ma_san_pham}`}>
+                  <div className="relative group">
+                    <img
+                      src={imageUrl}
+                      alt={product.ten_san_pham}
+                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        Nổi Bật
+                      </span>
+                    </div>
                   </div>
 
-                  {product.ten_danh_muc && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      {product.ten_danh_muc}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            </motion.div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-[#518581] transition-colors">
+                      {product.ten_san_pham}
+                    </h3>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold text-[#518581]">
+                        {formatPrice(mainVariant.gia_ban)}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {product.thuong_hieu}
+                      </span>
+                    </div>
+
+                    {product.ten_danh_muc && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        {product.ten_danh_muc}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              </motion.div>
+            </SwiperSlide>
           );
         })}
-      </div>
+      </Swiper>
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -149,7 +181,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ limit = 8 }) => {
         className="text-center mt-12"
       >
         <Link
-          to="/san-pham"
+          to="/sanpham"
           className="inline-block bg-[#518581] text-white px-8 py-3 rounded-lg hover:bg-green-800 transition-colors duration-300"
         >
           Xem Tất Cả Sản Phẩm

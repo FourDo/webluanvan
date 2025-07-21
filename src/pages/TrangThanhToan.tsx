@@ -3,6 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useGioHang } from "../context/GioHangContext";
 import { useAuth } from "../context/AuthContext";
 import { createOrder } from "../API/orderApi";
+import {
+  createGHNShippingOrder,
+  parseAddress,
+  calculateOrderDimensions,
+  type GHNCreateOrderPayload,
+} from "../API/ghnShippingApi";
 import Cookies from "js-cookie";
 import axios from "axios";
 
@@ -17,10 +23,10 @@ interface ThongTinKhachHang {
   ghiChu: string;
 }
 
-const TOKEN = "5596bafe-44e4-11f0-9b81-222185cb68c8"; // Nên lưu trong .env
-const SHOP_ID = 196805; // Nên lưu trong .env
-const YOUR_SHOP_DISTRICT_ID = 1442; // Thay bằng district_id của shop
-const YOUR_SHOP_WARD_CODE = "20101"; // Thay bằng ward_code của shop
+const TOKEN = "5596bafe-44e4-11f0-9b81-222185cb68c8";
+const SHOP_ID = 196805;
+const YOUR_SHOP_DISTRICT_ID = 1442;
+const YOUR_SHOP_WARD_CODE = "20101";
 
 const ThanhToan: React.FC = () => {
   const navigate = useNavigate();
@@ -50,7 +56,6 @@ const ThanhToan: React.FC = () => {
     const styleElement = document.createElement("style");
     styleElement.textContent = customStyles;
     document.head.appendChild(styleElement);
-
     return () => {
       document.head.removeChild(styleElement);
     };
@@ -107,7 +112,6 @@ const ThanhToan: React.FC = () => {
       return response.data.data || [];
     } catch (error) {
       setError("Không thể tải danh sách tỉnh/thành phố");
-      console.error("Lỗi khi lấy danh sách tỉnh:", error);
       return [];
     }
   };
@@ -122,7 +126,6 @@ const ThanhToan: React.FC = () => {
       return response.data.data || [];
     } catch (error) {
       setError("Không thể tải danh sách quận/huyện");
-      console.error("Lỗi khi lấy danh sách quận/huyện:", error);
       return [];
     }
   };
@@ -137,7 +140,6 @@ const ThanhToan: React.FC = () => {
       return response.data.data || [];
     } catch (error) {
       setError("Không thể tải danh sách phường/xã");
-      console.error("Lỗi khi lấy danh sách phường/xã:", error);
       return [];
     }
   };
@@ -196,7 +198,6 @@ const ThanhToan: React.FC = () => {
       }
     } catch (error) {
       setError("Không thể tính phí vận chuyển");
-      console.error("Lỗi khi tính phí vận chuyển:", error);
       return 0;
     }
   };
@@ -345,17 +346,14 @@ const ThanhToan: React.FC = () => {
     }
   };
 
-  // Hàm kiểm tra tính nhất quán địa chỉ
   const checkAddressConsistency = (
     address: string,
     province: any
   ): string | null => {
     if (!address || !province) return null;
-
     const addressLower = address.toLowerCase();
     const provinceName = province.ProvinceName.toLowerCase();
 
-    // Danh sách từ khóa các tỉnh/thành phố chính
     const cityKeywords: { [key: string]: string[] } = {
       "hồ chí minh": [
         "hcm",
@@ -364,19 +362,13 @@ const ThanhToan: React.FC = () => {
         "saigon",
         "tphcm",
         "tp hcm",
-        "thành phố hồ chí minh",
       ],
-      "hà nội": ["hanoi", "ha noi", "hn", "thành phố hà nội"],
-      "đà nẵng": ["da nang", "danang", "thành phố đà nẵng"],
-      "cần thơ": ["can tho", "cantho", "thành phố cần thơ"],
-      "hải phòng": ["hai phong", "haiphong", "thành phố hải phòng"],
-      "biên hòa": ["bien hoa", "bienhoa"],
-      "nha trang": ["nha trang", "nhatrang"],
-      huế: ["hue", "thừa thiên huế"],
-      "vũng tàu": ["vung tau", "vungtau", "bà rịa vũng tàu"],
+      "hà nội": ["hanoi", "ha noi", "hn"],
+      "đà nẵng": ["da nang", "danang"],
+      "cần thơ": ["can tho", "cantho"],
+      "hải phòng": ["hai phong", "haiphong"],
     };
 
-    // Kiểm tra xem địa chỉ có chứa tên tỉnh/thành khác không
     for (const [cityName, keywords] of Object.entries(cityKeywords)) {
       if (!provinceName.includes(cityName)) {
         for (const keyword of keywords) {
@@ -386,7 +378,6 @@ const ThanhToan: React.FC = () => {
         }
       }
     }
-
     return null;
   };
 
@@ -468,11 +459,7 @@ const ThanhToan: React.FC = () => {
         errors.diaChi = `${addressConsistencyWarning}. Vui lòng kiểm tra lại!`;
       }
     }
-
-    // Cập nhật state với tất cả lỗi
     setFieldErrors(errors);
-
-    // Nếu có lỗi, hiển thị thông báo tổng quan
     if (Object.keys(errors).length > 0) {
       setError(
         `Vui lòng kiểm tra và sửa ${Object.keys(errors).length} lỗi trong form!`
@@ -518,7 +505,6 @@ const ThanhToan: React.FC = () => {
         return;
       }
 
-      // Validate items data
       const invalidItems = items.filter(
         (item) =>
           !item.sanPham ||
@@ -533,7 +519,6 @@ const ThanhToan: React.FC = () => {
         setError(
           "Có sản phẩm trong giỏ hàng bị lỗi dữ liệu. Vui lòng cập nhật lại giỏ hàng."
         );
-        console.error("Sản phẩm lỗi:", invalidItems);
         return;
       }
 
@@ -547,14 +532,6 @@ const ThanhToan: React.FC = () => {
       const tongTienSanPham = tinhTongTienSanPham();
       const phiVanChuyenNumber = Number(phiVanChuyen) || 0;
       const tongThanhToanFinal = tongTienSanPham + phiVanChuyenNumber;
-
-      // Log để debug tính toán
-      console.log("💰 Chi tiết tính toán:", {
-        tongTienSanPham,
-        phiVanChuyenNumber,
-        tongThanhToanFinal,
-        tinhTongTien: tinhTongTien(), // So sánh với function có sẵn
-      });
 
       const orderData = {
         ten_nguoi_nhan: thongTinKhachHang.hoTen.trim(),
@@ -576,27 +553,23 @@ const ThanhToan: React.FC = () => {
             kich_thuoc: String(item.sanPham.kichThuoc || "").trim(),
             so_luong: soLuong,
             gia_goc: giaGoc,
-            loai_khuyen_mai: "", // Mặc định không có khuyến mãi
+            loai_khuyen_mai: "",
             gia_khuyen_mai: 0,
-            gia_sau_km: giaGoc, // Giá sau khuyến mãi = giá gốc (không có KM)
+            gia_sau_km: giaGoc,
           };
         }),
       };
 
-      // Sử dụng API với ID người dùng hoặc ID mặc định
       const userId = user?.id || 1;
-      console.log("👤 User info:", { user, userId });
 
       const donHangPayload = {
         ...orderData,
-        ma_nguoi_dung: Number(userId), // Đảm bảo là number
-        // Đảm bảo các giá trị số được convert đúng kiểu
+        ma_nguoi_dung: Number(userId),
         tong_tien: Number(orderData.tong_tien),
         phi_van_chuyen: Number(orderData.phi_van_chuyen),
         tong_thanh_toan: Number(orderData.tong_thanh_toan),
       };
 
-      // Validation final payload
       if (donHangPayload.tong_tien <= 0) {
         setError("Tổng tiền phải lớn hơn 0");
         return;
@@ -609,12 +582,6 @@ const ThanhToan: React.FC = () => {
         setError(
           "Lỗi tính toán: Tổng thanh toán không khớp với tổng tiền + phí vận chuyển"
         );
-        console.error("Lỗi tính toán:", {
-          tong_tien: donHangPayload.tong_tien,
-          phi_van_chuyen: donHangPayload.phi_van_chuyen,
-          tong_thanh_toan: donHangPayload.tong_thanh_toan,
-          tinh_lai: donHangPayload.tong_tien + donHangPayload.phi_van_chuyen,
-        });
         return;
       }
 
@@ -632,55 +599,96 @@ const ThanhToan: React.FC = () => {
           item.gia_goc <= 0
         ) {
           setError(`Sản phẩm "${item.ten_san_pham}" có dữ liệu không hợp lệ`);
-          console.error("Sản phẩm lỗi:", item);
           return;
         }
       }
-
-      // Debug: Log payload trước khi gửi
-      console.log(
-        "📋 Payload gửi đến API:",
-        JSON.stringify(donHangPayload, null, 2)
-      );
-
-      // So sánh với example payload để debug
-      console.log("🔍 So sánh với example:", {
-        "Example tong_tien": 700000,
-        "Our tong_tien": donHangPayload.tong_tien,
-        "Example tong_thanh_toan": 500000,
-        "Our tong_thanh_toan": donHangPayload.tong_thanh_toan,
-        "Example phi_van_chuyen": 0,
-        "Our phi_van_chuyen": donHangPayload.phi_van_chuyen,
-        "Is calculation consistent":
-          donHangPayload.tong_thanh_toan ===
-          donHangPayload.tong_tien + donHangPayload.phi_van_chuyen,
-      });
-
       const orderResult = await createOrder(donHangPayload);
+
       if (orderResult && orderResult.payment_url) {
-        // Lưu thông tin đơn hàng vào localStorage để sử dụng sau khi callback
+        // Xóa giỏ hàng ngay khi đơn hàng được tạo thành công
+        xoaGioHang();
         localStorage.setItem("pendingOrder", JSON.stringify(orderResult));
         window.location.href = orderResult.payment_url;
         return;
       } else {
+        try {
+          // Parse địa chỉ để lấy thông tin chi tiết
+          const addressInfo = parseAddress(orderData.dia_chi_giao);
+
+          // Tính toán kích thước và trọng lượng
+          const dimensions = calculateOrderDimensions(items);
+
+          // Chuẩn bị payload cho GHN
+          const ghnPayload: GHNCreateOrderPayload = {
+            to_name: orderData.ten_nguoi_nhan,
+            to_phone: orderData.so_dien_thoai,
+            to_address: addressInfo.address || orderData.dia_chi_giao,
+            to_ward_name: addressInfo.ward || thongTinKhachHang.phuongXa,
+            to_district_name:
+              addressInfo.district || thongTinKhachHang.quanHuyen,
+            to_province_name:
+              addressInfo.province || thongTinKhachHang.thanhPho,
+            cod_amount:
+              orderData.hinh_thuc_thanh_toan === "cod"
+                ? orderData.tong_thanh_toan
+                : 0,
+            content: `Đơn hàng #${orderResult.ma_don_hang || "N/A"} - ${items.map((item) => item.sanPham.ten).join(", ")}`,
+            weight: dimensions.weight,
+            length: dimensions.length,
+            width: dimensions.width,
+            height: dimensions.height,
+            service_type_id: 2, // Hàng nhẹ
+            payment_type_id: 1, // Người gửi trả phí
+            required_note: "CHOTHUHANG", // Cho thử hàng
+            note: orderData.ghi_chu || "Đơn hàng từ website",
+            client_order_code: `WEB-${orderResult.ma_don_hang || Date.now()}`,
+            insurance_value: Math.min(orderData.tong_tien, 5000000), // Max 5M theo quy định
+            items: items.map((item) => ({
+              name: item.sanPham.ten,
+              code: `SP-${item.sanPham.id}`,
+              quantity: item.soLuong,
+              price: item.sanPham.gia,
+              weight: item.sanPham.weight || 500,
+              length: item.sanPham.length || 20,
+              width: item.sanPham.width || 15,
+              height: item.sanPham.weight
+                ? Math.ceil(item.sanPham.weight / 100)
+                : 5, // Estimate height based on weight
+            })),
+          };
+
+          const ghnResult = await createGHNShippingOrder(ghnPayload);
+
+          // Lưu thông tin đơn vận chuyển
+          if (ghnResult.code === 200 && ghnResult.data) {
+            localStorage.setItem(
+              "ghnShippingInfo",
+              JSON.stringify({
+                order_code: ghnResult.data.order_code,
+                total_fee: ghnResult.data.total_fee,
+                expected_delivery_time: ghnResult.data.expected_delivery_time,
+                sort_code: ghnResult.data.sort_code,
+                orderId: orderResult.ma_don_hang,
+              })
+            );
+          }
+        } catch (ghnError: any) {}
+
         xoaGioHang();
-        navigate("/hoa-don", { state: { order: orderResult } });
+        navigate(
+          `/hoa-don?orderId=${orderResult.ma_don_hang}&paymentMethod=${orderData.hinh_thuc_thanh_toan}&status=1`,
+          {
+            state: { order: orderResult },
+          }
+        );
         return;
       }
     } catch (error: any) {
-      console.error("🚨 Chi tiết lỗi thanh toán:", error);
-
       if (error.response) {
-        console.error("📊 Response data:", error.response.data);
-        console.error("📊 Response status:", error.response.status);
-        console.error("📊 Response headers:", error.response.headers);
-
         if (error.response.status === 422) {
-          // Hiển thị lỗi chi tiết cho từng trường
           const serverErrors = error.response.data.errors || {};
           const newFieldErrors: { [key: string]: string } = {};
 
-          // Mapping server field names to client field names
           const fieldMapping: { [key: string]: string } = {
             ma_nguoi_dung: "Mã người dùng",
             ten_nguoi_nhan: "Họ tên",

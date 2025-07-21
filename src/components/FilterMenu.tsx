@@ -32,6 +32,13 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
   onCategoryChange,
   onResetFilters,
 }) => {
+  // Đảm bảo maxPrice luôn hợp lệ để tránh lỗi với react-range
+  const safeMaxPrice = Math.max(maxPrice, 1);
+  const safePriceRange: [number, number] = [
+    Math.min(priceRange[0], safeMaxPrice - 1),
+    Math.min(priceRange[1], safeMaxPrice),
+  ];
+
   return (
     <div className="bg-white p-6 font-sans w-full rounded-lg shadow-sm border">
       <div className="space-y-8">
@@ -51,22 +58,22 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
         <div>
           <h3 className="text-lg font-semibold mb-2">Price</h3>
           <p className="text-gray-500 text-sm mb-6">
-            Max price: ${maxPrice.toFixed(2)}
+            Max price: ${safeMaxPrice.toFixed(2)}
           </p>
           <div className="relative h-5 mb-6 px-2">
             <Range
               step={1}
               min={0}
-              max={maxPrice}
-              values={priceRange}
+              max={safeMaxPrice}
+              values={safePriceRange}
               onChange={(values) => onPriceChange(values as [number, number])}
               renderTrack={({ props, children }) => (
                 <div {...props} className="h-1 bg-gray-200 rounded-full w-full">
                   <div
                     className="h-1 bg-green-600 rounded-full"
                     style={{
-                      width: `${((priceRange[1] - priceRange[0]) / maxPrice) * 100}%`,
-                      marginLeft: `${(priceRange[0] / maxPrice) * 100}%`,
+                      width: `${((safePriceRange[1] - safePriceRange[0]) / safeMaxPrice) * 100}%`,
+                      marginLeft: `${(safePriceRange[0] / safeMaxPrice) * 100}%`,
                     }}
                   />
                   {children}
@@ -86,10 +93,10 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           </div>
           <div className="flex items-center justify-between gap-4 text-md">
             <div className="w-1/2 text-center bg-gray-100 rounded-md py-2">
-              <span>${priceRange[0]}</span>
+              <span>${safePriceRange[0]}</span>
             </div>
             <div className="w-1/2 text-center bg-gray-100 rounded-md py-2">
-              <span>${priceRange[1]}</span>
+              <span>${safePriceRange[1]}</span>
             </div>
           </div>
         </div>
