@@ -334,7 +334,7 @@ const TrangDangNhap: React.FC = () => {
 
                 <div className="text-sm">
                   <Link
-                    to="/quen-mat-khau"
+                    to="/quenmatkhau"
                     className="font-medium text-[#518581] hover:text-[#518581]/80 transition-colors duration-200"
                   >
                     Quên mật khẩu?

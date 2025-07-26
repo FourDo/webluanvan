@@ -218,18 +218,23 @@ const Navbar: React.FC = () => {
                       {/* Bên trái: danh mục */}
                       <div className="w-56 border-r border-gray-100 py-2">
                         {categories.map((cat) => (
-                          <div
+                          <Link
                             key={cat.ma_danh_muc}
+                            to={`/danhmuc/${cat.slug}`}
                             className={`px-4 py-2 cursor-pointer text-sm rounded-lg flex items-center justify-between
                               ${selectedCategory === cat.ten_danh_muc ? "bg-gray-100 text-[#518581]" : "text-gray-700 hover:bg-gray-50"}
                             `}
                             onMouseEnter={() =>
                               setSelectedCategory(cat.ten_danh_muc)
                             }
+                            onClick={() => {
+                              setIsProductMenuOpen(false);
+                              setSelectedCategory(null);
+                            }}
                           >
                             {cat.ten_danh_muc}
                             <ChevronRight className="w-4 h-4" />
-                          </div>
+                          </Link>
                         ))}
                       </div>
                       {/* Bên phải: sản phẩm */}
@@ -363,7 +368,7 @@ const Navbar: React.FC = () => {
                         Tạo tài khoản mới
                       </Link>
                       <Link
-                        to="/quen-mat-khau"
+                        to="/quenmatkhau"
                         className="block text-center text-sm text-gray-500 hover:text-[#518581] transition-colors duration-200"
                         onClick={() => setIsUserDropdownOpen(false)}
                       >

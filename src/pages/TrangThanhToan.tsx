@@ -546,14 +546,23 @@ const ThanhToan: React.FC = () => {
           const giaGoc = Number(item.sanPham.gia);
           const soLuong = Number(item.soLuong);
 
+          // Debug để kiểm tra ma_bien_the
+          console.log("🔍 Sản phẩm trong giỏ hàng:", {
+            id: item.sanPham.id,
+            ma_bien_the: item.sanPham.ma_bien_the,
+            ten: item.sanPham.ten,
+            mauSac: item.sanPham.mauSac,
+            kichThuoc: item.sanPham.kichThuoc,
+          });
+
           return {
-            ma_bien_the: Number(item.sanPham.id),
+            ma_bien_the: Number(item.sanPham.ma_bien_the || item.sanPham.id),
             ten_san_pham: String(item.sanPham.ten || "").trim(),
             mau_sac: String(item.sanPham.mauSac || "").trim(),
             kich_thuoc: String(item.sanPham.kichThuoc || "").trim(),
             so_luong: soLuong,
             gia_goc: giaGoc,
-            loai_khuyen_mai: "",
+            loai_khuyen_mai: "", // Để trống thay vì "Không có"
             gia_khuyen_mai: 0,
             gia_sau_km: giaGoc,
           };
@@ -565,19 +574,19 @@ const ThanhToan: React.FC = () => {
       const donHangPayload = {
         ...orderData,
         ma_nguoi_dung: Number(userId),
-        tong_tien: Number(orderData.tong_tien),
-        phi_van_chuyen: Number(orderData.phi_van_chuyen),
-        tong_thanh_toan: Number(orderData.tong_thanh_toan),
+        tong_tien: String(orderData.tong_tien),
+        phi_van_chuyen: String(orderData.phi_van_chuyen),
+        tong_thanh_toan: String(orderData.tong_thanh_toan),
       };
 
-      if (donHangPayload.tong_tien <= 0) {
+      if (Number(donHangPayload.tong_tien) <= 0) {
         setError("Tổng tiền phải lớn hơn 0");
         return;
       }
 
       if (
-        donHangPayload.tong_thanh_toan !==
-        donHangPayload.tong_tien + donHangPayload.phi_van_chuyen
+        Number(donHangPayload.tong_thanh_toan) !==
+        Number(donHangPayload.tong_tien) + Number(donHangPayload.phi_van_chuyen)
       ) {
         setError(
           "Lỗi tính toán: Tổng thanh toán không khớp với tổng tiền + phí vận chuyển"
@@ -592,16 +601,23 @@ const ThanhToan: React.FC = () => {
 
       // Validate từng chi tiết sản phẩm
       for (const item of donHangPayload.chi_tiet) {
+        console.log("🔍 Kiểm tra sản phẩm:", item);
+
         if (
           !item.ma_bien_the ||
           !item.ten_san_pham ||
           item.so_luong <= 0 ||
           item.gia_goc <= 0
         ) {
+          console.error("❌ Sản phẩm không hợp lệ:", item);
           setError(`Sản phẩm "${item.ten_san_pham}" có dữ liệu không hợp lệ`);
           return;
         }
       }
+
+      console.log(
+        "✅ Tất cả dữ liệu đã được validate, bắt đầu gửi đơn hàng..."
+      );
       const orderResult = await createOrder(donHangPayload);
 
       if (orderResult && orderResult.payment_url) {

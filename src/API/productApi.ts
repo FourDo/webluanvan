@@ -23,6 +23,7 @@ export const productApi = {
       .catch(() => {
         throw new Error("Lấy thông tin sản phẩm thất bại.");
       }),
+
   addProduct: async (
     product: Omit<Product, "ma_san_pham" | "ngay_tao" | "ngay_cap_nhat">
   ): Promise<ProductResponse> =>

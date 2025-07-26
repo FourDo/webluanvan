@@ -4,11 +4,9 @@ import {
   ChevronDown,
   Settings,
   LogOut,
-  Bell,
   Search,
   Menu,
   Shield,
-  Activity,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import authApi from "../API/authApi";
@@ -21,7 +19,7 @@ interface AdminNavbarProps {
 const AdminNavbar = ({ toggleSidebar }: AdminNavbarProps) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [notifications] = useState(3); // Mock notifications count
+
   const navigate = useNavigate();
   const { logout, user } = useAuth();
 
@@ -68,38 +66,8 @@ const AdminNavbar = ({ toggleSidebar }: AdminNavbarProps) => {
           </div>
         </div>
 
-        {/* Center - Search (hidden on mobile) */}
-        <div className="hidden md:flex flex-1 max-w-md mx-6">
-          <div className="relative w-full">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={16} className="text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
-            />
-          </div>
-        </div>
-
         {/* Right side - Notifications and Profile */}
         <div className="flex items-center space-x-4">
-          {/* Notifications */}
-          <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <Bell size={20} className="text-gray-600" />
-            {notifications > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {notifications}
-              </span>
-            )}
-          </button>
-
-          {/* System Status */}
-          <div className="hidden md:flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
-            <Activity size={16} className="text-green-600" />
-            <span className="text-sm font-medium text-green-700">Online</span>
-          </div>
-
           {/* Profile Dropdown */}
           <div className="relative">
             <button

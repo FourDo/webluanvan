@@ -10,55 +10,55 @@ const Footer: React.FC = () => {
           <div className="flex items-center gap-2 mb-4">
             {/* Replace this with your logo image if needed */}
             <div className="w-6 h-6 bg-orange-500 rounded-sm" />
-            <span className="text-lg font-semibold">Lalasia</span>
+            <span className="text-lg font-semibold">Nội Thất VN</span>
           </div>
           <p className="text-sm text-gray-600">
-            Lalasia is digital agency that help you make better experience
-            iaculis cras in.
+            Nội Thất VN là đơn vị chuyên cung cấp nội thất chất lượng cao, mang
+            đến trải nghiệm tốt nhất cho không gian sống của bạn.
           </p>
         </div>
 
         {/* Product */}
         <div>
-          <h3 className="text-sm font-semibold mb-3">Product</h3>
+          <h3 className="text-sm font-semibold mb-3">Sản Phẩm</h3>
           <ul className="space-y-2 text-sm text-gray-600">
             <li>
-              <a href="#">New Arrivals</a>
+              <a href="#">Hàng Mới Về</a>
             </li>
             <li>
-              <a href="#">Best Selling</a>
+              <a href="#">Bán Chạy Nhất</a>
             </li>
             <li>
-              <a href="#">Home Decor</a>
+              <a href="#">Đồ Trang Trí</a>
             </li>
             <li>
-              <a href="#">Kitchen Set</a>
+              <a href="#">Bộ Bếp</a>
             </li>
           </ul>
         </div>
 
         {/* Services */}
         <div>
-          <h3 className="text-sm font-semibold mb-3">Services</h3>
+          <h3 className="text-sm font-semibold mb-3">Dịch Vụ</h3>
           <ul className="space-y-2 text-sm text-gray-600">
             <li>
-              <a href="#">Catalog</a>
+              <a href="#">Danh Mục</a>
             </li>
             <li>
-              <a href="#">Blog</a>
+              <a href="#">Bài Viết</a>
             </li>
             <li>
-              <a href="#">FaQ</a>
+              <a href="#">Câu Hỏi Thường Gặp</a>
             </li>
             <li>
-              <a href="#">Pricing</a>
+              <a href="#">Bảng Giá</a>
             </li>
           </ul>
         </div>
 
         {/* Follow Us */}
         <div>
-          <h3 className="text-sm font-semibold mb-3">Follow Us</h3>
+          <h3 className="text-sm font-semibold mb-3">Theo Dõi Chúng Tôi</h3>
           <ul className="space-y-2 text-sm text-gray-600">
             <li>
               <a href="#" className="flex items-center gap-2">

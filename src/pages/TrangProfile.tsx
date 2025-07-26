@@ -20,6 +20,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import authApi from "../API/authApi";
+import {
+  getOrdersByUserId,
+  getOrderDetail,
+  type DonHang,
+} from "../API/orderApi";
 import type {
   UpdateUserCredentials,
   ResetPasswordCredentials,
@@ -36,6 +41,17 @@ function TrangProfile() {
   const [validationErrors, setValidationErrors] = useState<{
     [key: string]: string;
   }>({});
+
+  // State cho đơn hàng thực tế
+  const [orders, setOrders] = useState<DonHang[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+
+  // State cho xem chi tiết đơn hàng
+  const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
+  const [orderDetail, setOrderDetail] = useState<any>(null);
+  const [isLoadingOrderDetail, setIsLoadingOrderDetail] = useState(false);
+  const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
 
   // State cho đổi mật khẩu
   const [passwordData, setPasswordData] = useState({
@@ -122,30 +138,73 @@ function TrangProfile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Chỉ chạy một lần khi component mount
 
-  // Dữ liệu mẫu cho đơn hàng
-  const orders = [
-    {
-      id: "DH001",
-      date: "15/06/2025",
-      total: "12,500,000",
-      status: "Đã giao",
-      items: 3,
-    },
-    {
-      id: "DH002",
-      date: "08/06/2025",
-      total: "8,750,000",
-      status: "Đang giao",
-      items: 2,
-    },
-    {
-      id: "DH003",
-      date: "02/06/2025",
-      total: "25,000,000",
-      status: "Đã giao",
-      items: 5,
-    },
-  ];
+  // Hàm load đơn hàng từ API
+  const loadOrders = async () => {
+    if (!user?.ma_nguoi_dung) return;
+
+    setIsLoadingOrders(true);
+    setOrdersError(null);
+
+    try {
+      const response = await getOrdersByUserId(user.ma_nguoi_dung);
+      console.log("🔍 Response từ getOrdersByUserId:", response);
+
+      // Xử lý trường hợp API trả về dữ liệu trống (404 được handle)
+      if (response.don_hang) {
+        console.log(
+          "✅ Tìm thấy đơn hàng:",
+          response.don_hang.length,
+          "đơn hàng"
+        );
+        setOrders(response.don_hang);
+      } else {
+        console.log("⚠️ Không có trường don_hang trong response");
+        setOrders([]);
+      }
+
+      // Nếu có message từ API (như "Khách hàng chưa có đơn hàng nào")
+      if (response.message && response.don_hang?.length === 0) {
+        console.log("ℹ️", response.message);
+      }
+    } catch (error: any) {
+      setOrdersError(error.message || "Có lỗi xảy ra khi tải đơn hàng");
+      console.error("Lỗi khi tải đơn hàng:", error);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  // Load đơn hàng khi user thay đổi
+  useEffect(() => {
+    if (user) {
+      loadOrders();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Hàm load chi tiết đơn hàng
+  const loadOrderDetail = async (orderId: number) => {
+    setIsLoadingOrderDetail(true);
+    setSelectedOrder(orderId);
+
+    try {
+      const response = await getOrderDetail(orderId);
+      setOrderDetail(response);
+      setShowOrderDetailModal(true);
+    } catch (error: any) {
+      console.error("Lỗi khi tải chi tiết đơn hàng:", error);
+      setError("Không thể tải chi tiết đơn hàng");
+    } finally {
+      setIsLoadingOrderDetail(false);
+    }
+  };
+
+  // Đóng modal chi tiết đơn hàng
+  const closeOrderDetailModal = () => {
+    setShowOrderDetailModal(false);
+    setSelectedOrder(null);
+    setOrderDetail(null);
+  };
 
   const wishlist = [
     { name: "Sofa da cao cấp Milano", price: "25,000,000", image: "🛋️" },
@@ -585,21 +644,43 @@ function TrangProfile() {
                     <Package size={16} />
                     Tổng đơn hàng
                   </span>
-                  <span className="font-semibold">15</span>
+                  <span className="font-semibold">{orders.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 flex items-center gap-2">
                     <CreditCard size={16} />
                     Đã chi tiêu
                   </span>
-                  <span className="font-semibold text-green-600">125M</span>
+                  <span className="font-semibold text-green-600">
+                    {orders
+                      .filter((order) => order.da_thanh_toan === 1)
+                      .reduce(
+                        (total, order) =>
+                          total + parseFloat(order.tong_thanh_toan),
+                        0
+                      )
+                      .toLocaleString("vi-VN")}{" "}
+                    ₫
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 flex items-center gap-2">
+                    <ShoppingBag size={16} />
+                    Đã giao
+                  </span>
+                  <span className="font-semibold">
+                    {
+                      orders.filter((order) => order.trang_thai === "Đã giao")
+                        .length
+                    }
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 flex items-center gap-2">
                     <Heart size={16} />
                     Yêu thích
                   </span>
-                  <span className="font-semibold">8</span>
+                  <span className="font-semibold">3</span>
                 </div>
               </div>
             </div>
@@ -870,43 +951,125 @@ function TrangProfile() {
             {/* Orders Tab */}
             {activeTab === "orders" && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-6">
-                  Đơn hàng của tôi
-                </h3>
-                <div className="space-y-4">
-                  {orders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Package size={24} className="text-blue-600" />
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    Đơn hàng của tôi
+                  </h3>
+                  <button
+                    onClick={loadOrders}
+                    disabled={isLoadingOrders}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw
+                      size={16}
+                      className={isLoadingOrders ? "animate-spin" : ""}
+                    />
+                    {isLoadingOrders ? "Đang tải..." : "Làm mới"}
+                  </button>
+                </div>
+
+                {ordersError && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {ordersError}
+                  </div>
+                )}
+
+                {isLoadingOrders ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-500 mt-2">Đang tải đơn hàng...</p>
+                  </div>
+                ) : orders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package size={48} className="text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">Bạn chưa có đơn hàng nào</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {orders.map((order) => (
+                      <div
+                        key={order.ma_don_hang}
+                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <Package size={24} className="text-blue-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-800">
+                                Đơn hàng #{order.ma_don_hang}
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                {new Date(order.Ngay_Tao).toLocaleDateString(
+                                  "vi-VN"
+                                )}{" "}
+                                • Người nhận: {order.ten_nguoi_nhan}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {order.hinh_thuc_thanh_toan}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-800">
-                              Đơn hàng #{order.id}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              {order.date} • {order.items} sản phẩm
+                          <div className="text-right">
+                            <p className="font-semibold text-gray-800">
+                              {parseFloat(order.tong_thanh_toan).toLocaleString(
+                                "vi-VN"
+                              )}{" "}
+                              ₫
                             </p>
+                            <span
+                              className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(order.trang_thai)}`}
+                            >
+                              {order.trang_thai}
+                            </span>
+                            {order.da_thanh_toan === 1 && (
+                              <p className="text-xs text-green-600 mt-1">
+                                ✅ Đã thanh toán
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-800">
-                            {order.total} ₫
-                          </p>
-                          <span
-                            className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}
+
+                        {/* Thông tin vận chuyển */}
+                        {order.don_vi_van_chuyen && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-sm text-gray-600">
+                              Vận chuyển: {order.don_vi_van_chuyen}
+                              {order.ma_van_don &&
+                                ` - Mã vận đơn: ${order.ma_van_don}`}
+                            </p>
+                            {order.ngay_du_kien_giao && (
+                              <p className="text-sm text-gray-600">
+                                Dự kiến giao:{" "}
+                                {new Date(
+                                  order.ngay_du_kien_giao
+                                ).toLocaleDateString("vi-VN")}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Nút xem chi tiết */}
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <button
+                            onClick={() => loadOrderDetail(order.ma_don_hang)}
+                            disabled={
+                              isLoadingOrderDetail &&
+                              selectedOrder === order.ma_don_hang
+                            }
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium disabled:opacity-50"
                           >
-                            {order.status}
-                          </span>
+                            {isLoadingOrderDetail &&
+                            selectedOrder === order.ma_don_hang
+                              ? "Đang tải..."
+                              : "Xem chi tiết →"}
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1105,6 +1268,197 @@ function TrangProfile() {
             )}
           </div>
         </div>
+
+        {/* Modal Chi tiết đơn hàng */}
+        {showOrderDetailModal && orderDetail && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-gray-800">
+                  Chi tiết đơn hàng #{orderDetail.don_hang.ma_don_hang}
+                </h3>
+                <button
+                  onClick={closeOrderDetailModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6">
+                {/* Thông tin đơn hàng */}
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3">
+                      Thông tin đơn hàng
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <p>
+                        <span className="font-medium">Mã đơn hàng:</span>{" "}
+                        {orderDetail.don_hang.ma_don_hang}
+                      </p>
+                      <p>
+                        <span className="font-medium">Ngày đặt:</span>{" "}
+                        {new Date(
+                          orderDetail.don_hang.Ngay_Tao
+                        ).toLocaleDateString("vi-VN")}
+                      </p>
+                      <p>
+                        <span className="font-medium">Trạng thái:</span>
+                        <span
+                          className={`ml-2 px-2 py-1 text-xs rounded-full ${getStatusColor(orderDetail.don_hang.trang_thai)}`}
+                        >
+                          {orderDetail.don_hang.trang_thai}
+                        </span>
+                      </p>
+                      <p>
+                        <span className="font-medium">Thanh toán:</span>{" "}
+                        {orderDetail.don_hang.hinh_thuc_thanh_toan}
+                      </p>
+                      <p>
+                        <span className="font-medium">
+                          Trạng thái thanh toán:
+                        </span>
+                        {orderDetail.don_hang.da_thanh_toan === 1 ? (
+                          <span className="text-green-600 ml-2">
+                            ✅ Đã thanh toán
+                          </span>
+                        ) : (
+                          <span className="text-red-600 ml-2">
+                            ❌ Chưa thanh toán
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3">
+                      Thông tin giao hàng
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <p>
+                        <span className="font-medium">Người nhận:</span>{" "}
+                        {orderDetail.don_hang.ten_nguoi_nhan}
+                      </p>
+                      <p>
+                        <span className="font-medium">Số điện thoại:</span>{" "}
+                        {orderDetail.don_hang.so_dien_thoai}
+                      </p>
+                      <p>
+                        <span className="font-medium">Địa chỉ:</span>{" "}
+                        {orderDetail.don_hang.dia_chi_giao}
+                      </p>
+                      {orderDetail.don_hang.don_vi_van_chuyen && (
+                        <p>
+                          <span className="font-medium">
+                            Đơn vị vận chuyển:
+                          </span>{" "}
+                          {orderDetail.don_hang.don_vi_van_chuyen}
+                        </p>
+                      )}
+                      {orderDetail.don_hang.ma_van_don && (
+                        <p>
+                          <span className="font-medium">Mã vận đơn:</span>{" "}
+                          {orderDetail.don_hang.ma_van_don}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Chi tiết sản phẩm */}
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-800 mb-4">
+                    Sản phẩm đã đặt
+                  </h4>
+                  <div className="space-y-3">
+                    {orderDetail.chi_tiet.map((item: any, index: number) => (
+                      <div
+                        key={index}
+                        className="border border-gray-200 rounded-lg p-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h5 className="font-medium text-gray-800">
+                              {item.ten_san_pham}
+                            </h5>
+                            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                              <span>Màu sắc: {item.mau_sac}</span>
+                              <span>Kích thước: {item.kich_thuoc}</span>
+                              <span>Số lượng: {item.so_luong}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-gray-800">
+                              {item.gia_sau_km.toLocaleString("vi-VN")} ₫
+                            </p>
+                            {item.gia_goc !== item.gia_sau_km && (
+                              <p className="text-sm text-gray-500 line-through">
+                                {item.gia_goc.toLocaleString("vi-VN")} ₫
+                              </p>
+                            )}
+                            {item.loai_khuyen_mai && (
+                              <p className="text-xs text-red-600">
+                                {item.loai_khuyen_mai}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tổng tiền */}
+                <div className="border-t pt-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Tổng tiền hàng:</span>
+                        <span>
+                          {parseFloat(
+                            orderDetail.don_hang.tong_tien
+                          ).toLocaleString("vi-VN")}{" "}
+                          ₫
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Phí vận chuyển:</span>
+                        <span>
+                          {parseFloat(
+                            orderDetail.don_hang.phi_van_chuyen
+                          ).toLocaleString("vi-VN")}{" "}
+                          ₫
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-semibold text-lg pt-2 border-t">
+                        <span>Tổng thanh toán:</span>
+                        <span className="text-red-600">
+                          {parseFloat(
+                            orderDetail.don_hang.tong_thanh_toan
+                          ).toLocaleString("vi-VN")}{" "}
+                          ₫
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {orderDetail.don_hang.ghi_chu && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-gray-800 mb-2">
+                      Ghi chú:
+                    </h4>
+                    <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+                      {orderDetail.don_hang.ghi_chu}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

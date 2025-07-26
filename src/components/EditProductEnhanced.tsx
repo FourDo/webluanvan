@@ -106,6 +106,7 @@ const EditProductEnhanced: React.FC = () => {
   const [colors, setColors] = useState<Color[]>([]);
   const [sizes, setSizes] = useState<Size[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"product" | "variants">("product");
   const [aiGenerating, setAiGenerating] = useState(false);
 
@@ -485,6 +486,7 @@ const EditProductEnhanced: React.FC = () => {
     }
 
     const { bienthe, ...productMain } = product;
+    setIsSubmitting(true);
     try {
       await productApi.updateProduct(Number(productId), productMain);
 
@@ -538,6 +540,8 @@ const EditProductEnhanced: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       setError(err.message || "Lỗi khi cập nhật sản phẩm.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -617,10 +621,20 @@ const EditProductEnhanced: React.FC = () => {
             {/* Submit All Button */}
             <button
               onClick={handleSubmit}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+              disabled={uploading || isSubmitting}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save size={16} />
-              Lưu tất cả thay đổi
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  Lưu tất cả thay đổi
+                </>
+              )}
             </button>
           </div>
         </div>

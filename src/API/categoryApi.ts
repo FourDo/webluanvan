@@ -23,6 +23,13 @@ const categoryApi = {
       .catch(() => {
         throw new Error("Lấy thông tin danh mục thất bại.");
       }),
+  getCategoryBySlug: (slug: string): Promise<SingleCategoryResponse> =>
+    apiClient
+      .get(`/danhmuc/${slug}`)
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Lấy thông tin danh mục thất bại.");
+      }),
 
   create: (
     credentials: CreateCategoryCredentials

@@ -42,7 +42,7 @@ function TrangBaiBao() {
             to="/baibao"
             className="text-blue-600 hover:underline mb-4 inline-block"
           >
-            ← Quay lại danh sách bài báo
+            ← Quay lại danh sách bài viết
           </Link>
 
           <article className="bg-white rounded-lg overflow-hidden shadow-lg">
@@ -125,7 +125,7 @@ function TrangBaiBao() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="flex flex-col justify-center items-center mb-6 sm:mb-8 text-center">
           <h1 className="mt-8 sm:mt-10 mb-4 sm:mb-6 text-4xl sm:text-5xl font-bold">
-            Bài Báo
+            Bài Viết
           </h1>
           <p className="text-gray-400 text-sm sm:text-base leading-relaxed max-w-md sm:max-w-xl">
             Khám phá những bài viết mới nhất về trang trí nội thất, mẹo vặt và

@@ -6,6 +6,7 @@ import { recommendationApi } from "../API/recommendationApi";
 import { useAuth } from "../context/AuthContext";
 import type { Product } from "../types/Product";
 import { Link } from "react-router-dom";
+import { useBehaviorTracking } from "../hooks/useBehaviorTracking";
 
 // Import Swiper styles
 import "swiper/css";
@@ -24,6 +25,7 @@ const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { trackViewProduct } = useBehaviorTracking();
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -31,15 +33,21 @@ const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
         setLoading(true);
         let response;
 
-        if (user && user.ma_tai_khoan) {
+        console.log("User object:", user); // Debug log
+
+        if (user && (user.ma_nguoi_dung || user.ma_tai_khoan || user.id)) {
           // User đã đăng nhập - lấy gợi ý cá nhân hóa
+          const userId = user.ma_nguoi_dung || user.ma_tai_khoan || user.id;
+          console.log("Fetching recommendations for user ID:", userId);
+
           response = await recommendationApi.getUserRecommendations(
-            user.ma_tai_khoan,
+            userId,
             "hybrid",
             limit
           );
         } else {
           // Khách chưa đăng nhập - lấy gợi ý chung
+          console.log("Fetching guest recommendations");
           response = await recommendationApi.getGuestRecommendations(limit);
         }
 
@@ -150,7 +158,10 @@ const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
               >
-                <Link to={`/sanpham/${product.ma_san_pham}`}>
+                <Link
+                  to={`/sanpham/${product.ma_san_pham}`}
+                  onClick={() => trackViewProduct(product.ma_san_pham)}
+                >
                   <div className="relative group">
                     <img
                       src={imageUrl}

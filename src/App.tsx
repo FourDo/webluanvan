@@ -14,6 +14,7 @@ import {
   ChiTietSanPham,
   GioHang,
   AdminDashboard,
+  AdminProfile,
   QLSanPham,
   QLDonHang,
   QLTaiKhoan,
@@ -27,6 +28,7 @@ import {
   TrangDichVu,
   TrangVeChungToi,
   TrangBaiBao,
+  TrangDanhMuc,
   TrangDangKy,
   TrangDangNhap,
   AdminDangNhap,
@@ -177,6 +179,7 @@ const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <DashboardContent /> },
+          { path: "profile", element: <AdminProfile /> },
           { path: "sanpham", element: <QLSanPham /> },
           { path: "sanpham/:productId", element: <ProductDetail /> },
           { path: "sanpham/them", element: <AddProduct /> },
@@ -230,6 +233,10 @@ const router = createBrowserRouter([
       {
         path: "/baibao/:id", // Thêm dòng này
         element: <TrangBaiBao />, // Component chi tiết bài báo
+      },
+      {
+        path: "/danhmuc/:slug",
+        element: <TrangDanhMuc />,
       },
       {
         path: "/dangky",

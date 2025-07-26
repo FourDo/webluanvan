@@ -1,4 +1,5 @@
 export interface Event {
+  ten_su_kien: any;
   su_kien_id: number;
   tieu_de: string;
   noi_dung: string;

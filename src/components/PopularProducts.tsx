@@ -5,6 +5,7 @@ import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { recommendationApi } from "../API/recommendationApi";
 import type { Product } from "../types/Product";
 import { Link } from "react-router-dom";
+import { useBehaviorTracking } from "../hooks/useBehaviorTracking";
 
 // Import Swiper styles
 import "swiper/css";
@@ -20,6 +21,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ limit = 8 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { trackViewProduct } = useBehaviorTracking();
 
   useEffect(() => {
     const fetchPopularProducts = async () => {
@@ -133,7 +135,10 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ limit = 8 }) => {
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
               >
-                <Link to={`/sanpham/${product.ma_san_pham}`}>
+                <Link
+                  to={`/sanpham/${product.ma_san_pham}`}
+                  onClick={() => trackViewProduct(product.ma_san_pham)}
+                >
                   <div className="relative group">
                     <img
                       src={imageUrl}

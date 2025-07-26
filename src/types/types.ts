@@ -21,6 +21,7 @@ export interface SanPham {
   conHang: boolean;
   mauSac?: string;
   kichThuoc?: string;
+  ma_bien_the?: number; // Thêm trường này
 }
 
 export interface SanPhamGioHang {

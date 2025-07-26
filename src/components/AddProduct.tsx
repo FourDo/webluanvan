@@ -71,6 +71,7 @@ const AddProduct: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [uploading, setUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"product" | "variants">("product");
   const [showAddVariantForm, setShowAddVariantForm] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -319,6 +320,7 @@ const AddProduct: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       // Convert InputProduct to Product format for API
       const productForApi = {
@@ -335,6 +337,8 @@ const AddProduct: React.FC = () => {
     } catch (error) {
       console.error("Error creating product:", error);
       alert("Lỗi khi thêm sản phẩm!");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -371,11 +375,22 @@ const AddProduct: React.FC = () => {
               <button
                 type="submit"
                 form="product-form"
-                disabled={uploading || newProduct.bienthe.length === 0}
+                disabled={
+                  uploading || isSubmitting || newProduct.bienthe.length === 0
+                }
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save size={16} />
-                Lưu sản phẩm
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Lưu sản phẩm
+                  </>
+                )}
               </button>
             </div>
           </div>

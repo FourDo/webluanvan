@@ -34,7 +34,7 @@ export const eventApi = {
   // Cập nhật sự kiện
   updateEvent: (id: number, formData: Partial<Event>) =>
     apiClient
-      .put<Event>(`/event/${id}`, formData)
+      .patch<Event>(`/event/${id}`, formData)
       .then((res) => res.data)
       .catch(() => {
         throw new Error("Cập nhật sự kiện thất bại.");

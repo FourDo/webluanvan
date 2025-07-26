@@ -21,6 +21,21 @@ export interface RecommendationResponse {
   success: boolean;
 }
 
+// Interface cho tracking behavior
+export interface BehaviorData {
+  ma_nguoi_dung: number; // Bắt buộc, sử dụng 0 cho guest user
+  ma_san_pham: number;
+  hanh_vi: "xem" | "tim_kiem" | "them_vao_gio";
+  session_id?: string;
+  timestamp?: string;
+  tu_khoa_tim_kiem?: string; // Chỉ dùng cho hanh_vi = 'tim_kiem'
+}
+
+export interface TrackBehaviorResponse {
+  message: string;
+  success: boolean;
+}
+
 export const recommendationApi = {
   // Lấy sản phẩm nổi bật (popular products)
   getPopularProducts: async (
@@ -75,6 +90,93 @@ export const recommendationApi = {
     } catch (error) {
       console.error("Error fetching guest recommendations:", error);
       throw new Error("Lấy gợi ý sản phẩm thất bại.");
+    }
+  },
+
+  // Track hành vi đơn lẻ
+  trackBehavior: async (
+    behaviorData: BehaviorData
+  ): Promise<TrackBehaviorResponse> => {
+    try {
+      const requestData = {
+        ...behaviorData,
+        timestamp: behaviorData.timestamp || new Date().toISOString(),
+      };
+
+      console.log("Tracking behavior data:", requestData);
+
+      const response = await fetch("http://localhost:5000/track/behavior", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Track behavior error response:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText,
+          requestData: requestData,
+        });
+        throw new Error(
+          `Failed to track behavior: ${response.status} - ${errorText}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Track behavior success:", result);
+      return result;
+    } catch (error) {
+      console.error("Error tracking behavior:", error);
+      // Không throw error để không ảnh hưởng đến UX
+      return { message: "Failed to track behavior", success: false };
+    }
+  },
+
+  // Track nhiều hành vi cùng lúc
+  trackBatchBehaviors: async (
+    behaviors: BehaviorData[]
+  ): Promise<TrackBehaviorResponse> => {
+    try {
+      const requestData = {
+        behaviors: behaviors.map((behavior) => ({
+          ...behavior,
+          timestamp: behavior.timestamp || new Date().toISOString(),
+        })),
+      };
+
+      console.log("Tracking batch behaviors data:", requestData);
+
+      const response = await fetch("http://localhost:5000/track/batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Track batch behaviors error response:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText,
+          requestData: requestData,
+        });
+        throw new Error(
+          `Failed to track batch behaviors: ${response.status} - ${errorText}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Track batch behaviors success:", result);
+      return result;
+    } catch (error) {
+      console.error("Error tracking batch behaviors:", error);
+      return { message: "Failed to track batch behaviors", success: false };
     }
   },
 };

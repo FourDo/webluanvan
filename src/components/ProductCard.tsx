@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Product as ApiProduct } from "../types/Product"; // Sử dụng kiểu dữ liệu gốc từ API
+import { useBehaviorTracking } from "../hooks/useBehaviorTracking";
 
 // Helper để chuyển tên màu sang mã hex, bạn có thể tùy chỉnh
 const colorNameToHex = (colorName: string): string => {
@@ -37,6 +38,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
+  const { trackViewProduct } = useBehaviorTracking();
 
   // Lấy biến thể đầu tiên làm mặc định
   const defaultVariant = product.bienthe?.[0];
@@ -61,6 +63,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const handleCardClick = () => {
+    // Track behavior "xem" khi user click vào sản phẩm
+    trackViewProduct(product.ma_san_pham);
+
     // Điều hướng đến trang chi tiết sản phẩm, ví dụ: /san-pham/123
     navigate(`/sanpham/${product.ma_san_pham}`);
   };

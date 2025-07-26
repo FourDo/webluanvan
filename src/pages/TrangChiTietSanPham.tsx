@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { productApi } from "../API/productApi";
 import type { Product } from "../types/Product";
 import { useGioHang } from "../context/GioHangContext";
+import { useBehaviorTracking } from "../hooks/useBehaviorTracking";
 import {
   Heart,
   Star,
@@ -37,6 +38,7 @@ const ChiTietSanPham: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { themVaoGio } = useGioHang();
+  const { trackViewProduct, trackAddToCart } = useBehaviorTracking();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,7 @@ const ChiTietSanPham: React.FC = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isAddedToCart, setIsAddedToCart] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0); // Thêm state cho hình ảnh được chọn
 
   useEffect(() => {
     if (!id) return;
@@ -57,6 +60,7 @@ const ChiTietSanPham: React.FC = () => {
       .then((data) => {
         setProduct(data);
         setSelectedVariantIdx(0);
+        setSelectedImageIndex(0); // Reset về hình đầu tiên khi load sản phẩm mới
         if (data.bienthe && data.bienthe.length > 0) {
           // Use ten_kich_thuoc if available, otherwise parse ten_cac_bien_the
           const firstSize =
@@ -65,10 +69,13 @@ const ChiTietSanPham: React.FC = () => {
             "";
           setSelectedSize(firstSize);
         }
+
+        // Track behavior "xem" khi user xem sản phẩm
+        trackViewProduct(Number(id));
       })
       .catch((err) => setError(err.message || "Không thể tải sản phẩm"))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, trackViewProduct]);
 
   if (loading)
     return (
@@ -119,13 +126,20 @@ const ChiTietSanPham: React.FC = () => {
         v.ten_kich_thuoc || v.ten_cac_bien_the?.split(" / ")[1]?.trim() || "";
       return color === currentColor && size === selectedSize;
     }) || product.bienthe?.[selectedVariantIdx];
-  const images =
-    selectedVariant?.hinh_anh && selectedVariant.hinh_anh.length > 0
-      ? selectedVariant.hinh_anh
-      : ["/no-image.png"];
+
+  // Lấy tất cả hình ảnh từ mọi biến thể
+  const allImages = Array.from(
+    new Set(
+      product.bienthe
+        ?.flatMap((variant) => variant.hinh_anh || [])
+        .filter((img) => img && img.trim() !== "") || []
+    )
+  );
+  const images = allImages.length > 0 ? allImages : ["/no-image.png"];
+
   const inStock = selectedVariant ? selectedVariant.so_luong_ton > 0 : false;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     // Kiểm tra xem người dùng đã đăng nhập chưa
     const userDataString = localStorage.getItem("user");
     if (!userDataString) {
@@ -148,12 +162,12 @@ const ChiTietSanPham: React.FC = () => {
       id: product.ma_san_pham,
       ten: product.ten_san_pham,
       gia: Number(selectedVariant.gia_ban),
-      hinhAnh: images[0],
+      hinhAnh: images[selectedImageIndex], // Sử dụng hình ảnh hiện tại được chọn
       loai: product.ten_danh_muc || "",
       moTa: product.mo_ta_ngan,
       description: product.mo_ta_ngan,
       category: product.ten_danh_muc || "",
-      image: images[0],
+      image: images[selectedImageIndex], // Sử dụng hình ảnh hiện tại được chọn
       price: Number(selectedVariant.gia_ban),
       name: product.ten_san_pham,
       date: new Date().toISOString(),
@@ -174,6 +188,10 @@ const ChiTietSanPham: React.FC = () => {
       gia_khuyen_mai: 0,
       gia_sau_km: Number(selectedVariant.gia_ban),
     };
+
+    // Track behavior "them_vao_gio" trước khi thêm vào giỏ
+    await trackAddToCart(product.ma_san_pham);
+
     themVaoGio(sanPhamGioHang, quantity);
     setIsAddedToCart(true);
     setTimeout(() => setIsAddedToCart(false), 2000);
@@ -207,7 +225,7 @@ const ChiTietSanPham: React.FC = () => {
             <div className="space-y-4">
               <div className="aspect-square rounded-xl overflow-hidden bg-gray-100">
                 <img
-                  src={images[0]}
+                  src={images[selectedImageIndex]}
                   alt={product.ten_san_pham}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
@@ -216,12 +234,12 @@ const ChiTietSanPham: React.FC = () => {
                 {images.map((img, idx) => (
                   <button
                     key={idx}
-                    onClick={() => {}}
-                    className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${idx === 0 ? "border-[#518581]" : "border-gray-200 hover:border-gray-300"}`}
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${idx === selectedImageIndex ? "border-[#518581]" : "border-gray-200 hover:border-gray-300"}`}
                   >
                     <img
                       src={img}
-                      alt={product.ten_san_pham + " " + idx}
+                      alt={product.ten_san_pham + " " + (idx + 1)}
                       className="w-full h-full object-cover"
                     />
                   </button>

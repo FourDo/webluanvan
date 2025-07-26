@@ -25,8 +25,7 @@ const TrangHoaDon: React.FC = () => {
 
   // Parse query parameters
   const queryParams = new URLSearchParams(location.search);
-  const apptransid = queryParams.get("apptransid"); // MoMo
-  const app_trans_id = queryParams.get("app_trans_id"); // ZaloPay
+  const app_trans_id = queryParams.get("orderId"); // ZaloPay
   const orderId = queryParams.get("orderId"); // VNPay hoặc COD
   const paymentMethod = queryParams.get("paymentMethod");
   const status = queryParams.get("status");
@@ -90,7 +89,6 @@ const TrangHoaDon: React.FC = () => {
 
   useEffect(() => {
     console.log("Query params:", {
-      apptransid,
       app_trans_id,
       orderId,
       paymentMethod,
@@ -115,7 +113,7 @@ const TrangHoaDon: React.FC = () => {
     }
 
     // Xác định ID đơn hàng từ các nguồn khác nhau
-    const targetOrderId = orderId || apptransid || app_trans_id;
+    const targetOrderId = orderId || app_trans_id;
 
     if (targetOrderId) {
       setLoading(true);
@@ -186,7 +184,7 @@ const TrangHoaDon: React.FC = () => {
       setError("Giao dịch không thành công");
       setLoading(false);
     }
-  }, [order, apptransid, app_trans_id, orderId, paymentMethod, status]);
+  }, [order, app_trans_id, orderId, paymentMethod, status]);
   if (loading) {
     return (
       <div className="container mx-auto p-4">

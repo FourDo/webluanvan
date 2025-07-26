@@ -6,6 +6,7 @@ export { default as ChiTietSanPham } from "../pages/TrangChiTietSanPham";
 export { default as TrangDichVu } from "../pages/TrangDichVu";
 export { default as TrangVeChungToi } from "../pages/TrangVeChungToi";
 export { default as TrangBaiBao } from "../pages/TrangBaiBao";
+export { default as TrangDanhMuc } from "./TrangDanhMuc";
 export { default as TrangDangKy } from "./TrangDangKy";
 export { default as TrangDangNhap } from "./TrangDangNhap";
 export { default as GioHang } from "./GioHang";
@@ -17,6 +18,7 @@ export { default as MomoSuccess } from "./MomoSuccess";
 
 export { default as AdminDangNhap } from "../pages/TrangDangNhapADmin";
 export { default as AdminDashboard } from "../pages/AdminDashboard";
+export { default as AdminProfile } from "../pages/AdminProfile";
 export { default as QLSanPham } from "../pages/QLSanPham";
 export { default as QLDonHang } from "../pages/QLDonHang";
 export { default as QLTaiKhoan } from "../pages/QLTaiKhoan";

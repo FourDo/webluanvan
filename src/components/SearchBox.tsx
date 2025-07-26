@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Search, X, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useProductSearch } from "../hooks/useProductSearch";
+import { useBehaviorTracking } from "../hooks/useBehaviorTracking";
 
 interface SearchBoxProps {
   placeholder?: string;
@@ -26,6 +27,8 @@ const SearchBox: React.FC<SearchBoxProps> = ({
     clearSearch,
     navigateToProductsWithSearch,
   } = useProductSearch();
+
+  const { trackSearchProduct } = useBehaviorTracking();
 
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,7 +84,10 @@ const SearchBox: React.FC<SearchBoxProps> = ({
     inputRef.current?.focus();
   };
 
-  const handleProductClick = () => {
+  const handleProductClick = (productId: number) => {
+    // Track behavior tìm kiếm khi user click vào sản phẩm
+    trackSearchProduct(productId, searchTerm);
+
     setIsDropdownOpen(false);
     clearSearch();
   };
@@ -170,7 +176,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({
                   <Link
                     key={displayInfo.id}
                     to={`/sanpham/${displayInfo.id}`}
-                    onClick={handleProductClick}
+                    onClick={() => handleProductClick(displayInfo.id)}
                     className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
                   >
                     <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">

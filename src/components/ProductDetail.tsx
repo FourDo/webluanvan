@@ -254,7 +254,13 @@ const ProductDetail: React.FC = () => {
                 Mô tả chi tiết
               </h2>
               <div className="prose prose-sm max-w-none text-gray-600">
-                <p>{product.mo_ta_ngan || "Không có mô tả chi tiết."}</p>
+                {product.mo_ta_ngan ? (
+                  <div
+                    dangerouslySetInnerHTML={{ __html: product.mo_ta_ngan }}
+                  />
+                ) : (
+                  <p>Không có mô tả chi tiết.</p>
+                )}
               </div>
             </div>
           </div>
