@@ -1,339 +1,396 @@
-import { useState } from "react";
-import { Plus, Edit, Trash2, Save, X, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Lock, Unlock, Search, Eye, RefreshCw } from "lucide-react";
 import type { Account } from "../types/Account";
+import { accountApi } from "../API/accountApi";
 
-const ITEMS_PER_PAGE = 5;
-
-// Dữ liệu giả lập phù hợp với kiểu Account
-const mockAccounts: Account[] = [
-  {
-    ma_tai_khoan: 1,
-    ten_tai_khoan: "admin",
-    email: "admin@example.com",
-    vai_tro: "Admin",
-    ngay_tao: "2025-06-01T10:00:00Z",
-  },
-  {
-    ma_tai_khoan: 2,
-    ten_tai_khoan: "user1",
-    email: "user1@example.com",
-    vai_tro: "User",
-    ngay_tao: "2025-06-02T12:00:00Z",
-  },
-];
+const ITEMS_PER_PAGE = 10;
 
 const QLTaiKhoan = () => {
-  const [accounts, setAccounts] = useState<Account[]>(mockAccounts);
-  const [loading] = useState(false);
-  const [editingItem, setEditingItem] = useState<Account | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState({
-    ten_tai_khoan: "",
-    email: "",
-    vai_tro: "",
-  });
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const resetForm = () => {
-    setFormData({
-      ten_tai_khoan: "",
-      email: "",
-      vai_tro: "",
-    });
-    setEditingItem(null);
-    setShowAddForm(false);
-  };
+  // Fetch accounts on component mount
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
 
-  const startEdit = (account: Account) => {
-    setEditingItem(account);
-    setShowAddForm(true);
-    setFormData({
-      ten_tai_khoan: account.ten_tai_khoan,
-      email: account.email,
-      vai_tro: account.vai_tro,
-    });
-  };
-
-  const handleDelete = (id: number) => {
-    if (window.confirm("Bạn có chắc muốn xóa tài khoản này?")) {
-      const updatedAccounts = accounts.filter(
-        (account) => account.ma_tai_khoan !== id
-      );
-      setAccounts(updatedAccounts);
-      const totalPages = Math.ceil(updatedAccounts.length / ITEMS_PER_PAGE);
-      if (currentPage > totalPages && totalPages > 0) {
-        setCurrentPage(totalPages);
-      } else if (updatedAccounts.length === 0) {
-        setCurrentPage(1);
+  const fetchAccounts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await accountApi.fetchAccounts();
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setAccounts(data);
+      } else if (
+        data &&
+        typeof data === "object" &&
+        Array.isArray((data as any).data)
+      ) {
+        // Handle case where API returns { data: [...] }
+        setAccounts((data as any).data);
+      } else {
+        console.error("API response is not an array:", data);
+        setAccounts([]);
+        setError("Dữ liệu trả về không đúng định dạng!");
       }
-      alert("Xóa tài khoản thành công!");
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+      setAccounts([]); // Ensure accounts is always an array
+      setError("Không thể tải danh sách tài khoản!");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSave = () => {
-    // Kiểm tra dữ liệu form
-    if (
-      !formData.ten_tai_khoan.trim() ||
-      !formData.email.trim() ||
-      !formData.vai_tro.trim()
-    ) {
-      alert("Vui lòng điền đầy đủ các trường bắt buộc!");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      alert("Email không hợp lệ!");
-      return;
-    }
+  const handleUpdateStatus = async (id: number, currentStatus: string) => {
+    const newStatus = currentStatus === "khoa" ? "hoat_dong" : "khoa";
+    const confirmMessage =
+      newStatus === "khoa"
+        ? "Bạn có chắc muốn khóa tài khoản này?"
+        : "Bạn có chắc muốn mở khóa tài khoản này?";
 
-    const newAccount: Account = {
-      ...formData,
-      ma_tai_khoan: editingItem
-        ? editingItem.ma_tai_khoan
-        : accounts.length > 0
-          ? Math.max(...accounts.map((a) => a.ma_tai_khoan)) + 1
-          : 1,
-      ngay_tao: editingItem ? editingItem.ngay_tao : new Date().toISOString(),
-    };
-
-    if (editingItem) {
-      setAccounts(
-        accounts.map((account) =>
-          account.ma_tai_khoan === editingItem.ma_tai_khoan
-            ? newAccount
-            : account
-        )
-      );
-      alert("Cập nhật tài khoản thành công!");
-    } else {
-      const newAccounts = [...accounts, newAccount];
-      setAccounts(newAccounts);
-      const newTotalPages = Math.ceil(newAccounts.length / ITEMS_PER_PAGE);
-      setCurrentPage(newTotalPages);
-      alert("Thêm tài khoản thành công!");
+    if (window.confirm(confirmMessage)) {
+      try {
+        await accountApi.updateAccountStatus(id, newStatus);
+        if (Array.isArray(accounts)) {
+          setAccounts(
+            accounts.map((account) =>
+              account.ma_nguoi_dung === id
+                ? { ...account, trang_thai: newStatus }
+                : account
+            )
+          );
+        }
+        alert(
+          `${newStatus === "khoa" ? "Khóa" : "Mở khóa"} tài khoản thành công!`
+        );
+      } catch (error) {
+        alert("Cập nhật trạng thái thất bại!");
+      }
     }
-    resetForm();
   };
 
-  const totalPages = Math.ceil(accounts.length / ITEMS_PER_PAGE);
+  const handleUpdateRole = async (id: number, newRole: string) => {
+    if (window.confirm("Bạn có chắc muốn thay đổi quyền tài khoản này?")) {
+      try {
+        await accountApi.updateAccountRole(id, newRole);
+        if (Array.isArray(accounts)) {
+          setAccounts(
+            accounts.map((account) =>
+              account.ma_nguoi_dung === id
+                ? { ...account, vai_tro: newRole }
+                : account
+            )
+          );
+        }
+        alert("Cập nhật quyền tài khoản thành công!");
+      } catch (error) {
+        alert("Cập nhật quyền thất bại!");
+      }
+    }
+  };
+
+  // Filter accounts based on search term
+  const allFilteredAccounts = accounts.filter((account) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      (account.ho_ten || "").toLowerCase().includes(searchLower) ||
+      (account.email || "").toLowerCase().includes(searchLower) ||
+      (account.so_dien_thoai || "").toLowerCase().includes(searchLower) ||
+      (account.dia_chi || "").toLowerCase().includes(searchLower) ||
+      (account.vai_tro || "").toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.ceil(allFilteredAccounts.length / ITEMS_PER_PAGE);
   const lastItemIndex = currentPage * ITEMS_PER_PAGE;
   const firstItemIndex = lastItemIndex - ITEMS_PER_PAGE;
-  const currentAccounts = accounts.slice(firstItemIndex, lastItemIndex);
+  const currentAccounts = allFilteredAccounts.slice(
+    firstItemIndex,
+    lastItemIndex
+  );
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <User className="w-8 h-8 text-blue-600 mr-3" />
-          <h1 className="text-3xl font-bold text-gray-800">
-            Quản lý Tài khoản
-          </h1>
-        </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Thêm tài khoản
-        </button>
-      </div>
-
-      {showAddForm && (
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border">
-          <h3 className="text-xl font-semibold mb-4">
-            {editingItem ? "Sửa tài khoản" : "Thêm tài khoản mới"}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tên tài khoản *
-              </label>
-              <input
-                type="text"
-                value={formData.ten_tai_khoan}
-                onChange={(e) =>
-                  setFormData({ ...formData, ten_tai_khoan: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Nhập tên tài khoản..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Nhập email..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Vai trò *
-              </label>
-              <input
-                type="text"
-                value={formData.vai_tro}
-                onChange={(e) =>
-                  setFormData({ ...formData, vai_tro: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Nhập vai trò (VD: Admin, User)..."
-              />
-            </div>
-          </div>
-          <div className="flex space-x-3 mt-6">
-            <button
-              onClick={handleSave}
-              className="flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {editingItem ? "Cập nhật" : "Thêm mới"}
-            </button>
-            <button
-              onClick={resetForm}
-              className="flex items-center px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Hủy
-            </button>
-          </div>
-        </div>
-      )}
-
-      {loading && (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">Đang tải dữ liệu...</p>
-        </div>
-      )}
-
-      {!loading && (
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    STT
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tên tài khoản
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vai trò
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ngày tạo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentAccounts.map((account) => (
-                  <tr key={account.ma_tai_khoan} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {account.ma_tai_khoan}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className="inline-flex items-center text-blue-800 text-sm font-medium mr-3">
-                          {account.ten_tai_khoan}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {account.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {account.vai_tro}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(account.ngay_tao).toLocaleDateString("vi-VN")}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => startEdit(account)}
-                          className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
-                          title="Sửa"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(account.ma_tai_khoan)}
-                          className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
-                          title="Xóa"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {currentAccounts.length === 0 && accounts.length > 0 && (
-              <div className="text-center py-12">
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  Không có dữ liệu trên trang này
-                </h3>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-screen-xl mx-auto p-4 md:p-6">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <div className="bg-blue-100 p-3 rounded-xl">
+                <User className="w-8 h-8 text-blue-600" />
               </div>
-            )}
-
-            {accounts.length === 0 && (
-              <div className="text-center py-12">
-                <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  Chưa có tài khoản nào
-                </h3>
-                <p className="text-gray-500">
-                  Nhấn nút "Thêm tài khoản" để bắt đầu
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                  Quản lý Tài khoản
+                </h1>
+                <p className="text-gray-500 mt-1">
+                  Quản lý toàn bộ tài khoản người dùng trong hệ thống.
                 </p>
               </div>
-            )}
+            </div>
+            <button
+              onClick={fetchAccounts}
+              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center space-x-2"
+            >
+              <RefreshCw size={20} />
+              <span>Làm mới</span>
+            </button>
           </div>
+        </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-gray-200">
-              <span className="text-sm text-gray-700">
-                Hiển thị {firstItemIndex + 1}-
-                {Math.min(lastItemIndex, accounts.length)} trên tổng số{" "}
-                {accounts.length} tài khoản
-              </span>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Trang trước
-                </button>
-                <span className="text-sm text-gray-700">
-                  Trang {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Trang sau
-                </button>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="bg-white rounded-xl p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Tổng tài khoản</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {accounts.length}
+                </p>
+              </div>
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <User className="w-5 h-5 text-blue-600" />
               </div>
             </div>
-          )}
+          </div>
+          <div className="bg-white rounded-xl p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Hiển thị</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {allFilteredAccounts.length}
+                </p>
+              </div>
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <Eye className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* Controls Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search
+                className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={20}
+              />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tên, email, số điện thoại, địa chỉ..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6">
+            <p className="font-bold">Đã có lỗi xảy ra</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Main Content */}
+        {loading ? (
+          <div className="text-center py-16">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+          </div>
+        ) : currentAccounts.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+              {searchTerm
+                ? "Không tìm thấy tài khoản"
+                : "Chưa có tài khoản nào"}
+            </h3>
+            <p className="text-gray-500">
+              {searchTerm
+                ? "Vui lòng thử lại với từ khóa khác."
+                : "Không có dữ liệu tài khoản để hiển thị."}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Table View */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      STT
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Họ tên
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Số điện thoại
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Địa chỉ
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Vai trò
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Trạng thái
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Ngày tạo
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {currentAccounts.map((account, index) => (
+                    <tr
+                      key={account.ma_nguoi_dung}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {firstItemIndex + index + 1}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <User className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <span className="text-blue-600 hover:text-blue-900">
+                            {account.ho_ten}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {account.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {account.so_dien_thoai}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
+                        <div className="line-clamp-2 truncate">
+                          {account.dia_chi}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <select
+                          value={account.vai_tro}
+                          onChange={(e) =>
+                            handleUpdateRole(
+                              account.ma_nguoi_dung,
+                              e.target.value
+                            )
+                          }
+                          className="text-sm border border-gray-200 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          <option value="client">Client</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            account.trang_thai === "hoat_dong"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {account.trang_thai === "hoat_dong"
+                            ? "Hoạt động"
+                            : "Khóa"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(account.ngay_tao).toLocaleDateString("vi-VN")}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center items-center">
+                          <button
+                            onClick={() =>
+                              handleUpdateStatus(
+                                account.ma_nguoi_dung,
+                                account.trang_thai
+                              )
+                            }
+                            className={`p-2 rounded-lg transition-all ${
+                              account.trang_thai === "hoat_dong"
+                                ? "text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                            }`}
+                            title={
+                              account.trang_thai === "hoat_dong"
+                                ? "Khóa tài khoản"
+                                : "Mở khóa tài khoản"
+                            }
+                          >
+                            {account.trang_thai === "hoat_dong" ? (
+                              <Lock size={18} />
+                            ) : (
+                              <Unlock size={18} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between p-4 border-t border-gray-200 mt-6">
+                <span className="text-sm text-gray-700">
+                  Hiển thị {firstItemIndex + 1}-
+                  {Math.min(
+                    currentPage * ITEMS_PER_PAGE,
+                    allFilteredAccounts.length
+                  )}{" "}
+                  trên tổng số {allFilteredAccounts.length} tài khoản
+                </span>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setCurrentPage((c) => c - 1)}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Trang trước
+                  </button>
+                  <span className="text-sm">
+                    Trang {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((c) => c + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Trang sau
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

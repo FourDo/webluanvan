@@ -238,11 +238,39 @@ export const orderApi = {
 
         throw new Error("Lấy danh sách đơn hàng thất bại.");
       }),
+
+  // Cập nhật trạng thái đơn hàng
+  updateOrderStatus: (orderId: number, status: string) =>
+    apiClient
+      .patch(`/donhang/${orderId}`, { trang_thai: status })
+      .then((res) => {
+        console.log("✅ Cập nhật trạng thái đơn hàng thành công:", res.data);
+        return res.data;
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi cập nhật trạng thái đơn hàng:", error);
+        throw new Error("Cập nhật trạng thái đơn hàng thất bại.");
+      }),
+
+  // Hoàn trả tiền VNPay
+  refundVNPay: (orderId: number) =>
+    apiClient
+      .post(`/refundvnpay/${orderId}`)
+      .then((res) => {
+        console.log("💰 Hoàn trả tiền thành công:", res.data);
+        return res.data;
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi hoàn trả tiền:", error);
+        throw new Error("Hoàn trả tiền thất bại.");
+      }),
 };
 
 // Export các hàm riêng lẻ để tương thích với code cũ
 export const createOrder = orderApi.createOrder;
 export const getOrderDetail = orderApi.getOrderDetail;
 export const getOrdersByUserId = orderApi.getOrdersByUserId;
+export const updateOrderStatus = orderApi.updateOrderStatus;
+export const refundVNPay = orderApi.refundVNPay;
 
 export default orderApi;

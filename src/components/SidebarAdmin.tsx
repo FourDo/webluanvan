@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  Home,
   Package,
   ShoppingCart,
   Settings,
@@ -11,6 +10,7 @@ import {
   List,
   Image,
   FileText,
+  BarChart3,
 } from "lucide-react";
 
 interface SidebarAdminProps {
@@ -22,7 +22,12 @@ const SidebarAdmin = ({ isOpen, closeSidebar }: SidebarAdminProps) => {
   const location = useLocation();
 
   const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: Home, path: "/admin" },
+    {
+      id: "baocao",
+      label: "Thống kê & Báo cáo",
+      icon: BarChart3,
+      path: "/admin",
+    },
     { id: "sanpham", label: "Sản phẩm", icon: Package, path: "/admin/sanpham" },
     {
       id: "donhang",

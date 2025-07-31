@@ -24,11 +24,13 @@ const getProductDisplayInfo = (product: ApiProduct) => {
     id: product.ma_san_pham,
     name: product.ten_san_pham,
     category: product.ten_danh_muc || "Uncategorized",
+    brand: product.thuong_hieu || "Không có thương hiệu",
     description: product.mo_ta_ngan || "No description available.",
     price: mainVariant ? parseFloat(mainVariant.gia_ban) : 0,
     image: mainVariant?.hinh_anh?.[0] || "",
-    // Giả sử màu sắc được lưu trong thuộc tính của biến thể
-    color: mainVariant?.hex_code || "N/A",
+    // Sử dụng tên màu sắc thay vì hex code
+    color: mainVariant?.ten_mau_sac || "N/A",
+    hex: mainVariant?.hex_code || "#000000",
   };
 };
 
@@ -155,14 +157,23 @@ const TrangSanPham: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
   // --- URL PARAMS HANDLING ---
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const searchParam = urlParams.get("search");
+    const categoryParam = urlParams.get("category");
+
     if (searchParam) {
       setSearchTerm(searchParam);
       setSearchInput(searchParam);
+    }
+
+    if (categoryParam) {
+      // Tự động chọn danh mục từ URL
+      setSelectedCategories([categoryParam]);
+      setCurrentPage(1); // Reset về trang đầu
     }
   }, [location.search]);
 
@@ -353,16 +364,19 @@ const TrangSanPham: React.FC = () => {
         selectedCategories.includes(p.category);
       const colorMatch =
         selectedColors.length === 0 || selectedColors.includes(p.color);
-      return priceMatch && categoryMatch && colorMatch;
+      const brandMatch =
+        selectedBrands.length === 0 || selectedBrands.includes(p.brand);
+      return priceMatch && categoryMatch && colorMatch && brandMatch;
     });
 
-    // 2. Lọc theo Tìm kiếm (Search) - chỉ áp dụng nếu không có search từ URL
+    // 2. Lọc theo Tìm kiếm (Search) - áp dụng cho cả search từ URL và search local
     const urlParams = new URLSearchParams(location.search);
     const urlSearchParam = urlParams.get("search");
 
-    if (!urlSearchParam && searchTerm) {
+    if (urlSearchParam || searchTerm) {
+      const searchKeyword = urlSearchParam || searchTerm;
       filtered = filtered.filter((product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+        product.name.toLowerCase().includes(searchKeyword.toLowerCase())
       );
     }
 
@@ -393,41 +407,49 @@ const TrangSanPham: React.FC = () => {
     priceRange,
     selectedCategories,
     selectedColors,
+    selectedBrands,
   ]);
 
   // --- Dữ liệu động cho FilterMenu ---
-  const { categoriesForFilter, colorsForFilter, maxPrice } = useMemo(() => {
-    const displayProducts = allProducts.map(getProductDisplayInfo);
+  const { categoriesForFilter, colorsForFilter, brandsForFilter, maxPrice } =
+    useMemo(() => {
+      const displayProducts = allProducts.map(getProductDisplayInfo);
 
-    const categoryCounts: { [key: string]: number } = {};
-    const colorCounts: { [key: string]: { count: number; hex: string } } = {};
-    let maxPriceValue = 0;
+      const categoryCounts: { [key: string]: number } = {};
+      const colorCounts: { [key: string]: { count: number; hex: string } } = {};
+      const brandCounts: { [key: string]: number } = {};
+      let maxPriceValue = 0;
 
-    displayProducts.forEach((p) => {
-      categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
-      if (p.color !== "N/A") {
-        colorCounts[p.color] = {
-          count: (colorCounts[p.color]?.count || 0) + 1,
-          hex: p.color, // Assuming p.color is the hex code
-        };
-      }
-      if (p.price > maxPriceValue) {
-        maxPriceValue = p.price;
-      }
-    });
+      displayProducts.forEach((p) => {
+        categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
+        brandCounts[p.brand] = (brandCounts[p.brand] || 0) + 1;
+        if (p.color !== "N/A") {
+          colorCounts[p.color] = {
+            count: (colorCounts[p.color]?.count || 0) + 1,
+            hex: p.hex, // Sử dụng hex code từ thuộc tính hex
+          };
+        }
+        if (p.price > maxPriceValue) {
+          maxPriceValue = p.price;
+        }
+      });
 
-    return {
-      categoriesForFilter: Object.entries(categoryCounts).map(
-        ([name, count]) => ({ name, count })
-      ),
-      colorsForFilter: Object.entries(colorCounts).map(([name, value]) => ({
-        name,
-        count: value.count,
-        hex: value.hex,
-      })),
-      maxPrice: Math.max(Math.ceil(maxPriceValue), 1), // Đảm bảo maxPrice ít nhất là 1
-    };
-  }, [allProducts]);
+      return {
+        categoriesForFilter: Object.entries(categoryCounts).map(
+          ([name, count]) => ({ name, count })
+        ),
+        colorsForFilter: Object.entries(colorCounts).map(([name, value]) => ({
+          name,
+          count: value.count,
+          hex: value.hex,
+        })),
+        brandsForFilter: Object.entries(brandCounts).map(([name, count]) => ({
+          name,
+          count,
+        })),
+        maxPrice: Math.max(Math.ceil(maxPriceValue), 1), // Đảm bảo maxPrice ít nhất là 1
+      };
+    }, [allProducts]);
 
   // --- PHÂN TRANG ---
   const totalPages = Math.ceil(
@@ -448,11 +470,15 @@ const TrangSanPham: React.FC = () => {
     setIsSearching(false);
     setSelectedCategories([]);
     setSelectedColors([]);
+    setSelectedBrands([]);
     // Đảm bảo reset price range với giá trị an toàn
     const safeMaxPrice = Math.max(maxPrice, 1);
     setPriceRange([0, safeMaxPrice]);
     setSortOption("Featured");
     setCurrentPage(1);
+
+    // Xóa query parameters khỏi URL
+    navigate("/sanpham", { replace: true });
   };
 
   const handleCategoryChange = (categoryName: string) => {
@@ -469,6 +495,15 @@ const TrangSanPham: React.FC = () => {
       prev.includes(colorName)
         ? prev.filter((name) => name !== colorName)
         : [...prev, colorName]
+    );
+    setCurrentPage(1);
+  };
+
+  const handleBrandChange = (brandName: string) => {
+    setSelectedBrands((prev) =>
+      prev.includes(brandName)
+        ? prev.filter((name) => name !== brandName)
+        : [...prev, brandName]
     );
     setCurrentPage(1);
   };
@@ -613,6 +648,9 @@ const TrangSanPham: React.FC = () => {
                     allCategories={categoriesForFilter}
                     selectedCategories={selectedCategories}
                     onCategoryChange={handleCategoryChange}
+                    allBrands={brandsForFilter}
+                    selectedBrands={selectedBrands}
+                    onBrandChange={handleBrandChange}
                     onResetFilters={resetAllFilters}
                   />
                 </aside>

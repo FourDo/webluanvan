@@ -220,7 +220,7 @@ const Navbar: React.FC = () => {
                         {categories.map((cat) => (
                           <Link
                             key={cat.ma_danh_muc}
-                            to={`/danhmuc/${cat.slug}`}
+                            to={`/sanpham?category=${encodeURIComponent(cat.ten_danh_muc)}`}
                             className={`px-4 py-2 cursor-pointer text-sm rounded-lg flex items-center justify-between
                               ${selectedCategory === cat.ten_danh_muc ? "bg-gray-100 text-[#518581]" : "text-gray-700 hover:bg-gray-50"}
                             `}

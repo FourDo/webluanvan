@@ -17,6 +17,10 @@ interface FilterMenuProps {
   selectedCategories: string[];
   onCategoryChange: (categoryName: string) => void;
 
+  allBrands: { name: string; count: number }[];
+  selectedBrands: string[];
+  onBrandChange: (brandName: string) => void;
+
   onResetFilters: () => void;
 }
 
@@ -30,6 +34,9 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
   allCategories,
   selectedCategories,
   onCategoryChange,
+  allBrands,
+  selectedBrands,
+  onBrandChange,
   onResetFilters,
 }) => {
   // Đảm bảo maxPrice luôn hợp lệ để tránh lỗi với react-range
@@ -43,22 +50,22 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
     <div className="bg-white p-6 font-sans w-full rounded-lg shadow-sm border">
       <div className="space-y-8">
         <div className="flex justify-between items-center">
-          <h3 className="text-xl font-bold">Filters</h3>
+          <h3 className="text-xl font-bold">Bộ lọc</h3>
           <button
             onClick={onResetFilters}
             className="text-blue-600 hover:text-blue-800 text-sm font-medium"
           >
-            Reset
+            Đặt lại
           </button>
         </div>
 
         <hr />
 
-        {/* Phần Lọc Giá (Không đổi) */}
+        {/* Phần Lọc Giá */}
         <div>
-          <h3 className="text-lg font-semibold mb-2">Price</h3>
+          <h3 className="text-lg font-semibold mb-2">Giá</h3>
           <p className="text-gray-500 text-sm mb-6">
-            Max price: ${safeMaxPrice.toFixed(2)}
+            Giá tối đa: {safeMaxPrice.toLocaleString("vi-VN")} VND
           </p>
           <div className="relative h-5 mb-6 px-2">
             <Range
@@ -93,20 +100,20 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           </div>
           <div className="flex items-center justify-between gap-4 text-md">
             <div className="w-1/2 text-center bg-gray-100 rounded-md py-2">
-              <span>${safePriceRange[0]}</span>
+              <span>{safePriceRange[0].toLocaleString("vi-VN")} VND</span>
             </div>
             <div className="w-1/2 text-center bg-gray-100 rounded-md py-2">
-              <span>${safePriceRange[1]}</span>
+              <span>{safePriceRange[1].toLocaleString("vi-VN")} VND</span>
             </div>
           </div>
         </div>
 
         <hr />
 
-        {/* SỬA PHẦN LỌC MÀU SẮC */}
+        {/* Phần Lọc Màu Sắc */}
         {allColors.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold mb-4">Color</h3>
+            <h3 className="text-lg font-semibold mb-4">Màu sắc</h3>
             <div className="space-y-3">
               {allColors.map((color) => (
                 <div
@@ -141,9 +148,39 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
 
         <hr />
 
-        {/* Phần Lọc Danh mục (Không đổi) */}
+        {/* Phần Lọc Thương hiệu */}
+        {allBrands.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Thương hiệu</h3>
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+              {allBrands.map((brand) => (
+                <div
+                  key={brand.name}
+                  className="flex justify-between items-center"
+                >
+                  <label className="flex items-center gap-3 cursor-pointer text-base text-gray-700">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 border-gray-400 rounded text-green-600 focus:ring-green-500"
+                      checked={selectedBrands.includes(brand.name)}
+                      onChange={() => onBrandChange(brand.name)}
+                    />
+                    <span>{brand.name}</span>
+                  </label>
+                  <span className="text-gray-500 bg-gray-200 px-2 rounded-full text-xs">
+                    {brand.count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <hr />
+
+        {/* Phần Lọc Danh mục */}
         <div>
-          <h3 className="text-lg font-semibold mb-4">Category</h3>
+          <h3 className="text-lg font-semibold mb-4">Danh mục</h3>
           <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
             {allCategories.map((category) => (
               <div

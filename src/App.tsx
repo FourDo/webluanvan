@@ -28,7 +28,6 @@ import {
   TrangDichVu,
   TrangVeChungToi,
   TrangBaiBao,
-  TrangDanhMuc,
   TrangDangKy,
   TrangDangNhap,
   AdminDangNhap,
@@ -48,6 +47,8 @@ import { AuthProvider } from "./context/AuthContext";
 import { useEffect } from "react";
 import { CategoryProductProvider } from "./context/CategoryProductContext";
 import DashboardContent from "./components/DashboardContent";
+import AdvancedReports from "./components/AdvancedReports";
+import SmartChatBox from "./components/SmartChatBox";
 
 // Component để xử lý redirect từ cổng thanh toán
 const RedirectHandler: React.FC = () => {
@@ -152,7 +153,10 @@ const MainLayout = () => (
     <main className="flex-grow">
       <Outlet />
     </main>
+    {/* Hiển thị Footer nếu không phải trang admin */}
+    {/* Bạn có thể cần logic xác định isAdminRoute nếu muốn ẩn Footer ở trang admin */}
     <Footer />
+    <SmartChatBox />
   </div>
 );
 
@@ -178,7 +182,8 @@ const router = createBrowserRouter([
           </AdminPrivateRoute>
         ),
         children: [
-          { index: true, element: <DashboardContent /> },
+          { index: true, element: <AdvancedReports /> },
+          { path: "dashboard", element: <DashboardContent /> },
           { path: "profile", element: <AdminProfile /> },
           { path: "sanpham", element: <QLSanPham /> },
           { path: "sanpham/:productId", element: <ProductDetail /> },
@@ -233,10 +238,6 @@ const router = createBrowserRouter([
       {
         path: "/baibao/:id", // Thêm dòng này
         element: <TrangBaiBao />, // Component chi tiết bài báo
-      },
-      {
-        path: "/danhmuc/:slug",
-        element: <TrangDanhMuc />,
       },
       {
         path: "/dangky",

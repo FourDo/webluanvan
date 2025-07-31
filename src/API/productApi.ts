@@ -55,11 +55,11 @@ export const productApi = {
       }),
 
   addVariant: async (
-    productId: number,
+    variantId: number,
     variant: InputVariant
   ): Promise<ProductResponse> =>
     apiClient
-      .post("/bien-the", { ...variant, ma_san_pham: productId })
+      .post(`/bien-the/${variantId}`, variant)
       .then((res) => res.data)
       .catch(() => {
         throw new Error("Thêm biến thể thất bại.");

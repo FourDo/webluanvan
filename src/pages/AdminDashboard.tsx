@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import SidebarAdmin from "../components/SidebarAdmin";
 import AdminNavbar from "../components/AdminNavbar";
+import DashboardContent from "../components/DashboardContent";
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   const toggleSidebar = () => setSidebarOpen((open) => !open);
   const closeSidebar = () => setSidebarOpen(false);
@@ -20,6 +22,8 @@ const AdminDashboard = () => {
         <main className="flex-1">
           <div className="p-4">
             <Outlet />
+            {/* Hiển thị DashboardContent khi ở route dashboard cũ */}
+            {location.pathname === "/admin/dashboard" && <DashboardContent />}
           </div>
         </main>
       </div>

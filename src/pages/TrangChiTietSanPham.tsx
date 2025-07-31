@@ -271,11 +271,11 @@ const ChiTietSanPham: React.FC = () => {
               </div>
 
               {product.bienthe && product.bienthe.length > 1 && (
-                <div className="flex items-center space-x-4">
+                <div className="space-y-3">
                   <span className="text-sm font-medium text-gray-700">
                     Màu sắc:
                   </span>
-                  <div className="flex space-x-2">
+                  <div className="flex flex-wrap gap-4">
                     {Array.from(
                       new Set(
                         product.bienthe.map(
@@ -292,42 +292,72 @@ const ChiTietSanPham: React.FC = () => {
                           color
                       );
                       return (
-                        <button
+                        <div
                           key={`${color ?? "unknown"}-${idx}`}
-                          onClick={() => {
-                            const newIdx = product.bienthe.findIndex(
-                              (v) =>
-                                (v.ten_mau_sac ||
-                                  v.ten_cac_bien_the
-                                    ?.split(" / ")[0]
-                                    ?.trim()) === color
-                            );
-                            setSelectedVariantIdx(newIdx);
-                            const firstSize =
-                              product.bienthe.find(
+                          className="flex flex-col items-center space-y-2"
+                        >
+                          <button
+                            onClick={() => {
+                              const newIdx = product.bienthe.findIndex(
                                 (v) =>
                                   (v.ten_mau_sac ||
                                     v.ten_cac_bien_the
                                       ?.split(" / ")[0]
                                       ?.trim()) === color
-                              )?.ten_kich_thuoc ||
-                              product.bienthe
-                                .find(
-                                  (v) =>
-                                    (v.ten_mau_sac ||
-                                      v.ten_cac_bien_the
-                                        ?.split(" / ")[0]
-                                        ?.trim()) === color
-                                )
-                                ?.ten_cac_bien_the?.split(" / ")[1]
-                                ?.trim() ||
-                              "";
-                            setSelectedSize(firstSize);
-                          }}
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${currentColor === color ? "border-[#518581] ring-2 ring-[#518581]" : "border-gray-300 hover:border-[#518581]"}`}
-                          style={{ backgroundColor: variant?.hex_code }}
-                          title={color}
-                        ></button>
+                              );
+                              setSelectedVariantIdx(newIdx);
+
+                              // Tìm biến thể có màu được chọn
+                              const selectedVariant = product.bienthe.find(
+                                (v) =>
+                                  (v.ten_mau_sac ||
+                                    v.ten_cac_bien_the
+                                      ?.split(" / ")[0]
+                                      ?.trim()) === color
+                              );
+
+                              // Cập nhật size đầu tiên của màu này
+                              const firstSize =
+                                selectedVariant?.ten_kich_thuoc ||
+                                selectedVariant?.ten_cac_bien_the
+                                  ?.split(" / ")[1]
+                                  ?.trim() ||
+                                "";
+                              setSelectedSize(firstSize);
+
+                              // Chuyển đến hình ảnh đầu tiên của biến thể này
+                              if (
+                                selectedVariant?.hinh_anh &&
+                                selectedVariant.hinh_anh.length > 0
+                              ) {
+                                const firstImageOfVariant =
+                                  selectedVariant.hinh_anh[0];
+                                const imageIndex = images.findIndex(
+                                  (img) => img === firstImageOfVariant
+                                );
+                                if (imageIndex !== -1) {
+                                  setSelectedImageIndex(imageIndex);
+                                }
+                              }
+                            }}
+                            className={`w-12 h-12 rounded-full border-3 transition-all hover:scale-110 ${
+                              currentColor === color
+                                ? "border-[#518581] ring-4 ring-[#518581] ring-opacity-30 shadow-lg"
+                                : "border-gray-300 hover:border-[#518581] shadow-md"
+                            }`}
+                            style={{ backgroundColor: variant?.hex_code }}
+                            title={color}
+                          ></button>
+                          <span
+                            className={`text-xs font-medium px-2 py-1 rounded-full transition-colors ${
+                              currentColor === color
+                                ? "text-[#518581] bg-[#518581] bg-opacity-10"
+                                : "text-gray-600"
+                            }`}
+                          >
+                            {color}
+                          </span>
+                        </div>
                       );
                     })}
                   </div>
