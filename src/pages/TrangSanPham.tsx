@@ -20,13 +20,22 @@ import { useBehaviorTracking } from "../hooks/useBehaviorTracking";
 // Helper function để lấy các thông tin cần thiết từ sản phẩm API
 const getProductDisplayInfo = (product: ApiProduct) => {
   const mainVariant = product.bienthe?.[0];
+  const originalPrice = mainVariant ? parseFloat(mainVariant.gia_ban) : 0;
+  const discountPercent = mainVariant?.phan_tram_giam || null;
+  const discountedPrice = discountPercent
+    ? originalPrice * (1 - discountPercent / 100)
+    : null;
+
   return {
     id: product.ma_san_pham,
     name: product.ten_san_pham,
     category: product.ten_danh_muc || "Uncategorized",
     brand: product.thuong_hieu || "Không có thương hiệu",
     description: product.mo_ta_ngan || "No description available.",
-    price: mainVariant ? parseFloat(mainVariant.gia_ban) : 0,
+    price: originalPrice,
+    discountedPrice: discountedPrice,
+    discountPercent: discountPercent,
+    finalPrice: discountedPrice || originalPrice, // Giá cuối cùng để sắp xếp và lọc
     image: mainVariant?.hinh_anh?.[0] || "",
     // Sử dụng tên màu sắc thay vì hex code
     color: mainVariant?.ten_mau_sac || "N/A",
@@ -223,9 +232,8 @@ const TrangSanPham: React.FC = () => {
         );
         setAllProducts(validProducts);
         const prices = validProducts
-          .map((p) => getProductDisplayInfo(p).price)
+          .map((p) => getProductDisplayInfo(p).finalPrice)
           .filter((price) => price > 0);
-
         const maxPrice =
           prices.length > 0 ? Math.ceil(Math.max(...prices)) : 1000;
         const minPrice = 0;
@@ -270,9 +278,9 @@ const TrangSanPham: React.FC = () => {
             cacheProducts(activeProducts);
           }
 
-          // Tính toán price range với fallback an toàn
+          // Tính toán price range với fallback an toàn - sử dụng finalPrice
           const prices = activeProducts
-            .map((p) => getProductDisplayInfo(p).price)
+            .map((p) => getProductDisplayInfo(p).finalPrice)
             .filter((price) => price > 0);
 
           const maxPrice =
@@ -301,7 +309,7 @@ const TrangSanPham: React.FC = () => {
           );
           setAllProducts(validProducts);
           const prices = validProducts
-            .map((p) => getProductDisplayInfo(p).price)
+            .map((p) => getProductDisplayInfo(p).finalPrice)
             .filter((price) => price > 0);
 
           const maxPrice =
@@ -332,7 +340,9 @@ const TrangSanPham: React.FC = () => {
 
     // 1. Lọc theo các tiêu chí từ FilterMenu
     filtered = filtered.filter((p) => {
-      const priceMatch = p.price >= priceRange[0] && p.price <= priceRange[1];
+      // Sử dụng finalPrice thay vì price cho việc lọc
+      const priceMatch =
+        p.finalPrice >= priceRange[0] && p.finalPrice <= priceRange[1];
       const categoryMatch =
         selectedCategories.length === 0 ||
         selectedCategories.includes(p.category);
@@ -358,13 +368,13 @@ const TrangSanPham: React.FC = () => {
       );
     }
 
-    // 3. Sắp xếp (Sort)
+    // 3. Sắp xếp (Sort) - Sử dụng finalPrice cho việc sắp xếp theo giá
     switch (sortOption) {
       case "Giá, thấp đến cao":
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => a.finalPrice - b.finalPrice);
         break;
       case "Giá, cao đến thấp":
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => b.finalPrice - a.finalPrice);
         break;
       case "Theo thứ tự chữ cái, A-Z":
         filtered.sort((a, b) => a.name.localeCompare(b.name));
@@ -407,8 +417,9 @@ const TrangSanPham: React.FC = () => {
             hex: p.hex, // Sử dụng hex code từ thuộc tính hex
           };
         }
-        if (p.price > maxPriceValue) {
-          maxPriceValue = p.price;
+        // Sử dụng finalPrice để tính maxPrice
+        if (p.finalPrice > maxPriceValue) {
+          maxPriceValue = p.finalPrice;
         }
       });
 

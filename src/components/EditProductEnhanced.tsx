@@ -87,6 +87,8 @@ const EditProductEnhanced: React.FC = () => {
     hex_code: "",
     ten_kich_thuoc: "",
     gia_ban: 0,
+    gia_khuyen_mai: null,
+    phan_tram_giam: null,
     so_luong_ton: 0,
     trang_thai_hoat_dong_btsp: "hoat_dong",
     hinh_anh: [],
@@ -97,6 +99,8 @@ const EditProductEnhanced: React.FC = () => {
     hex_code: "",
     ten_kich_thuoc: "",
     gia_ban: 0,
+    gia_khuyen_mai: null,
+    phan_tram_giam: null,
     so_luong_ton: 0,
     trang_thai_hoat_dong_btsp: "hoat_dong",
     hinh_anh: [],
@@ -144,6 +148,9 @@ const EditProductEnhanced: React.FC = () => {
           ...variant,
           ma_bien_the: variant.ma_bien_the, // Mapping đúng field name từ API
           gia_ban: parseFloat(variant.gia_ban),
+          gia_khuyen_mai: variant.gia_khuyen_mai
+            ? parseFloat(variant.gia_khuyen_mai)
+            : null,
           trang_thai_hoat_dong_btsp:
             variant.trang_thai_hoat_dong_btsp || "hoat_dong",
         })),
@@ -172,6 +179,8 @@ const EditProductEnhanced: React.FC = () => {
         "https://luanvan-7wv1.onrender.com/api/ai/generate",
         {
           ten_san_pham: product.ten_san_pham,
+          thuong_hieu: product.thuong_hieu,
+          chat_lieu: product.chat_lieu,
         },
         {
           timeout: 30000, // 30 seconds timeout
@@ -371,6 +380,8 @@ const EditProductEnhanced: React.FC = () => {
       hex_code: variantToProcess.hex_code,
       ten_kich_thuoc: variantToProcess.ten_kich_thuoc,
       gia_ban: Number(variantToProcess.gia_ban),
+      gia_khuyen_mai: variantToProcess.gia_khuyen_mai,
+      phan_tram_giam: variantToProcess.phan_tram_giam,
       so_luong_ton: variantToProcess.so_luong_ton,
       trang_thai_hoat_dong_btsp: variantToProcess.trang_thai_hoat_dong_btsp,
       hinh_anh: variantToProcess.hinh_anh,
@@ -421,6 +432,8 @@ const EditProductEnhanced: React.FC = () => {
       hex_code: variant.hex_code,
       ten_kich_thuoc: variant.ten_kich_thuoc,
       gia_ban: variant.gia_ban,
+      gia_khuyen_mai: variant.gia_khuyen_mai,
+      phan_tram_giam: variant.phan_tram_giam,
       so_luong_ton: variant.so_luong_ton,
       trang_thai_hoat_dong_btsp: variant.trang_thai_hoat_dong_btsp,
       hinh_anh: variant.hinh_anh,

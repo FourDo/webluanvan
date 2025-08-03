@@ -24,13 +24,8 @@ import orderApi, {
   updateOrderStatusQL,
 } from "../API/orderApi";
 import accountApi from "../API/accountApi";
+import apiClient from "../ultis/apiClient";
 import type { Account } from "../types/Account";
-import {
-  createGHNShippingOrder,
-  parseAddress,
-  calculateOrderDimensions,
-  type GHNCreateOrderPayload,
-} from "../API/ghnShippingApi";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -559,84 +554,43 @@ const QLDonHang = () => {
       const orderDetail = await orderApi.getOrderDetail(orderId);
       console.log("📋 Chi tiết đơn hàng:", orderDetail);
 
-      // Parse địa chỉ giao hàng
-      const addressParts = parseAddress(orderDetail.don_hang.dia_chi_giao);
-      console.log("📍 Địa chỉ đã parse:", addressParts);
-
-      // Tính toán kích thước và trọng lượng đơn hàng
-      const dimensions = calculateOrderDimensions(orderDetail.chi_tiet);
-      console.log("📦 Kích thước đơn hàng:", dimensions);
-
-      // Tạo nội dung đơn hàng
-      const content = orderDetail.chi_tiet
-        .map((item) => `${item.ten_san_pham} x${item.so_luong}`)
-        .join(", ");
-
       // Tính COD amount (nếu thanh toán khi nhận hàng)
       const codAmount =
         orderDetail.don_hang.hinh_thuc_thanh_toan === "Thanh toán khi nhận hàng"
           ? parseInt(orderDetail.don_hang.tong_thanh_toan.replace(/[^\d]/g, ""))
           : 0;
 
-      // Chuẩn bị payload cho GHN
-      const ghnPayload: GHNCreateOrderPayload = {
-        // Thông tin người nhận
+      // Chuẩn bị payload đơn giản cho GHN API
+      const ghnPayload = {
+        note: orderDetail.don_hang.ghi_chu || "Giao nhanh trong giờ hành chính",
+        required_note: "KHONGCHOXEMHANG",
         to_name: orderDetail.don_hang.ten_nguoi_nhan,
         to_phone: orderDetail.don_hang.so_dien_thoai,
-        to_address: addressParts.address || orderDetail.don_hang.dia_chi_giao,
-        to_ward_name: addressParts.ward || "Phường 1",
-        to_district_name: addressParts.district || "Quận 1",
-        to_province_name: addressParts.province || "TP. Hồ Chí Minh",
-
-        // Thông tin đơn hàng
-        client_order_code: `WEB-${orderDetail.don_hang.ma_don_hang}`,
-        cod_amount: codAmount,
-        content: content || "Đơn hàng từ website",
-
-        // Kích thước và trọng lượng
-        weight: dimensions.weight || 500, // Default 500g
-        length: dimensions.length || 20, // Default 20cm
-        width: dimensions.width || 15, // Default 15cm
-        height: dimensions.height || 10, // Default 10cm
-
-        // Cấu hình dịch vụ
-        service_type_id: 2, // Hàng nhẹ
-        payment_type_id: 1, // Người gửi trả phí
-        required_note: "CHOTHUHANG", // Cho thử hàng
-
-        // Giá trị bảo hiểm
-        insurance_value: Math.min(codAmount, 5000000), // Max 5M
-
-        // Ghi chú
-        note: orderDetail.don_hang.ghi_chu || "Đơn hàng từ website",
-
-        // Thông tin sản phẩm chi tiết
-        items: orderDetail.chi_tiet.map((item) => ({
-          name: item.ten_san_pham,
-          code: `SP-${item.ma_bien_the}`,
-          quantity: item.so_luong,
-          price: item.gia_sau_km,
-          weight: 100, // Default 100g per item
-          length: 15,
-          width: 10,
-          height: 5,
-        })),
+        to_address: orderDetail.don_hang.dia_chi_giao,
+        to_ward_name: "Phường 14", // Default
+        to_district_name: "Quận 10", // Default
+        to_province_name: "TP. Hồ Chí Minh", // Default
+        insurance_value: Math.min(codAmount || 1000000, 5000000), // Max 5M
+        pick_shift: [2],
       };
 
       console.log("🚚 GHN Payload:", ghnPayload);
 
-      // Tạo đơn hàng GHN
-      const ghnResponse = await createGHNShippingOrder(ghnPayload);
+      // Gọi API GHN tạo đơn
+      const response = await apiClient.post(
+        `/ghn/taodon/${orderId}`,
+        ghnPayload
+      );
+
+      const ghnResponse = response.data;
       console.log("✅ GHN Response:", ghnResponse);
 
-      // Cập nhật trạng thái đơn hàng với mã vận đơn GHN
+      // Cập nhật trạng thái đơn hàng
       await updateOrderStatusQL(orderId, "Đang Giao");
 
       alert(
         `✅ Đã duyệt đơn hàng thành công!\n` +
-          `🚚 Mã vận đơn GHN: ${ghnResponse.data.order_code}\n` +
-          `💰 Phí vận chuyển: ${ghnResponse.data.total_fee.toLocaleString()} VND\n` +
-          `📅 Dự kiến giao: ${new Date(ghnResponse.data.expected_delivery_time).toLocaleDateString("vi-VN")}`
+          `🚚 Đơn hàng đã được gửi đến GHN để xử lý`
       );
 
       // Reload pending orders để cập nhật danh sách
@@ -645,7 +599,7 @@ const QLDonHang = () => {
       console.error("❌ Lỗi duyệt đơn hàng:", error);
 
       let errorMessage = "Lỗi khi duyệt đơn hàng!";
-      if (error.message?.includes("GHN")) {
+      if (error.message?.includes("HTTP")) {
         errorMessage = `Lỗi tạo đơn vận chuyển GHN: ${error.message}`;
       }
 

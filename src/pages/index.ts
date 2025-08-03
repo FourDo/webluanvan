@@ -25,7 +25,7 @@ export { default as QLDoanhMuc } from "../pages/QLDoanhMuc";
 export { default as QLMauSac } from "../pages/QLMauSac";
 export { default as QLSize } from "../pages/QLKichThuoc";
 export { default as QLKhachHang } from "../pages/QLKhachHang";
-export { default as QLKhuyenMai } from "../pages/QLKhuyenMai";
+export { default as QLVoucher } from "../pages/QLKhuyenMai";
 export { default as QLSuKien } from "../pages/QLSuKien";
 
 export { default as QLBaiBaoEnhanced } from "../pages/QLBaiBaoEnhanced";

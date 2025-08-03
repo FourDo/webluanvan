@@ -68,9 +68,9 @@ export const eventApi = {
       }),
 
   // Xóa sản phẩm khỏi sự kiện
-  removeProductFromEvent: (eventId: number, productId: number) =>
+  removeProductFromEvent: (productId: number) =>
     apiClient
-      .delete(`/event-sanpham/${eventId}/${productId}`)
+      .delete(`/event-sanpham/${productId}`)
       .then((res) => res.data)
       .catch(() => {
         throw new Error("Xóa sản phẩm khỏi sự kiện thất bại.");

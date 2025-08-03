@@ -328,6 +328,24 @@ export const orderApi = {
         console.error("❌ Lỗi cập nhật trạng thái đơn hàng (QL):", error);
         throw new Error("Cập nhật trạng thái đơn hàng thất bại.");
       }),
+
+  // Yêu cầu hủy hoặc trả hàng
+  requestCancelReturn: (
+    orderId: number,
+    requestData: { yeu_cau_huy_tra: string; ly_do_huy_tra: string }
+  ) =>
+    apiClient
+      .post(`/ghn/yeucauhuytra/${orderId}`, requestData)
+      .then((res) => {
+        console.log("✅ Yêu cầu hủy/trả hàng thành công:", res.data);
+        return res.data;
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi khi yêu cầu hủy/trả hàng:", error);
+        throw new Error(
+          error.response?.data?.message || "Yêu cầu hủy/trả hàng thất bại."
+        );
+      }),
 };
 
 // Export các hàm riêng lẻ để tương thích với code cũ
@@ -338,5 +356,6 @@ export const updateOrderStatus = orderApi.updateOrderStatus;
 export const updateOrderStatusQL = orderApi.updateOrderStatusQL;
 export const refundVNPay = orderApi.refundVNPay;
 export const getPendingOrders = orderApi.getPendingOrders;
+export const requestCancelReturn = orderApi.requestCancelReturn;
 
 export default orderApi;

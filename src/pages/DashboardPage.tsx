@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { 
+import {
   BarChart3,
-  TrendingUp, 
-  Calendar, 
+  TrendingUp,
+  Calendar,
   Filter,
   RefreshCw,
   DollarSign,
   ShoppingCart,
   Package,
-  Activity
+  Activity,
 } from "lucide-react";
 import RevenueChart from "../components/RevenueChart";
 import InteractiveRevenueChart from "../components/InteractiveRevenueChart";
@@ -22,7 +22,7 @@ import type {
   TopProduct,
   TotalRevenueData,
   TotalSalesData,
-  OrderStats
+  OrderStats,
 } from "../API/thongkeApi";
 
 type TimeFilterType = "thang" | "quy" | "nam";
@@ -43,15 +43,19 @@ const AdminDashboard: React.FC = () => {
 
   // State cho dữ liệu biểu đồ
   const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
-  const [quarterlyRevenueData, setQuarterlyRevenueData] = useState<QuarterlyRevenueData[]>([]);
-  const [yearlyRevenueData, setYearlyRevenueData] = useState<YearlyRevenue[]>([]);
-  
+  const [quarterlyRevenueData, setQuarterlyRevenueData] = useState<
+    QuarterlyRevenueData[]
+  >([]);
+  const [yearlyRevenueData, setYearlyRevenueData] = useState<YearlyRevenue[]>(
+    []
+  );
+
   // State cho dữ liệu khác
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     totalRevenue: null,
     totalSales: null,
-    orderStats: null
+    orderStats: null,
   });
 
   // Lấy dữ liệu dashboard
@@ -64,32 +68,32 @@ const AdminDashboard: React.FC = () => {
         yearlyRevenue,
         products,
         totalRev,
-        totalSales
+        totalSales,
       ] = await Promise.all([
         thongkeApi.fetchMonthlyRevenue(),
         thongkeApi.fetchQuarterlyRevenue(),
         thongkeApi.fetchYearlyRevenue(),
         thongkeApi.fetchTopProducts(),
         thongkeApi.fetchTotalRevenue(),
-        thongkeApi.fetchTotalSales()
+        thongkeApi.fetchTotalSales(),
       ]);
 
       setRevenueData(monthlyRevenue);
       setQuarterlyRevenueData(quarterlyRevenue);
       setYearlyRevenueData(yearlyRevenue);
       setTopProducts(products);
-      setDashboardStats(prev => ({
+      setDashboardStats((prev) => ({
         ...prev,
         totalRevenue: totalRev,
         totalSales: totalSales,
         orderStats: {
-          tong_don_hang: totalRev.so_don_hang || 0,
-          don_thanh_cong: Math.floor((totalRev.so_don_hang || 0) * 0.75),
-          don_huy: Math.floor((totalRev.so_don_hang || 0) * 0.1),
-          don_cho_xu_ly: Math.floor((totalRev.so_don_hang || 0) * 0.1),
-          don_dang_giao: Math.floor((totalRev.so_don_hang || 0) * 0.05),
-          ti_le_thanh_cong: 75
-        }
+          tong_don_hang: totalRev.so_don || 0,
+          don_thanh_cong: Math.floor((totalRev.so_don || 0) * 0.75),
+          don_huy: Math.floor((totalRev.so_don || 0) * 0.1),
+          don_cho_xu_ly: Math.floor((totalRev.so_don || 0) * 0.1),
+          don_dang_giao: Math.floor((totalRev.so_don || 0) * 0.05),
+          ti_le_thanh_cong: 75,
+        },
       }));
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu dashboard:", error);
@@ -127,20 +131,20 @@ const AdminDashboard: React.FC = () => {
   const getCurrentRevenueData = () => {
     switch (timeFilter) {
       case "quy":
-        return quarterlyRevenueData.map(item => ({
+        return quarterlyRevenueData.map((item) => ({
           thang: `Quý ${item.quy}`,
           nam: item.nam,
           doanh_thu: item.doanh_thu,
           don_hang: item.don_hang,
-          tang_truong: item.tang_truong
+          tang_truong: item.tang_truong,
         }));
       case "nam":
-        return yearlyRevenueData.map(item => ({
+        return yearlyRevenueData.map((item) => ({
           thang: item.nam.toString(),
           nam: item.nam,
           doanh_thu: item.doanh_thu,
           don_hang: item.don_hang,
-          tang_truong: item.tang_truong
+          tang_truong: item.tang_truong,
         }));
       default:
         return revenueData;
@@ -163,11 +167,13 @@ const AdminDashboard: React.FC = () => {
   const statsCards = [
     {
       title: "Tổng Doanh Thu",
-      value: formatCurrency(dashboardStats.totalRevenue?.tong_doanh_thu || 0),
-      subtitle: `${formatNumber(dashboardStats.totalRevenue?.so_don_hang || 0)} đơn hàng`,
+      value: formatCurrency(
+        parseFloat(dashboardStats.totalRevenue?.tong_doanh_thu || "0")
+      ),
+      subtitle: `${formatNumber(dashboardStats.totalRevenue?.so_don || 0)} đơn hàng`,
       icon: DollarSign,
       color: "bg-green-500",
-      trend: "+12.5%"
+      trend: "+12.5%",
     },
     {
       title: "Sản Phẩm Bán Ra",
@@ -175,15 +181,17 @@ const AdminDashboard: React.FC = () => {
       subtitle: `${(dashboardStats.totalSales?.ti_le_ban_ra || 0).toFixed(1)}% tỷ lệ bán`,
       icon: Package,
       color: "bg-blue-500",
-      trend: "+8.2%"
+      trend: "+8.2%",
     },
     {
       title: "Giá Trị TB/Đơn",
-      value: formatCurrency(dashboardStats.totalRevenue?.gia_tri_trung_binh || 0),
+      value: formatCurrency(
+        dashboardStats.totalRevenue?.doanh_thu_trung_binh || 0
+      ),
       subtitle: "Trung bình mỗi đơn hàng",
       icon: ShoppingCart,
       color: "bg-purple-500",
-      trend: "+5.1%"
+      trend: "+5.1%",
     },
     {
       title: "Sản Phẩm Hoạt Động",
@@ -191,8 +199,8 @@ const AdminDashboard: React.FC = () => {
       subtitle: "Tổng sản phẩm",
       icon: Activity,
       color: "bg-orange-500",
-      trend: "+2.3%"
-    }
+      trend: "+2.3%",
+    },
   ];
 
   return (
@@ -202,7 +210,9 @@ const AdminDashboard: React.FC = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard Thống Kê</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Dashboard Thống Kê
+              </h1>
               <p className="text-gray-600 mt-1">
                 Tổng quan hiệu suất kinh doanh và phân tích xu hướng
               </p>
@@ -239,7 +249,11 @@ const AdminDashboard: React.FC = () => {
                         : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
                     }`}
                   >
-                    {filter === "thang" ? "Tháng" : filter === "quy" ? "Quý" : "Năm"}
+                    {filter === "thang"
+                      ? "Tháng"
+                      : filter === "quy"
+                        ? "Quý"
+                        : "Năm"}
                   </button>
                 ))}
               </div>
@@ -250,7 +264,9 @@ const AdminDashboard: React.FC = () => {
                 disabled={refreshing}
                 className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
               >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+                />
                 <span className="text-sm font-medium">Làm mới</span>
               </button>
             </div>
@@ -266,18 +282,28 @@ const AdminDashboard: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
+                  <p className="text-sm font-medium text-gray-600 mb-1">
+                    {stat.title}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 mb-1">
+                    {stat.value}
+                  </p>
                   <p className="text-xs text-gray-500">{stat.subtitle}</p>
                 </div>
-                <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
+                <div
+                  className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}
+                >
                   <stat.icon className="w-6 h-6 text-white" />
                 </div>
               </div>
               <div className="mt-4 flex items-center">
                 <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                <span className="text-sm font-medium text-green-600">{stat.trend}</span>
-                <span className="text-sm text-gray-500 ml-1">so với tháng trước</span>
+                <span className="text-sm font-medium text-green-600">
+                  {stat.trend}
+                </span>
+                <span className="text-sm text-gray-500 ml-1">
+                  so với tháng trước
+                </span>
               </div>
             </div>
           ))}
@@ -293,7 +319,10 @@ const AdminDashboard: React.FC = () => {
                   <div className="h-8 bg-gray-200 rounded-lg mb-4"></div>
                   <div className="space-y-4">
                     {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="h-16 bg-gray-200 rounded-lg"></div>
+                      <div
+                        key={i}
+                        className="h-16 bg-gray-200 rounded-lg"
+                      ></div>
                     ))}
                   </div>
                 </div>
@@ -344,16 +373,22 @@ const AdminDashboard: React.FC = () => {
           {/* Additional Stats or Charts */}
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Phân Tích Xu Hướng</h3>
+              <h3 className="text-xl font-bold text-gray-900">
+                Phân Tích Xu Hướng
+              </h3>
               <Calendar className="w-6 h-6 text-blue-600" />
             </div>
-            
+
             <div className="space-y-6">
               {/* Trend indicators */}
               <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl">
                 <div>
-                  <p className="font-semibold text-green-900">Tăng trưởng doanh thu</p>
-                  <p className="text-sm text-green-700">So với cùng kỳ năm trước</p>
+                  <p className="font-semibold text-green-900">
+                    Tăng trưởng doanh thu
+                  </p>
+                  <p className="text-sm text-green-700">
+                    So với cùng kỳ năm trước
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-green-600">+24.5%</p>
@@ -374,7 +409,9 @@ const AdminDashboard: React.FC = () => {
 
               <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl">
                 <div>
-                  <p className="font-semibold text-purple-900">Khách hàng mới</p>
+                  <p className="font-semibold text-purple-900">
+                    Khách hàng mới
+                  </p>
                   <p className="text-sm text-purple-700">Tỷ lệ chuyển đổi</p>
                 </div>
                 <div className="text-right">

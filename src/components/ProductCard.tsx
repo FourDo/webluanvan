@@ -77,6 +77,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     >
       {/* Phần hình ảnh */}
       <div className="relative cursor-pointer" onClick={handleCardClick}>
+        {/* Badge giảm giá */}
+        {defaultVariant.phan_tram_giam && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-bold z-10">
+            -{defaultVariant.phan_tram_giam}%
+          </div>
+        )}
         <img
           src={currentImage}
           onError={(e) => {
@@ -99,9 +105,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {product.ten_san_pham}
         </h3>
 
-        <p className="text-xl font-bold text-green-600 my-3">
-          {formatCurrency(defaultVariant.gia_ban)}
-        </p>
+        {/* Phần giá - hiển thị giá khuyến mãi nếu có */}
+        <div className="my-3">
+          {defaultVariant.phan_tram_giam ? (
+            <div className="flex flex-col">
+              <p className="text-xl font-bold text-red-600">
+                {formatCurrency(
+                  parseFloat(defaultVariant.gia_ban) *
+                    (1 - defaultVariant.phan_tram_giam / 100)
+                )}
+              </p>
+              <p className="text-sm text-gray-500 line-through">
+                {formatCurrency(defaultVariant.gia_ban)}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xl font-bold text-green-600">
+              {formatCurrency(defaultVariant.gia_ban)}
+            </p>
+          )}
+        </div>
 
         {/* Phần hiển thị màu sắc tương tác */}
         <div className="mt-auto pt-3 border-t border-gray-100 min-h-[40px]">

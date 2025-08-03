@@ -3,8 +3,6 @@ import axios from "axios";
 const GHN_BASE_URL = "https://dev-online-gateway.ghn.vn/shiip/public-api/v2";
 const GHN_TOKEN = "88ffa8dd-5b44-11f0-a16a-2e9c57086fef";
 const GHN_SHOP_ID = 5878467;
-const GHN_FROM_DISTRICT = 1446;
-const GHN_FROM_WARD = "0441";
 
 export interface GHNShippingItem {
   name: string;

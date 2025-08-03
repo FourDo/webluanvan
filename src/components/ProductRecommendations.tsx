@@ -181,9 +181,28 @@ const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
                     </h3>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-[#518581]">
-                        {formatPrice(mainVariant.gia_ban)}
-                      </span>
+                      {mainVariant.phan_tram_giam ? (
+                        <div className="flex flex-col">
+                          <span className="text-lg font-bold text-red-600">
+                            {formatPrice(
+                              (
+                                parseFloat(mainVariant.gia_ban) *
+                                (1 - mainVariant.phan_tram_giam / 100)
+                              ).toString()
+                            )}
+                          </span>
+                          <span className="text-sm text-gray-500 line-through">
+                            {formatPrice(mainVariant.gia_ban)}
+                          </span>
+                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full mt-1 self-start">
+                            -{mainVariant.phan_tram_giam}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-lg font-bold text-[#518581]">
+                          {formatPrice(mainVariant.gia_ban)}
+                        </span>
+                      )}
                       <span className="text-sm text-gray-500">
                         {product.thuong_hieu}
                       </span>

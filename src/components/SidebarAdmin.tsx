@@ -44,10 +44,10 @@ const SidebarAdmin = ({ isOpen, closeSidebar }: SidebarAdminProps) => {
       path: "/admin/kichthuoc",
     },
     {
-      id: "khuyenmai",
-      label: "Khuyến mãi",
+      id: "voucher",
+      label: "Voucher",
       icon: Gift,
-      path: "/admin/khuyenmai",
+      path: "/admin/voucher",
     },
     {
       id: "banner",

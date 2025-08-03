@@ -20,6 +20,8 @@ export interface Variant {
   hex_code: string;
   ten_kich_thuoc: string;
   gia_ban: string; // API trả về string, nhưng gửi đi cần number
+  gia_khuyen_mai: string | null; // Thêm field mới
+  phan_tram_giam: number | null; // Thêm field mới
   so_luong_ton: number;
   trang_thai_hoat_dong_btsp: string;
   hinh_anh: string[];
@@ -58,6 +60,8 @@ export interface VariantForEdit {
   hex_code: string;
   ten_kich_thuoc: string;
   gia_ban: number; // << Khác biệt chính
+  gia_khuyen_mai: number | null; // Thêm field mới
+  phan_tram_giam: number | null; // Thêm field mới
   so_luong_ton: number;
   trang_thai_hoat_dong_btsp: string;
   hinh_anh: string[];

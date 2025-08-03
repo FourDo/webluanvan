@@ -1,98 +1,111 @@
-// Giả lập trong file: src/api/promotionApi.ts
+import apiClient from "../ultis/apiClient";
 
-// Định nghĩa kiểu dữ liệu
-export type Promotion = {
-  ma_khuyen_mai: number;
-  ten_khuyen_mai: string;
-  phan_tram_giam: number;
+// Định nghĩa kiểu dữ liệu cho Voucher theo bảng SQL
+export type Voucher = {
+  ma_voucher: number; // AI PK
+  ma_giam_gia: string; // varchar(50)
+  mo_ta: string; // text
+  ap_dung_toan_bo: boolean; // tinyint (0/1)
+  loai_khuyen_mai: "%" | "tien"; // enum
+  gia_tri_giam: number; // bigint
+  don_toi_thieu: number; // bigint
+  giam_toi_da: number; // bigint
+  gioi_han_su_dung: number; // int
+  ngay_bat_dau: string; // timestamp
+  ngay_ket_thuc: string; // timestamp
+  ngay_tao: string; // timestamp
+  trang_thai: "hoat_dong" | "het_han" | "vo_hieu"; // enum
+  ngay_cap_nhat: string; // timestamp
+};
+
+export type VoucherFormData = {
+  ma_giam_gia: string;
+  mo_ta: string;
+  loai_khuyen_mai: "%" | "tien";
+  gia_tri_giam: string | number;
   ngay_bat_dau: string;
   ngay_ket_thuc: string;
+  trang_thai: "hoat_dong" | "het_han" | "vo_hieu";
 };
 
-export type PromotionFormData = {
-  ten_khuyen_mai: string;
-  phan_tram_giam: string | number;
-  ngay_bat_dau: string;
-  ngay_ket_thuc: string;
-};
+export const voucherApi = {
+  fetchVouchers: () =>
+    apiClient
+      .get("/voucher")
+      .then((res) => {
+        console.log("API Response:", res.data); // Debug log
+        // Kiểm tra nếu response có cấu trúc data
+        const data = res.data.data || res.data;
+        return Array.isArray(data) ? data : [];
+      })
+      .catch((error) => {
+        console.error("Fetch vouchers error:", error);
+        throw new Error("Lấy danh sách voucher thất bại.");
+      }),
 
-let mockPromotions: Promotion[] = [
-  {
-    ma_khuyen_mai: 1,
-    ten_khuyen_mai: "Khuyến mãi mùa hè",
-    phan_tram_giam: 20,
-    ngay_bat_dau: "2025-06-01T10:00:00.000Z",
-    ngay_ket_thuc: "2025-06-15T23:59:59.000Z",
+  getVoucherDetail: (id: number) =>
+    apiClient
+      .get(`/voucher/${id}`)
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Lấy chi tiết voucher thất bại.");
+      }),
+
+  createVoucher: (formData: VoucherFormData) =>
+    apiClient
+      .post("/voucher", {
+        ma_giam_gia: formData.ma_giam_gia,
+        mo_ta: formData.mo_ta,
+        loai_khuyen_mai: formData.loai_khuyen_mai,
+        gia_tri_giam: Number(formData.gia_tri_giam),
+        ngay_bat_dau: formData.ngay_bat_dau,
+        ngay_ket_thuc: formData.ngay_ket_thuc,
+        trang_thai: formData.trang_thai,
+      })
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Tạo voucher mới thất bại.");
+      }),
+
+  updateVoucher: (id: number, formData: VoucherFormData) =>
+    apiClient
+      .put(`/voucher/${id}`, {
+        ma_giam_gia: formData.ma_giam_gia,
+        mo_ta: formData.mo_ta,
+        loai_khuyen_mai: formData.loai_khuyen_mai,
+        gia_tri_giam: Number(formData.gia_tri_giam),
+        ngay_bat_dau: formData.ngay_bat_dau,
+        ngay_ket_thuc: formData.ngay_ket_thuc,
+        trang_thai: formData.trang_thai,
+      })
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Cập nhật voucher thất bại.");
+      }),
+
+  deleteVoucher: (id: number) =>
+    apiClient
+      .delete(`/voucher/${id}`)
+      .then((res) => res.data)
+      .catch(() => {
+        throw new Error("Xóa voucher thất bại.");
+      }),
+
+  saveVoucher: (formData: VoucherFormData, editingId: number | null = null) => {
+    if (editingId) {
+      return voucherApi.updateVoucher(editingId, formData);
+    } else {
+      return voucherApi.createVoucher(formData);
+    }
   },
-  {
-    ma_khuyen_mai: 2,
-    ten_khuyen_mai: "Chào mừng ngày lễ",
-    phan_tram_giam: 15,
-    ngay_bat_dau: "2025-04-30T10:00:00.000Z",
-    ngay_ket_thuc: "2025-05-05T23:59:59.000Z",
-  },
-  {
-    ma_khuyen_mai: 3,
-    ten_khuyen_mai: "Black Friday Sale",
-    phan_tram_giam: 50,
-    ngay_bat_dau: "2024-11-28T00:00:00.000Z",
-    ngay_ket_thuc: "2024-11-30T23:59:59.000Z",
-  },
-];
-
-const apiRequest = <T>(data: T, delay = 500): Promise<T> =>
-  new Promise((resolve) => setTimeout(() => resolve(data), delay));
-
-// Giả lập API lấy danh sách khuyến mãi
-export const fetchPromotions = async (): Promise<Promotion[]> => {
-  console.log("API: Fetching promotions...");
-  return apiRequest(mockPromotions);
 };
 
-// Giả lập API lưu (thêm/sửa) khuyến mãi
-export const savePromotion = async (
-  formData: PromotionFormData,
-  editingId: number | null
-): Promise<Promotion> => {
-  console.log("API: Saving promotion...", { formData, editingId });
+// Backward compatibility - export individual functions
+export const fetchVouchers = voucherApi.fetchVouchers;
+export const getVoucherDetail = voucherApi.getVoucherDetail;
+export const createVoucher = voucherApi.createVoucher;
+export const updateVoucher = voucherApi.updateVoucher;
+export const deleteVoucher = voucherApi.deleteVoucher;
+export const saveVoucher = voucherApi.saveVoucher;
 
-  if (editingId) {
-    // Chế độ sửa
-    const updatedPromotion = {
-      ...formData,
-      ma_khuyen_mai: editingId,
-      phan_tram_giam: Number(formData.phan_tram_giam),
-    };
-    mockPromotions = mockPromotions.map((p) =>
-      p.ma_khuyen_mai === editingId ? updatedPromotion : p
-    );
-    return apiRequest(updatedPromotion);
-  } else {
-    // Chế độ thêm mới
-    const newId =
-      mockPromotions.length > 0
-        ? Math.max(...mockPromotions.map((p) => p.ma_khuyen_mai)) + 1
-        : 1;
-    const newPromotion = {
-      ...formData,
-      ma_khuyen_mai: newId,
-      phan_tram_giam: Number(formData.phan_tram_giam),
-    };
-    mockPromotions.push(newPromotion);
-    return apiRequest(newPromotion);
-  }
-};
-
-// Giả lập API xóa khuyến mãi
-export const deletePromotion = async (
-  id: number
-): Promise<{ success: boolean }> => {
-  console.log("API: Deleting promotion with id:", id);
-  const initialLength = mockPromotions.length;
-  mockPromotions = mockPromotions.filter((p) => p.ma_khuyen_mai !== id);
-  if (mockPromotions.length < initialLength) {
-    return apiRequest({ success: true });
-  } else {
-    throw new Error("Không tìm thấy khuyến mãi để xóa.");
-  }
-};
+export default voucherApi;

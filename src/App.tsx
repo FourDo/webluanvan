@@ -22,7 +22,7 @@ import {
   QLMauSac,
   QLSize,
   QLKhachHang,
-  QLKhuyenMai,
+  QLVoucher,
   QLSuKien,
   QLBaiBaoEnhanced,
   TrangDichVu,
@@ -280,10 +280,10 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "khuyenmai",
+        path: "voucher",
         element: (
           <AdminPrivateRoute>
-            <QLKhuyenMai />
+            <QLVoucher />
           </AdminPrivateRoute>
         ),
       },

@@ -16,8 +16,8 @@ export interface Event {
 }
 
 export interface EventProduct {
+  gia_sau_khuyen_mai: any;
   ma_san_pham: number;
-  gia_khuyen_mai: number;
   phan_tram_giam: number;
   ghi_chu: string;
 }

@@ -158,17 +158,23 @@ const ChiTietSanPham: React.FC = () => {
       selectedVariant.ten_kich_thuoc ||
       selectedVariant.ten_cac_bien_the?.split(" / ")[1]?.trim() ||
       "";
+    // Sử dụng giá khuyến mãi nếu có, nếu không thì dùng giá gốc
+    const originalPrice = Number(selectedVariant.gia_ban);
+    const finalPrice = selectedVariant.phan_tram_giam
+      ? originalPrice * (1 - selectedVariant.phan_tram_giam / 100)
+      : originalPrice;
+
     const sanPhamGioHang = {
       id: product.ma_san_pham,
       ten: product.ten_san_pham,
-      gia: Number(selectedVariant.gia_ban),
+      gia: finalPrice,
       hinhAnh: images[selectedImageIndex], // Sử dụng hình ảnh hiện tại được chọn
       loai: product.ten_danh_muc || "",
       moTa: product.mo_ta_ngan,
       description: product.mo_ta_ngan,
       category: product.ten_danh_muc || "",
       image: images[selectedImageIndex], // Sử dụng hình ảnh hiện tại được chọn
-      price: Number(selectedVariant.gia_ban),
+      price: finalPrice,
       name: product.ten_san_pham,
       date: new Date().toISOString(),
       conHang: inStock,
@@ -183,10 +189,10 @@ const ChiTietSanPham: React.FC = () => {
       mauSac: color,
       kichThuoc: size,
       so_luong: quantity,
-      gia_goc: Number(selectedVariant.gia_ban),
-      loai_khuyen_mai: null,
-      gia_khuyen_mai: 0,
-      gia_sau_km: Number(selectedVariant.gia_ban),
+      gia_goc: originalPrice,
+      loai_khuyen_mai: selectedVariant.phan_tram_giam ? "percent" : null,
+      gia_khuyen_mai: selectedVariant.phan_tram_giam ? finalPrice : 0,
+      gia_sau_km: finalPrice,
     };
 
     // Track behavior "them_vao_gio" trước khi thêm vào giỏ
@@ -264,9 +270,28 @@ const ChiTietSanPham: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex items-center space-x-3 mb-6">
-                  <span className="text-3xl font-bold text-gray-900">
-                    {formatCurrency(selectedVariant?.gia_ban || 0)}
-                  </span>
+                  {selectedVariant?.phan_tram_giam ? (
+                    <div className="flex flex-col">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-3xl font-bold text-red-600">
+                          {formatCurrency(
+                            parseFloat(selectedVariant.gia_ban) *
+                              (1 - selectedVariant.phan_tram_giam / 100)
+                          )}
+                        </span>
+                        <span className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-bold">
+                          -{selectedVariant.phan_tram_giam}%
+                        </span>
+                      </div>
+                      <span className="text-xl text-gray-500 line-through">
+                        {formatCurrency(selectedVariant?.gia_ban || 0)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-3xl font-bold text-gray-900">
+                      {formatCurrency(selectedVariant?.gia_ban || 0)}
+                    </span>
+                  )}
                 </div>
               </div>
 

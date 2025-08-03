@@ -169,6 +169,18 @@ const ProductDetail: React.FC = () => {
                         scope="col"
                         className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
+                        Giá khuyến mãi
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Giảm giá (%)
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
                         Tồn kho
                       </th>
                       <th
@@ -200,6 +212,24 @@ const ProductDetail: React.FC = () => {
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
                             {formatPrice(variant.gia_ban)}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
+                            {variant.gia_khuyen_mai ? (
+                              <span className="text-red-600 font-bold">
+                                {formatPrice(variant.gia_khuyen_mai)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
+                            {variant.phan_tram_giam ? (
+                              <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
+                                -{variant.phan_tram_giam}%
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
                           </td>
                           <td
                             className={`px-4 py-3 whitespace-nowrap text-sm text-right font-bold ${

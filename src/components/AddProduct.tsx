@@ -122,6 +122,8 @@ const AddProduct: React.FC = () => {
         "https://luanvan-7wv1.onrender.com/api/ai/generate",
         {
           ten_san_pham: newProduct.ten_san_pham,
+          thuong_hieu: newProduct.thuong_hieu,
+          chat_lieu: newProduct.chat_lieu,
         },
         {
           timeout: 30000, // 30 seconds timeout
@@ -328,6 +330,8 @@ const AddProduct: React.FC = () => {
         bienthe: newProduct.bienthe.map((variant) => ({
           ...variant,
           gia_ban: variant.gia_ban.toString(),
+          gia_khuyen_mai: null, // Thêm trường bắt buộc
+          phan_tram_giam: null, // Thêm trường bắt buộc
         })),
       };
 

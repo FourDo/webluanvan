@@ -229,7 +229,11 @@ Trả lời:`;
         const firstVariant = product.bienthe?.[0];
         const imageUrl =
           firstVariant?.hinh_anh?.[0] || "/placeholder-product.jpg";
-        const price = firstVariant?.gia_ban || "0";
+        const originalPrice = firstVariant?.gia_ban || "0";
+        const discountPercent = firstVariant?.phan_tram_giam;
+        const discountedPrice = discountPercent
+          ? parseFloat(originalPrice) * (1 - discountPercent / 100)
+          : null;
 
         return (
           <Link
@@ -248,7 +252,11 @@ Trả lời:`;
                     e.currentTarget.src = "/placeholder-product.jpg";
                   }}
                 />
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full shadow-lg animate-pulse"></div>
+                {discountPercent && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 py-0.5 rounded-full font-bold">
+                    -{discountPercent}%
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-sm text-gray-900 truncate mb-1">
@@ -260,12 +268,29 @@ Trả lời:`;
                   </p>
                 )}
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-blue-600 bg-blue-100/50 px-2 py-1 rounded-lg">
-                    {new Intl.NumberFormat("vi-VN", {
-                      style: "currency",
-                      currency: "VND",
-                    }).format(parseFloat(price))}
-                  </p>
+                  {discountedPrice ? (
+                    <div className="flex flex-col">
+                      <p className="text-sm font-bold text-red-600 bg-red-100/50 px-2 py-1 rounded-lg">
+                        {new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                        }).format(discountedPrice)}
+                      </p>
+                      <p className="text-xs text-gray-500 line-through">
+                        {new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                        }).format(parseFloat(originalPrice))}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-bold text-blue-600 bg-blue-100/50 px-2 py-1 rounded-lg">
+                      {new Intl.NumberFormat("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                      }).format(parseFloat(originalPrice))}
+                    </p>
+                  )}
                   <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
                     Có sẵn
                   </span>

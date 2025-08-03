@@ -17,7 +17,7 @@ const TrangChu: React.FC = () => {
   // State cho banner sự kiện
   const [activeEvents, setActiveEvents] = useState<any[]>([]);
   const [eventLoading, setEventLoading] = useState(true);
-  const [eventError, setEventError] = useState<string | null>(null);
+  const [, setEventError] = useState<string | null>(null);
 
   // State cho bài viết
   const [articles, setArticles] = useState<BaiViet[]>([]);

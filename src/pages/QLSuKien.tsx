@@ -21,6 +21,8 @@ import {
   Upload,
   Image as ImageIcon,
 } from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { eventApi } from "../API/eventApi";
 import { productApi } from "../API/productApi";
@@ -123,7 +125,7 @@ const EventFormModal: React.FC<{
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.tieu_de.trim()) {
-      alert("Vui lòng nhập tiêu đề sự kiện");
+      toast.error("Vui lòng nhập tiêu đề sự kiện");
       return;
     }
 
@@ -146,7 +148,7 @@ const EventFormModal: React.FC<{
       onSave(submitData);
     } catch (error) {
       console.error("Error saving event:", error);
-      alert("Có lỗi xảy ra khi lưu sự kiện");
+      toast.error("Có lỗi xảy ra khi lưu sự kiện");
     } finally {
       setIsUploading(false);
     }
@@ -549,10 +551,23 @@ const QLSuKien: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [productFormData, setProductFormData] = useState({
     ma_san_pham: 0,
-    gia_khuyen_mai: 0,
+    gia_sau_khuyen_mai: 0,
     phan_tram_giam: 0,
     ghi_chu: "",
   });
+
+  // Helper function to round price to nearest thousand
+  const roundToThousand = (price: number): number => {
+    return Math.floor(price / 1000) * 1000;
+  };
+
+  // Get selected product info
+  const selectedProduct = products.find(
+    (p) => p.ma_san_pham === productFormData.ma_san_pham
+  );
+  const originalPrice = selectedProduct
+    ? parseFloat(selectedProduct.bienthe[0]?.gia_ban || "0")
+    : 0;
 
   // Load events from API
   useEffect(() => {
@@ -576,7 +591,7 @@ const QLSuKien: React.FC = () => {
       setEvents(data);
     } catch (error) {
       console.error("Lỗi khi tải danh sách sự kiện:", error);
-      setError("Không thể tải danh sách sự kiện");
+      toast.error("Không thể tải danh sách sự kiện");
       // Fallback to mock data if API fails
     } finally {
       setLoading(false);
@@ -588,7 +603,6 @@ const QLSuKien: React.FC = () => {
       const products = await eventApi.getEventProducts(eventId);
       setEventProducts(products);
     } catch (error) {
-      console.error("Lỗi khi tải sản phẩm sự kiện:", error);
       setEventProducts([]);
     }
   };
@@ -655,8 +669,10 @@ const QLSuKien: React.FC = () => {
     try {
       if (editingEvent) {
         await eventApi.updateEvent(editingEvent.su_kien_id, fullData);
+        toast.success("Cập nhật sự kiện thành công!");
       } else {
         await eventApi.createEvent(fullData as any);
+        toast.success("Thêm sự kiện mới thành công!");
       }
       await loadEvents();
       handleCloseModal();
@@ -670,7 +686,7 @@ const QLSuKien: React.FC = () => {
         setError(msg);
         alert(msg);
       } else {
-        setError((err as Error).message || "Không thể lưu sự kiện.");
+        toast.error((err as Error).message || "Không thể lưu sự kiện.");
       }
     } finally {
       setIsSubmitting(false);
@@ -682,9 +698,10 @@ const QLSuKien: React.FC = () => {
       try {
         await eventApi.deleteEvent(id);
         setEvents(events.filter((event) => event.su_kien_id !== id));
+        toast.success("Xóa sự kiện thành công!");
       } catch (error) {
         console.error("Lỗi khi xóa sự kiện:", error);
-        setError("Xóa sự kiện thất bại!");
+        toast.error("Xóa sự kiện thất bại!");
       }
     }
   };
@@ -698,9 +715,12 @@ const QLSuKien: React.FC = () => {
           e.su_kien_id === event.su_kien_id ? updatedEvent : e
         )
       );
+      toast.success(
+        `${updatedEvent.hien_thi === 1 ? "Hiển thị" : "Ẩn"} sự kiện thành công!`
+      );
     } catch (error) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
-      setError("Cập nhật trạng thái thất bại!");
+      toast.error("Cập nhật trạng thái thất bại!");
     }
   };
 
@@ -712,28 +732,104 @@ const QLSuKien: React.FC = () => {
 
   const handleAddProduct = async () => {
     if (!selectedEvent) return;
+
+    // Validation
     if (!productFormData.ma_san_pham || productFormData.ma_san_pham === 0) {
-      alert("Vui lòng chọn sản phẩm!");
+      toast.error("Vui lòng chọn sản phẩm!");
       return;
     }
+
+    if (productFormData.gia_sau_khuyen_mai <= 0) {
+      toast.error("Giá khuyến mãi phải lớn hơn 0!");
+      return;
+    }
+
+    if (
+      productFormData.phan_tram_giam < 0 ||
+      productFormData.phan_tram_giam > 100
+    ) {
+      toast.error("Phần trăm giảm phải từ 0 đến 100!");
+      return;
+    }
+
+    if (
+      originalPrice > 0 &&
+      productFormData.gia_sau_khuyen_mai >= originalPrice
+    ) {
+      toast.error("Giá khuyến mãi phải nhỏ hơn giá gốc!");
+      return;
+    }
+
     const payload = {
       su_kien_id: selectedEvent.su_kien_id,
       san_pham: [productFormData],
     };
-    console.log("Dữ liệu gửi lên addProductsToEvent:", payload);
     try {
       await eventApi.addProductsToEvent(payload);
       loadEventProducts(selectedEvent.su_kien_id);
       setProductFormData({
         ma_san_pham: 0,
-        gia_khuyen_mai: 0,
+        gia_sau_khuyen_mai: 0,
         phan_tram_giam: 0,
         ghi_chu: "",
       });
+      toast.success("Thêm sản phẩm vào sự kiện thành công!");
     } catch (error) {
       console.error("Lỗi khi thêm sản phẩm:", error);
-      setError("Thêm sản phẩm thất bại!");
+      toast.error("Thêm sản phẩm thất bại!");
     }
+  };
+
+  // Handle percentage change and auto-calculate discount price
+  const handlePercentageChange = (percentage: number) => {
+    if (percentage < 0 || percentage > 100) {
+      toast.warning("Phần trăm giảm phải từ 0 đến 100!");
+      return;
+    }
+
+    setProductFormData((prev) => ({
+      ...prev,
+      phan_tram_giam: percentage,
+      gia_sau_khuyen_mai:
+        originalPrice > 0
+          ? roundToThousand(originalPrice * (1 - percentage / 100))
+          : 0,
+    }));
+  };
+
+  // Handle discount price change and auto-calculate percentage
+  const handleDiscountPriceChange = (discountPrice: number) => {
+    if (discountPrice < 0) {
+      toast.warning("Giá khuyến mãi không thể âm!");
+      return;
+    }
+
+    if (originalPrice > 0 && discountPrice >= originalPrice) {
+      toast.warning("Giá khuyến mãi phải nhỏ hơn giá gốc!");
+      return;
+    }
+
+    const roundedPrice = roundToThousand(discountPrice);
+    const percentage =
+      originalPrice > 0
+        ? Math.round(((originalPrice - roundedPrice) / originalPrice) * 100)
+        : 0;
+
+    setProductFormData((prev) => ({
+      ...prev,
+      gia_sau_khuyen_mai: roundedPrice,
+      phan_tram_giam: percentage,
+    }));
+  };
+
+  // Handle product selection change
+  const handleProductChange = (productId: number) => {
+    setProductFormData({
+      ma_san_pham: productId,
+      gia_sau_khuyen_mai: 0,
+      phan_tram_giam: 0,
+      ghi_chu: "",
+    });
   };
 
   const handleRemoveProduct = async (productId: number) => {
@@ -743,14 +839,12 @@ const QLSuKien: React.FC = () => {
       window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này khỏi sự kiện?")
     ) {
       try {
-        await eventApi.removeProductFromEvent(
-          selectedEvent.su_kien_id,
-          productId
-        );
+        await eventApi.removeProductFromEvent(productId);
         loadEventProducts(selectedEvent.su_kien_id);
+        toast.success("Xóa sản phẩm khỏi sự kiện thành công!");
       } catch (error) {
         console.error("Lỗi khi xóa sản phẩm:", error);
-        setError("Xóa sản phẩm thất bại!");
+        toast.error("Xóa sản phẩm thất bại!");
       }
     }
   };
@@ -1145,16 +1239,18 @@ const QLSuKien: React.FC = () => {
                 <h4 className="text-md font-medium mb-3">
                   Thêm sản phẩm vào sự kiện
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+
+                {/* Product Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chọn sản phẩm *
+                  </label>
                   <select
                     value={productFormData.ma_san_pham || ""}
                     onChange={(e) =>
-                      setProductFormData({
-                        ...productFormData,
-                        ma_san_pham: parseInt(e.target.value) || 0,
-                      })
+                      handleProductChange(parseInt(e.target.value) || 0)
                     }
-                    className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Chọn sản phẩm</option>
                     {products.map((sp) => (
@@ -1163,49 +1259,122 @@ const QLSuKien: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="number"
-                    placeholder="Giá khuyến mãi"
-                    value={productFormData.gia_khuyen_mai || ""}
-                    onChange={(e) =>
-                      setProductFormData({
-                        ...productFormData,
-                        gia_khuyen_mai: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="number"
-                    placeholder="% giảm"
-                    value={productFormData.phan_tram_giam || ""}
-                    onChange={(e) =>
-                      setProductFormData({
-                        ...productFormData,
-                        phan_tram_giam: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Ghi chú"
-                    value={productFormData.ghi_chu}
-                    onChange={(e) =>
-                      setProductFormData({
-                        ...productFormData,
-                        ghi_chu: e.target.value,
-                      })
-                    }
-                    className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
                 </div>
+
+                {/* Price Information */}
+                {selectedProduct && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <h5 className="text-sm font-medium text-blue-800 mb-2">
+                      Thông tin giá sản phẩm
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600">Giá gốc:</span>
+                        <span className="ml-2 font-semibold text-gray-900">
+                          {originalPrice.toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pricing Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Giá khuyến mãi (đ) *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      min="0"
+                      max={originalPrice}
+                      value={productFormData.gia_sau_khuyen_mai || ""}
+                      onChange={(e) =>
+                        handleDiscountPriceChange(
+                          parseFloat(e.target.value) || 0
+                        )
+                      }
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    {originalPrice > 0 &&
+                      productFormData.gia_sau_khuyen_mai >= originalPrice && (
+                        <p className="text-red-500 text-xs mt-1">
+                          Giá KM phải nhỏ hơn giá gốc
+                        </p>
+                      )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phần trăm giảm (%) *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      min="0"
+                      max="100"
+                      value={productFormData.phan_tram_giam || ""}
+                      onChange={(e) =>
+                        handlePercentageChange(parseFloat(e.target.value) || 0)
+                      }
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    {(productFormData.phan_tram_giam < 0 ||
+                      productFormData.phan_tram_giam > 100) && (
+                      <p className="text-red-500 text-xs mt-1">Từ 0 đến 100%</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ghi chú
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ghi chú"
+                      value={productFormData.ghi_chu}
+                      onChange={(e) =>
+                        setProductFormData({
+                          ...productFormData,
+                          ghi_chu: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Percentage Buttons */}
+                {selectedProduct && (
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Giảm giá nhanh:
+                    </label>
+                    <div className="flex gap-2 flex-wrap">
+                      {[10, 20, 30, 50].map((percent) => (
+                        <button
+                          key={percent}
+                          type="button"
+                          onClick={() => handlePercentageChange(percent)}
+                          className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                        >
+                          -{percent}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={handleAddProduct}
-                  className="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                  disabled={
+                    !selectedProduct || productFormData.gia_sau_khuyen_mai <= 0
+                  }
+                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
                 >
                   <Plus size={16} />
-                  Thêm sản phẩm
+                  Thêm sản phẩm vào sự kiện
                 </button>
               </div>
 
@@ -1241,7 +1410,7 @@ const QLSuKien: React.FC = () => {
                           {product.ma_san_pham}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {product.gia_khuyen_mai?.toLocaleString("vi-VN")}đ
+                          {product.gia_sau_khuyen_mai?.toLocaleString("vi-VN")}đ
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {product.phan_tram_giam}%
@@ -1273,6 +1442,18 @@ const QLSuKien: React.FC = () => {
           </div>
         </div>
       )}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </div>
   );
 };

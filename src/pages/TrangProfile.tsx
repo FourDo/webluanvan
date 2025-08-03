@@ -23,6 +23,7 @@ import authApi from "../API/authApi";
 import {
   getOrdersByUserId,
   getOrderDetail,
+  requestCancelReturn,
   type DonHang,
 } from "../API/orderApi";
 import type {
@@ -67,6 +68,18 @@ function TrangProfile() {
     new: false,
     confirm: false,
   });
+
+  // State cho yêu cầu hủy/trả hàng
+  const [showCancelReturnModal, setShowCancelReturnModal] = useState(false);
+  const [selectedOrderForCancelReturn, setSelectedOrderForCancelReturn] =
+    useState<number | null>(null);
+  const [cancelReturnData, setCancelReturnData] = useState({
+    yeu_cau_huy_tra: "Hủy",
+    ly_do_huy_tra: "",
+    dong_y_chinh_sach: false,
+  });
+  const [isSubmittingCancelReturn, setIsSubmittingCancelReturn] =
+    useState(false);
 
   // Khởi tạo dữ liệu từ user context
   const [profileData, setProfileData] = useState({
@@ -204,6 +217,117 @@ function TrangProfile() {
     setShowOrderDetailModal(false);
     setSelectedOrder(null);
     setOrderDetail(null);
+  };
+
+  // Mở modal yêu cầu hủy/trả hàng
+  const openCancelReturnModal = (orderId: number) => {
+    const order = orders.find((o) => o.ma_don_hang === orderId);
+    const defaultAction = order && canCancel(order) ? "Hủy" : "Trả";
+
+    setSelectedOrderForCancelReturn(orderId);
+    setCancelReturnData({
+      yeu_cau_huy_tra: defaultAction,
+      ly_do_huy_tra: "",
+      dong_y_chinh_sach: false,
+    });
+    setShowCancelReturnModal(true);
+  };
+
+  // Đóng modal yêu cầu hủy/trả hàng
+  const closeCancelReturnModal = () => {
+    setShowCancelReturnModal(false);
+    setSelectedOrderForCancelReturn(null);
+    setCancelReturnData({
+      yeu_cau_huy_tra: "Hủy",
+      ly_do_huy_tra: "",
+      dong_y_chinh_sach: false,
+    });
+  };
+
+  // Xử lý gửi yêu cầu hủy/trả hàng
+  const handleSubmitCancelReturn = async () => {
+    if (!selectedOrderForCancelReturn) return;
+
+    // Kiểm tra business rules
+    const currentOrder = orders.find(
+      (o) => o.ma_don_hang === selectedOrderForCancelReturn
+    );
+    if (!currentOrder) {
+      setError("Không tìm thấy đơn hàng!");
+      return;
+    }
+
+    if (
+      cancelReturnData.yeu_cau_huy_tra === "Hủy" &&
+      !canCancel(currentOrder)
+    ) {
+      setError(
+        "Không thể hủy đơn hàng này (có thể đã được xử lý hoặc đang giao)!"
+      );
+      return;
+    }
+
+    if (
+      cancelReturnData.yeu_cau_huy_tra === "Trả" &&
+      !canReturn(currentOrder)
+    ) {
+      setError("Không thể trả hàng này (chỉ có thể trả hàng đã giao)!");
+      return;
+    }
+
+    if (!cancelReturnData.ly_do_huy_tra.trim()) {
+      setError("Vui lòng chọn lý do hủy/trả hàng");
+      return;
+    }
+
+    if (!cancelReturnData.dong_y_chinh_sach) {
+      setError("Vui lòng đồng ý với chính sách hủy/trả hàng");
+      return;
+    }
+
+    setIsSubmittingCancelReturn(true);
+    setError(null);
+
+    try {
+      await requestCancelReturn(selectedOrderForCancelReturn, cancelReturnData);
+      setSuccess(
+        `Yêu cầu ${cancelReturnData.yeu_cau_huy_tra.toLowerCase()} đã được gửi thành công!`
+      );
+      closeCancelReturnModal();
+
+      // Reload đơn hàng để cập nhật trạng thái
+      loadOrders();
+
+      // Tự động ẩn thông báo thành công sau 3 giây
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error: any) {
+      setError(error.message || "Có lỗi xảy ra khi gửi yêu cầu");
+    } finally {
+      setIsSubmittingCancelReturn(false);
+    }
+  };
+
+  // Kiểm tra đơn hàng có thể hủy không
+  const canCancel = (order: DonHang) => {
+    const status = order.trang_thai.toLowerCase();
+    return (
+      status === "chờ xử lý" ||
+      status === "chờ xác nhận" ||
+      status === "cho_xu_ly"
+    );
+  };
+
+  // Kiểm tra đơn hàng có thể trả không
+  const canReturn = (order: DonHang) => {
+    const status = order.trang_thai.toLowerCase();
+    return (
+      status === "đã giao" || status === "hoàn thành" || status === "hoan_thanh"
+    );
+  };
+
+  // Kiểm tra đơn hàng có thể hủy hoặc trả không
+  const canCancelOrReturn = (order: DonHang) => {
+    return canCancel(order) || canReturn(order);
   };
 
   const wishlist = [
@@ -1050,8 +1174,8 @@ function TrangProfile() {
                           </div>
                         )}
 
-                        {/* Nút xem chi tiết */}
-                        <div className="mt-3 pt-3 border-t border-gray-100">
+                        {/* Nút xem chi tiết và yêu cầu hủy/trả */}
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                           <button
                             onClick={() => loadOrderDetail(order.ma_don_hang)}
                             disabled={
@@ -1065,6 +1189,18 @@ function TrangProfile() {
                               ? "Đang tải..."
                               : "Xem chi tiết →"}
                           </button>
+
+                          {/* Nút yêu cầu hủy/trả hàng */}
+                          {canCancelOrReturn(order) && (
+                            <button
+                              onClick={() =>
+                                openCancelReturnModal(order.ma_don_hang)
+                              }
+                              className="text-red-600 hover:text-red-800 text-sm font-medium border border-red-300 px-3 py-1 rounded-md hover:bg-red-50 transition-colors"
+                            >
+                              Yêu cầu hủy/trả
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1455,6 +1591,262 @@ function TrangProfile() {
                     </p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Yêu cầu hủy/trả hàng */}
+        {showCancelReturnModal && selectedOrderForCancelReturn && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    Yêu cầu hủy/trả hàng
+                  </h3>
+                  <button
+                    onClick={closeCancelReturnModal}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Loại yêu cầu
+                    </label>
+                    <select
+                      value={cancelReturnData.yeu_cau_huy_tra}
+                      onChange={(e) =>
+                        setCancelReturnData((prev) => ({
+                          ...prev,
+                          yeu_cau_huy_tra: e.target.value,
+                          ly_do_huy_tra: "", // Reset lý do khi thay đổi loại
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {(() => {
+                        const currentOrder = orders.find(
+                          (o) => o.ma_don_hang === selectedOrderForCancelReturn
+                        );
+                        if (!currentOrder) return null;
+
+                        const options = [];
+                        if (canCancel(currentOrder)) {
+                          options.push(
+                            <option key="cancel" value="Hủy">
+                              Hủy đơn hàng
+                            </option>
+                          );
+                        }
+                        if (canReturn(currentOrder)) {
+                          options.push(
+                            <option key="return" value="Trả">
+                              Trả hàng
+                            </option>
+                          );
+                        }
+                        return options;
+                      })()}
+                    </select>
+                    {(() => {
+                      const currentOrder = orders.find(
+                        (o) => o.ma_don_hang === selectedOrderForCancelReturn
+                      );
+                      if (!currentOrder) return null;
+
+                      if (canCancel(currentOrder) && canReturn(currentOrder)) {
+                        return (
+                          <p className="text-xs text-gray-500 mt-1">
+                            💡 Đơn hàng này có thể hủy hoặc trả hàng
+                          </p>
+                        );
+                      } else if (canCancel(currentOrder)) {
+                        return (
+                          <p className="text-xs text-blue-600 mt-1">
+                            ℹ️ Đơn hàng chỉ có thể hủy (chưa giao hàng)
+                          </p>
+                        );
+                      } else if (canReturn(currentOrder)) {
+                        return (
+                          <p className="text-xs text-green-600 mt-1">
+                            ℹ️ Đơn hàng chỉ có thể trả (đã giao hàng)
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lý do {cancelReturnData.yeu_cau_huy_tra.toLowerCase()}
+                    </label>
+                    <select
+                      value={cancelReturnData.ly_do_huy_tra}
+                      onChange={(e) =>
+                        setCancelReturnData((prev) => ({
+                          ...prev,
+                          ly_do_huy_tra: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Chọn lý do</option>
+                      {cancelReturnData.yeu_cau_huy_tra === "Hủy" ? (
+                        <>
+                          <option value="Đặt Nhầm">Đặt nhầm</option>
+                          <option value="Không Cần Nữa">Không cần nữa</option>
+                          <option value="Tìm Được Giá Rẻ Hơn">
+                            Tìm được giá rẻ hơn
+                          </option>
+                          <option value="Thay Đổi Ý Định">
+                            Thay đổi ý định
+                          </option>
+                          <option value="Lý Do Khác">Lý do khác</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="Hàng Lỗi">Hàng lỗi</option>
+                          <option value="Không Đúng Mô Tả">
+                            Không đúng mô tả
+                          </option>
+                          <option value="Hàng Bị Hư Hỏng">
+                            Hàng bị hư hỏng
+                          </option>
+                          <option value="Giao Sai Hàng">Giao sai hàng</option>
+                          <option value="Không Ưng Ý">Không ưng ý</option>
+                          <option value="Lý Do Khác">Lý do khác</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Chính sách hủy/trả hàng */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                      <span>📋</span>
+                      Chính sách{" "}
+                      {cancelReturnData.yeu_cau_huy_tra.toLowerCase()} hàng
+                    </h4>
+
+                    {cancelReturnData.yeu_cau_huy_tra === "Hủy" ? (
+                      <div className="text-sm text-blue-700 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 font-bold">✓</span>
+                          <span>
+                            Miễn phí hủy đơn hàng trong vòng{" "}
+                            <strong>24 giờ</strong> sau khi đặt
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 font-bold">✓</span>
+                          <span>
+                            Hoàn tiền 100% nếu đơn hàng chưa được xử lý
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-yellow-600 font-bold">⚠</span>
+                          <span>
+                            Phí hủy 5% tổng đơn hàng nếu đã bắt đầu chuẩn bị
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-red-600 font-bold">✗</span>
+                          <span>
+                            Không thể hủy khi hàng đã giao cho đơn vị vận chuyển
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-blue-700 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 font-bold">✓</span>
+                          <span>
+                            Miễn phí đổi/trả trong vòng <strong>7 ngày</strong>{" "}
+                            kể từ ngày nhận hàng
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 font-bold">✓</span>
+                          <span>Hoàn tiền 100% nếu lỗi do nhà bán hàng</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-yellow-600 font-bold">⚠</span>
+                          <span>
+                            Sản phẩm phải còn nguyên vẹn, chưa sử dụng
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-yellow-600 font-bold">⚠</span>
+                          <span>
+                            Khách hàng chịu phí vận chuyển khi trả hàng do đổi ý
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-red-600 font-bold">✗</span>
+                          <span>
+                            Không áp dụng cho sản phẩm giảm giá trên 50%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs text-yellow-800">
+                      <strong>Lưu ý:</strong> Thời gian xử lý yêu cầu từ 1-3
+                      ngày làm việc. Chúng tôi sẽ liên hệ với bạn để xác nhận
+                      chi tiết.
+                    </div>
+                  </div>
+
+                  {/* Checkbox xác nhận đồng ý */}
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id="agree-policy"
+                      checked={cancelReturnData.dong_y_chinh_sach || false}
+                      onChange={(e) =>
+                        setCancelReturnData((prev) => ({
+                          ...prev,
+                          dong_y_chinh_sach: e.target.checked,
+                        }))
+                      }
+                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="agree-policy"
+                      className="text-sm text-gray-700"
+                    >
+                      Tôi đã đọc và đồng ý với các điều khoản chính sách{" "}
+                      {cancelReturnData.yeu_cau_huy_tra.toLowerCase()} hàng của
+                      cửa hàng
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={closeCancelReturnModal}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleSubmitCancelReturn}
+                    disabled={
+                      isSubmittingCancelReturn ||
+                      !cancelReturnData.ly_do_huy_tra ||
+                      !cancelReturnData.dong_y_chinh_sach
+                    }
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isSubmittingCancelReturn ? "Đang gửi..." : "Gửi yêu cầu"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
