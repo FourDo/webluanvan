@@ -1,0 +1,31 @@
+export { default as Navbar } from "../components/Navbar";
+export { default as Footer } from "../components/Footer";
+export { default as TrangChu } from "../pages/TrangChu";
+export { default as TrangSanPham } from "../pages/TrangSanPham";
+export { default as ChiTietSanPham } from "../pages/TrangChiTietSanPham";
+export { default as TrangDichVu } from "../pages/TrangDichVu";
+export { default as TrangVeChungToi } from "../pages/TrangVeChungToi";
+export { default as TrangBaiBao } from "../pages/TrangBaiBao";
+export { default as TrangDangKy } from "./TrangDangKy";
+export { default as TrangDangNhap } from "./TrangDangNhap";
+export { default as GioHang } from "./GioHang";
+export { default as TrangThanhToan } from "./TrangThanhToan";
+export { default as TrangProfile } from "./TrangProfile";
+export { default as TrangQuenMatKhau } from "./TrangQuenMatKhau";
+export { default as TrangHoaDon } from "./TrangHoaDon";
+export { default as MomoSuccess } from "./MomoSuccess";
+
+export { default as AdminDangNhap } from "../pages/TrangDangNhapADmin";
+export { default as AdminDashboard } from "../pages/AdminDashboard";
+export { default as AdminProfile } from "../pages/AdminProfile";
+export { default as QLSanPham } from "../pages/QLSanPham";
+export { default as QLDonHang } from "../pages/QLDonHang";
+export { default as QLTaiKhoan } from "../pages/QLTaiKhoan";
+export { default as QLDoanhMuc } from "../pages/QLDoanhMuc";
+export { default as QLMauSac } from "../pages/QLMauSac";
+export { default as QLSize } from "../pages/QLKichThuoc";
+export { default as QLKhachHang } from "../pages/QLKhachHang";
+export { default as QLKhuyenMai } from "../pages/QLKhuyenMai";
+export { default as QLSuKien } from "../pages/QLSuKien";
+
+export { default as QLBaiBaoEnhanced } from "../pages/QLBaiBaoEnhanced";
