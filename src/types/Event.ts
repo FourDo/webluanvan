@@ -24,5 +24,8 @@ export interface EventProduct {
 
 export interface EventProductRequest {
   su_kien_id: number;
-  san_pham: EventProduct[];
+  ma_san_pham: number;
+  gia_sau_khuyen_mai: number;
+  phan_tram_giam: number;
+  ghi_chu: string;
 }

@@ -400,22 +400,7 @@ const Navbar: React.FC = () => {
                         <UserCircle className="w-5 h-5 group-hover:text-[#518581] transition-colors duration-200" />
                         <span className="font-medium">Thông tin cá nhân</span>
                       </Link>
-                      <Link
-                        to="/don-hang"
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#518581] transition-all duration-200 group"
-                        onClick={() => setIsUserDropdownOpen(false)}
-                      >
-                        <ShoppingBag className="w-5 h-5 group-hover:text-[#518581] transition-colors duration-200" />
-                        <span className="font-medium">Đơn hàng của tôi</span>
-                      </Link>
-                      <Link
-                        to="/cai-dat"
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#518581] transition-all duration-200 group"
-                        onClick={() => setIsUserDropdownOpen(false)}
-                      >
-                        <Settings className="w-5 h-5 group-hover:text-[#518581] transition-colors duration-200" />
-                        <span className="font-medium">Cài đặt tài khoản</span>
-                      </Link>
+                      
                     </div>
                     <div className="border-t border-gray-100 py-2">
                       <button

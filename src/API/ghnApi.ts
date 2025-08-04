@@ -1,7 +1,51 @@
 import axios from "axios";
 
 const API_BASE_URL = "https://dev-online-gateway.ghn.vn/shiip/public-api";
-const TOKEN = "5596bafe-44e4-11f0-9b81-222185cb68c8";
+const TOKEN = "b880bd44-5bbe-11f0-9b81-222185cb68c8"; // Updated to working token
+const SHOP_ID = 197047; // Updated to working shop ID
+
+// Hàm helper để lấy ward code hợp lệ cho Quận 1
+export const getValidFromWardCode = async (districtId: number) => {
+  try {
+    const wards = await getWards(districtId);
+    // Tìm phường đầu tiên có sẵn trong Quận 1
+    const firstWard = wards[0];
+    return firstWard ? firstWard.WardCode : "21211"; // Fallback ward code
+  } catch (error) {
+    console.error("Lỗi khi lấy ward code:", error);
+    return "21211"; // Fallback ward code
+  }
+};
+
+// Hàm helper để lấy district ID hợp lệ cho địa chỉ gửi hàng (TP.HCM)
+export const getValidFromDistrictId = async () => {
+  try {
+    // Lấy danh sách tỉnh để tìm TP.HCM
+    const provinces = await getProvinces();
+    const hcmProvince = provinces.find(
+      (province: any) =>
+        province.ProvinceName.includes("Hồ Chí Minh") ||
+        province.ProvinceID === 202
+    );
+
+    if (!hcmProvince) {
+      console.warn("Không tìm thấy TP.HCM, sử dụng district ID mặc định");
+      return 1442; // Fallback district ID
+    }
+
+    // Lấy danh sách quận của TP.HCM
+    const districts = await getDistricts(hcmProvince.ProvinceID);
+    const district1 = districts.find(
+      (district: any) =>
+        district.DistrictName.includes("Quận 1") || district.DistrictID === 1442
+    );
+
+    return district1 ? district1.DistrictID : 1442; // Fallback nếu không tìm thấy
+  } catch (error) {
+    console.error("Lỗi khi lấy district ID:", error);
+    return 1442; // Fallback district ID cho Quận 1
+  }
+};
 
 export const getProvinces = async () => {
   try {
@@ -63,7 +107,7 @@ export const getServices = async (
           Token: TOKEN,
         },
         params: {
-          shop_id: 196805,
+          shop_id: SHOP_ID,
           from_district: fromDistrictId,
           to_district: toDistrictId,
         },
@@ -111,7 +155,7 @@ export const calculateGhnFee = async (feeData: {
       `${API_BASE_URL}/v2/shipping-order/fee`,
       {
         ...feeData,
-        shop_id: 196805,
+        shop_id: SHOP_ID,
       },
       {
         headers: {

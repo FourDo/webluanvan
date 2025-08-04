@@ -6,6 +6,7 @@ export interface Product {
   chat_lieu: string;
   trang_thai_hoat_dong: string;
   ma_khuyen_mai: number | null;
+  ma_danh_muc: number | null; // Thêm field cho category ID
   ngay_tao: string;
   ngay_cap_nhat: string;
   ten_danh_muc: string | null;
@@ -23,8 +24,10 @@ export interface Variant {
   gia_khuyen_mai: string | null; // Thêm field mới
   phan_tram_giam: number | null; // Thêm field mới
   so_luong_ton: number;
+  so_luong_tam_giu: number; // Thêm field số lượng tạm giữ
   trang_thai_hoat_dong_btsp: string;
   hinh_anh: string[];
+  ngay_tao?: string; // Thêm field ngày tạo
 }
 
 export interface InputProduct {
@@ -44,6 +47,7 @@ export interface InputVariant {
   ten_kich_thuoc: string;
   gia_ban: number;
   so_luong_ton: number;
+  so_luong_tam_giu?: number; // Thêm trường tạm giữ cho input, optional vì mặc định là 0
   trang_thai_hoat_dong_btsp: string;
   hinh_anh: string[];
 }

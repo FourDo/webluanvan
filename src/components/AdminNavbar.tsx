@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  User,
-  ChevronDown,
-  Settings,
-  LogOut,
-  Search,
-  Menu,
-  Shield,
-} from "lucide-react";
+import { User, ChevronDown, LogOut, Search, Menu, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import authApi from "../API/authApi";
 import { useAuth } from "../context/AuthContext";
@@ -124,17 +116,6 @@ const AdminNavbar = ({ toggleSidebar }: AdminNavbarProps) => {
                   >
                     <User size={16} className="mr-3" />
                     <span>Hồ sơ cá nhân</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      navigate("/admin/settings");
-                      setProfileOpen(false);
-                    }}
-                    className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                  >
-                    <Settings size={16} className="mr-3" />
-                    <span>Cài đặt hệ thống</span>
                   </button>
 
                   <div className="border-t border-gray-100 my-2"></div>

@@ -116,6 +116,16 @@ const AddProduct: React.FC = () => {
       return;
     }
 
+    if (!newProduct.thuong_hieu.trim()) {
+      alert("Vui lòng nhập thương hiệu trước khi tạo mô tả AI!");
+      return;
+    }
+
+    if (!newProduct.chat_lieu.trim()) {
+      alert("Vui lòng nhập chất liệu trước khi tạo mô tả AI!");
+      return;
+    }
+
     setAiGenerating(true);
     try {
       const response = await axios.post(
@@ -327,11 +337,13 @@ const AddProduct: React.FC = () => {
       // Convert InputProduct to Product format for API
       const productForApi = {
         ...newProduct,
+        ma_danh_muc: null, // Thêm field bắt buộc cho Product interface
         bienthe: newProduct.bienthe.map((variant) => ({
           ...variant,
           gia_ban: variant.gia_ban.toString(),
           gia_khuyen_mai: null, // Thêm trường bắt buộc
           phan_tram_giam: null, // Thêm trường bắt buộc
+          so_luong_tam_giu: 0, // Thêm trường bắt buộc, mặc định 0 khi tạo mới
         })),
       };
 

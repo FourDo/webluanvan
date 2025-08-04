@@ -12,6 +12,7 @@ import {
   TrangChu,
   TrangSanPham,
   ChiTietSanPham,
+  ChiTietSuKien,
   GioHang,
   AdminDashboard,
   AdminProfile,
@@ -345,6 +346,10 @@ const router = createBrowserRouter([
       {
         path: "/sanpham/:id",
         element: <ChiTietSanPham />,
+      },
+      {
+        path: "/sukien/:eventId",
+        element: <ChiTietSuKien />,
       },
       {
         path: "/dichvu",

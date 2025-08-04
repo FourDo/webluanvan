@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Swiper as SwiperComponent, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Mousewheel, Autoplay } from "swiper/modules";
@@ -55,6 +56,7 @@ const ProductSwiper = ({ products, event, events }: ProductSwiperProps) => {
   const prevRef = useRef<HTMLButtonElement | null>(null);
   const nextRef = useRef<HTMLButtonElement | null>(null);
   const swiperRef = useRef<SwiperType | null>(null);
+  const navigate = useNavigate();
 
   // Sử dụng events nếu có, nếu không thì dùng event đơn lẻ
   const eventsToShow =
@@ -136,57 +138,135 @@ const ProductSwiper = ({ products, event, events }: ProductSwiperProps) => {
           // Hiển thị các events
           eventsToShow.map((eventItem) => (
             <SwiperSlide key={eventItem.su_kien_id}>
-              <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-700">
-                <div className="absolute inset-0">
+              <div
+                className="relative w-full h-full overflow-hidden cursor-pointer group"
+                onClick={() => navigate(`/sukien/${eventItem.su_kien_id}`)}
+              >
+                {/* Background Image with Parallax Effect */}
+                <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110">
                   <img
                     src={eventItem.anh_banner || "/image/hetcuu3.png"}
                     alt={eventItem.tieu_de}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/40"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
                 </div>
 
-                <div className="relative z-10 text-center max-w-4xl mx-auto px-6 py-8">
-                  <div className="mb-4 inline-block px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-bold rounded-full shadow-lg animate-pulse">
-                    🎉 SỰ KIỆN HOT
+                {/* Content Overlay */}
+                <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8 lg:p-12">
+                  {/* Top Section - Event Badge */}
+                  <div className="flex justify-between items-start">
+                    <div className="transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+                      <div className="bg-gradient-to-r from-red-500 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-lg shadow-xl">
+                        <div className="flex items-center gap-2 text-sm font-bold">
+                          <span className="text-lg animate-bounce">🔥</span>
+                          <span>KHUYẾN MÃI HOT</span>
+                          <span className="text-lg animate-pulse">✨</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Priority Badge */}
+                    {eventItem.uu_tien === 3 && (
+                      <div className="bg-yellow-500 text-black px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                        ⭐ VIP
+                      </div>
+                    )}
                   </div>
 
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
-                    {eventItem.tieu_de}
-                  </h1>
+                  {/* Bottom Section - Main Content */}
+                  <div className="space-y-4">
+                    {/* Event Type */}
+                    {eventItem.loai_su_kien && (
+                      <div className="inline-block">
+                        <span className="bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium border border-white/30">
+                          {eventItem.loai_su_kien
+                            .replace("-", " ")
+                            .toUpperCase()}
+                        </span>
+                      </div>
+                    )}
 
-                  <p className="text-lg sm:text-xl md:text-2xl text-gray-200 mb-6 leading-relaxed max-w-3xl mx-auto drop-shadow-md">
-                    {eventItem.noi_dung}
-                  </p>
-
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-yellow-300 font-semibold text-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">📅</span>
-                      <span>
-                        Từ:{" "}
-                        {new Date(eventItem.ngay_bat_dau).toLocaleDateString(
-                          "vi-VN"
-                        )}
+                    {/* Title */}
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-2xl font-black text-white leading-tight">
+                      <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+                        {eventItem.tieu_de}
                       </span>
-                    </div>
-                    <div className="hidden sm:block text-white">•</div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">⏰</span>
-                      <span>
-                        Đến:{" "}
-                        {new Date(eventItem.ngay_ket_thuc).toLocaleDateString(
-                          "vi-VN"
-                        )}
-                      </span>
-                    </div>
-                  </div>
+                    </h1>
 
-                  <div className="mt-8">
-                    <button className="px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-full shadow-lg hover:from-orange-600 hover:to-red-600 transform hover:scale-105 transition-all duration-300">
-                      Khám Phá Ngay
-                    </button>
+                    {/* Description */}
+                    <p className="text-gray-200 text-lg md:text-xl max-w-3xl leading-relaxed">
+                      {eventItem.noi_dung}
+                    </p>
+
+                    {/* Date Info with Modern Design */}
+                    <div className="flex flex-wrap gap-4 text-yellow-300">
+                      <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-yellow-300/30">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-sm font-medium">
+                          Bắt đầu:{" "}
+                          {new Date(eventItem.ngay_bat_dau).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-yellow-300/30">
+                        <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                        <span className="text-sm font-medium">
+                          Kết thúc:{" "}
+                          {new Date(eventItem.ngay_ket_thuc).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* CTA Button */}
+                    <div className="pt-4">
+                      <button
+                        className="group/btn relative overflow-hidden bg-gradient-to-r  text-white px-8 py-4 rounded-full font-bold text-lg shadow-2xl hover:shadow-blue-500/25 transition-all duration-500 transform hover:scale-105 hover:-translate-y-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/sukien/${eventItem.su_kien_id}`);
+                        }}
+                      >
+                        <span className="relative z-10 flex items-center gap-3">
+                          <span>Khám Phá Ngay</span>
+                          <svg
+                            className="w-5 h-5 transform group-hover/btn:translate-x-1 transition-transform duration-300"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </span>
+
+                        {/* Animated Background */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
+
+                        {/* Sparkle Effect */}
+                        <div className="absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500">
+                          <div className="absolute top-1/2 left-1/4 w-1 h-1 bg-white rounded-full animate-ping"></div>
+                          <div
+                            className="absolute top-1/3 right-1/4 w-1 h-1 bg-white rounded-full animate-ping"
+                            style={{ animationDelay: "0.2s" }}
+                          ></div>
+                          <div
+                            className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-white rounded-full animate-ping"
+                            style={{ animationDelay: "0.4s" }}
+                          ></div>
+                        </div>
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                {/* Bottom Decorative Line */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
               </div>
             </SwiperSlide>
           ))

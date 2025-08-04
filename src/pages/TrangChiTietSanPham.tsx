@@ -4,13 +4,13 @@ import { productApi } from "../API/productApi";
 import type { Product } from "../types/Product";
 import { useGioHang } from "../context/GioHangContext";
 import { useBehaviorTracking } from "../hooks/useBehaviorTracking";
+import CategoryRecommendations from "../components/CategoryRecommendations";
+
 import {
-  Heart,
   Star,
   Minus,
   Plus,
   ShoppingCart,
-  Share2,
   ArrowLeft,
   Check,
 } from "lucide-react";
@@ -46,7 +46,6 @@ const ChiTietSanPham: React.FC = () => {
   const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isAddedToCart, setIsAddedToCart] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0); // Thêm state cho hình ảnh được chọn
@@ -137,7 +136,11 @@ const ChiTietSanPham: React.FC = () => {
   );
   const images = allImages.length > 0 ? allImages : ["/no-image.png"];
 
-  const inStock = selectedVariant ? selectedVariant.so_luong_ton > 0 : false;
+  // Tính số lượng thực tế còn lại = số lượng tồn kho - số lượng tạm giữ
+  const actualStock = selectedVariant
+    ? selectedVariant.so_luong_ton - (selectedVariant.so_luong_tam_giu || 0)
+    : 0;
+  const inStock = actualStock > 0;
 
   const handleAddToCart = async () => {
     // Kiểm tra xem người dùng đã đăng nhập chưa
@@ -150,6 +153,19 @@ const ChiTietSanPham: React.FC = () => {
     }
 
     if (!selectedVariant) return;
+
+    // Kiểm tra số lượng thực tế còn lại
+    if (quantity > actualStock) {
+      alert(`Chỉ còn ${actualStock} sản phẩm trong kho!`);
+      setQuantity(Math.max(1, actualStock));
+      return;
+    }
+
+    if (actualStock <= 0) {
+      alert("Sản phẩm đã hết hàng!");
+      return;
+    }
+
     const color =
       selectedVariant.ten_mau_sac ||
       selectedVariant.ten_cac_bien_the?.split(" / ")[0]?.trim() ||
@@ -270,18 +286,24 @@ const ChiTietSanPham: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex items-center space-x-3 mb-6">
-                  {selectedVariant?.phan_tram_giam ? (
+                  {selectedVariant?.phan_tram_giam ||
+                  selectedVariant?.gia_khuyen_mai ? (
                     <div className="flex flex-col">
                       <div className="flex items-center space-x-3">
                         <span className="text-3xl font-bold text-red-600">
-                          {formatCurrency(
-                            parseFloat(selectedVariant.gia_ban) *
-                              (1 - selectedVariant.phan_tram_giam / 100)
-                          )}
+                          {selectedVariant.gia_khuyen_mai
+                            ? formatCurrency(selectedVariant.gia_khuyen_mai)
+                            : formatCurrency(
+                                parseFloat(selectedVariant.gia_ban) *
+                                  (1 -
+                                    (selectedVariant.phan_tram_giam || 0) / 100)
+                              )}
                         </span>
-                        <span className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-bold">
-                          -{selectedVariant.phan_tram_giam}%
-                        </span>
+                        {selectedVariant.phan_tram_giam && (
+                          <span className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-bold">
+                            -{selectedVariant.phan_tram_giam}%
+                          </span>
+                        )}
                       </div>
                       <span className="text-xl text-gray-500 line-through">
                         {formatCurrency(selectedVariant?.gia_ban || 0)}
@@ -418,7 +440,7 @@ const ChiTietSanPham: React.FC = () => {
                 </span>
                 {selectedVariant && (
                   <span className="text-xs text-gray-500 ml-2">
-                    (Kho: {selectedVariant.so_luong_ton})
+                    (Còn lại: {actualStock})
                   </span>
                 )}
               </div>
@@ -439,8 +461,11 @@ const ChiTietSanPham: React.FC = () => {
                     {quantity}
                   </span>
                   <button
-                    onClick={() => setQuantity(quantity + 1)}
+                    onClick={() =>
+                      setQuantity(Math.min(actualStock || 999, quantity + 1))
+                    }
                     className="p-2 hover:bg-gray-100 transition-colors"
+                    disabled={quantity >= (actualStock || 999)}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -465,21 +490,7 @@ const ChiTietSanPham: React.FC = () => {
                     </>
                   )}
                 </button>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setIsFavorite(!isFavorite)}
-                    className={`flex-1 border border-gray-300 py-3 px-4 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 ${isFavorite ? "text-red-600 border-red-300 bg-red-50" : "text-gray-700"}`}
-                  >
-                    <Heart
-                      className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`}
-                    />
-                    <span>Yêu thích</span>
-                  </button>
-                  <button className="flex-1 border border-gray-300 py-3 px-4 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
-                    <Share2 className="w-5 h-5" />
-                    <span>Chia sẻ</span>
-                  </button>
-                </div>
+                <div className="flex space-x-3"></div>
               </div>
             </div>
           </div>
@@ -558,6 +569,11 @@ const ChiTietSanPham: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Sản phẩm liên quan */}
+      <div className="mt-8">
+        <CategoryRecommendations productId={product.ma_san_pham} limit={8} />
       </div>
     </div>
   );

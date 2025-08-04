@@ -33,6 +33,10 @@ export interface DonHang {
   don_vi_van_chuyen?: string | null;
   ma_van_don?: string | null;
   ngay_du_kien_giao?: string | null;
+  // Thêm các trường cho yêu cầu hủy/trả
+  yeu_cau_huy_tra?: string;
+  ly_do_huy_tra?: string;
+  xac_nhan?: string;
 }
 
 export interface OrderDetailResponse {
@@ -328,6 +332,20 @@ export const orderApi = {
         console.error("❌ Lỗi cập nhật trạng thái đơn hàng (QL):", error);
         throw new Error("Cập nhật trạng thái đơn hàng thất bại.");
       }),
+  updateOrderStatusNEW: (orderId: number) =>
+    apiClient
+      .post(`/qldonhang/xacnhandh/${orderId}`)
+      .then((res) => {
+        console.log(
+          "✅ Cập nhật trạng thái đơn hàng (QL) thành công:",
+          res.data
+        );
+        return res.data;
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi cập nhật trạng thái đơn hàng (QL):", error);
+        throw new Error("Cập nhật trạng thái đơn hàng thất bại.");
+      }),
 
   // Yêu cầu hủy hoặc trả hàng
   requestCancelReturn: (
@@ -346,16 +364,82 @@ export const orderApi = {
           error.response?.data?.message || "Yêu cầu hủy/trả hàng thất bại."
         );
       }),
+
+  // Xác nhận hủy/trả hàng
+  confirmCancelReturn: (orderId: number, decision: "Chấp Nhận" | "Từ Chối") =>
+    apiClient
+      .post(`/qldonhang/xacnhanhuytra/${orderId}`, {
+        xac_nhan: decision,
+      })
+      .then((res) => {
+        console.log("✅ Xác nhận hủy/trả hàng thành công:", res.data);
+        return res.data;
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi khi xác nhận hủy/trả hàng:", error);
+        throw new Error(
+          error.response?.data?.message || "Xác nhận hủy/trả hàng thất bại."
+        );
+      }),
+
+  // Lấy danh sách yêu cầu hủy/trả hàng
+  getCancelReturnRequests: () =>
+    apiClient
+      .get("qldonhang/dsyeucauhuytra")
+      .then((res) => {
+        console.log("📋 Response từ API getCancelReturnRequests:", res.data);
+
+        // Kiểm tra cấu trúc response
+        if (res.data.data && Array.isArray(res.data.data)) {
+          // Trường hợp API trả về {message, data: [...]}
+          return {
+            don_hang: res.data.data,
+            message:
+              res.data.message || "Lấy danh sách yêu cầu hủy/trả thành công",
+          };
+        } else if (res.data.don_hang && Array.isArray(res.data.don_hang)) {
+          // Trường hợp API trả về {don_hang: [...]}
+          return res.data;
+        } else if (Array.isArray(res.data)) {
+          // Trường hợp API trả về trực tiếp array
+          return {
+            don_hang: res.data,
+            message: "Lấy danh sách yêu cầu hủy/trả thành công",
+          };
+        } else {
+          // Fallback: trả về dữ liệu trống
+          console.warn("⚠️ Cấu trúc response không như mong đợi:", res.data);
+          return {
+            don_hang: [],
+            message: "Không tìm thấy yêu cầu hủy/trả nào",
+          };
+        }
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi khi lấy danh sách yêu cầu hủy/trả:", error);
+
+        if (error.response?.status === 404) {
+          // Trả về dữ liệu trống thay vì throw error
+          return {
+            don_hang: [],
+            message: "Không có yêu cầu hủy/trả nào",
+          };
+        }
+
+        throw new Error("Lấy danh sách yêu cầu hủy/trả thất bại.");
+      }),
 };
 
 // Export các hàm riêng lẻ để tương thích với code cũ
 export const createOrder = orderApi.createOrder;
 export const getOrderDetail = orderApi.getOrderDetail;
 export const getOrdersByUserId = orderApi.getOrdersByUserId;
-export const updateOrderStatus = orderApi.updateOrderStatus;
+export const updateOrderStatusNEW = orderApi.updateOrderStatusNEW;
 export const updateOrderStatusQL = orderApi.updateOrderStatusQL;
 export const refundVNPay = orderApi.refundVNPay;
 export const getPendingOrders = orderApi.getPendingOrders;
 export const requestCancelReturn = orderApi.requestCancelReturn;
+export const confirmCancelReturn = orderApi.confirmCancelReturn;
+export const getCancelReturnRequests = orderApi.getCancelReturnRequests;
 
 export default orderApi;

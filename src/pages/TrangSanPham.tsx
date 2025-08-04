@@ -26,6 +26,11 @@ const getProductDisplayInfo = (product: ApiProduct) => {
     ? originalPrice * (1 - discountPercent / 100)
     : null;
 
+  // Tính số lượng thực tế còn lại = số lượng tồn kho - số lượng tạm giữ
+  const actualStock = mainVariant
+    ? mainVariant.so_luong_ton - (mainVariant.so_luong_tam_giu || 0)
+    : 0;
+
   return {
     id: product.ma_san_pham,
     name: product.ten_san_pham,
@@ -40,6 +45,7 @@ const getProductDisplayInfo = (product: ApiProduct) => {
     // Sử dụng tên màu sắc thay vì hex code
     color: mainVariant?.ten_mau_sac || "N/A",
     hex: mainVariant?.hex_code || "#000000",
+    actualStock: actualStock, // Thêm số lượng thực tế
   };
 };
 
@@ -99,7 +105,6 @@ const TrangSanPham: React.FC = () => {
 
           setActiveEvents(validEvents);
         } else {
-          console.log("⚠️ TrangSanPham - No events received or not array");
           setActiveEvents([]);
         }
       } catch (err: any) {
@@ -107,7 +112,6 @@ const TrangSanPham: React.FC = () => {
         setActiveEvents([]);
       } finally {
         setEventLoading(false);
-        console.log("🏁 TrangSanPham - Event loading finished");
       }
     };
     fetchActiveEvents();

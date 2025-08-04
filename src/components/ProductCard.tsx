@@ -107,16 +107,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Phần giá - hiển thị giá khuyến mãi nếu có */}
         <div className="my-3">
-          {defaultVariant.phan_tram_giam ? (
+          {defaultVariant.phan_tram_giam &&
+          defaultVariant.phan_tram_giam > 0 ? (
             <div className="flex flex-col">
               <p className="text-xl font-bold text-red-600">
-                {formatCurrency(
-                  parseFloat(defaultVariant.gia_ban) *
-                    (1 - defaultVariant.phan_tram_giam / 100)
-                )}
+                {defaultVariant.gia_khuyen_mai
+                  ? formatCurrency(defaultVariant.gia_khuyen_mai)
+                  : formatCurrency(
+                      parseFloat(defaultVariant.gia_ban) *
+                        (1 - defaultVariant.phan_tram_giam / 100)
+                    )}
               </p>
               <p className="text-sm text-gray-500 line-through">
                 {formatCurrency(defaultVariant.gia_ban)}
+              </p>
+              <p className="text-xs text-green-600 font-medium">
+                Tiết kiệm {defaultVariant.phan_tram_giam}%
               </p>
             </div>
           ) : (

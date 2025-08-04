@@ -3,6 +3,7 @@ export { default as Footer } from "../components/Footer";
 export { default as TrangChu } from "../pages/TrangChu";
 export { default as TrangSanPham } from "../pages/TrangSanPham";
 export { default as ChiTietSanPham } from "../pages/TrangChiTietSanPham";
+export { default as ChiTietSuKien } from "../pages/ChiTietSuKien";
 export { default as TrangDichVu } from "../pages/TrangDichVu";
 export { default as TrangVeChungToi } from "../pages/TrangVeChungToi";
 export { default as TrangBaiBao } from "../pages/TrangBaiBao";

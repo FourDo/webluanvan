@@ -762,7 +762,10 @@ const QLSuKien: React.FC = () => {
 
     const payload = {
       su_kien_id: selectedEvent.su_kien_id,
-      san_pham: [productFormData],
+      ma_san_pham: productFormData.ma_san_pham,
+      gia_sau_khuyen_mai: productFormData.gia_sau_khuyen_mai,
+      phan_tram_giam: productFormData.phan_tram_giam,
+      ghi_chu: productFormData.ghi_chu,
     };
     try {
       await eventApi.addProductsToEvent(payload);

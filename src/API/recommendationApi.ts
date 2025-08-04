@@ -93,6 +93,26 @@ export const recommendationApi = {
     }
   },
 
+  // Lấy gợi ý sản phẩm theo danh mục
+  getCategoryRecommendations: async (
+    productId: number,
+    limit: number = 5
+  ): Promise<{ data: Product[]; success: boolean; message?: string }> => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/goiy/danhmuc/${productId}?limit=${limit}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch category recommendations");
+      }
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error fetching category recommendations:", error);
+      throw new Error("Lấy gợi ý sản phẩm theo danh mục thất bại.");
+    }
+  },
+
   // Track hành vi đơn lẻ
   trackBehavior: async (
     behaviorData: BehaviorData

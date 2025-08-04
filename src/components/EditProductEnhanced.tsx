@@ -172,11 +172,21 @@ const EditProductEnhanced: React.FC = () => {
       return;
     }
 
+    if (!product?.thuong_hieu?.trim()) {
+      setError("Vui lòng nhập thương hiệu trước khi tạo mô tả AI!");
+      return;
+    }
+
+    if (!product?.chat_lieu?.trim()) {
+      setError("Vui lòng nhập chất liệu trước khi tạo mô tả AI!");
+      return;
+    }
+
     setAiGenerating(true);
     setError(null);
     try {
       const response = await axios.post(
-        "https://luanvan-7wv1.onrender.com/api/ai/generate",
+        "http://127.0.0.1:8000/api/ai/generate",
         {
           ten_san_pham: product.ten_san_pham,
           thuong_hieu: product.thuong_hieu,

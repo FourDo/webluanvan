@@ -3,8 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { useGioHang } from "../context/GioHangContext";
 import { useAuth } from "../context/AuthContext";
 import { createOrder } from "../API/orderApi";
+import {
+  getProvinces,
+  getDistricts,
+  getWards,
+  getServices,
+  calculateGhnFee,
+  getValidFromDistrictId,
+  getValidFromWardCode,
+} from "../API/ghnApi";
 import Cookies from "js-cookie";
-import axios from "axios";
 
 interface ThongTinKhachHang {
   hoTen: string;
@@ -16,11 +24,6 @@ interface ThongTinKhachHang {
   phuongXa: string;
   ghiChu: string;
 }
-
-const TOKEN = "5596bafe-44e4-11f0-9b81-222185cb68c8";
-const SHOP_ID = 196805;
-const YOUR_SHOP_DISTRICT_ID = 1442;
-const YOUR_SHOP_WARD_CODE = "20101";
 
 const ThanhToan: React.FC = () => {
   const navigate = useNavigate();
@@ -96,48 +99,6 @@ const ThanhToan: React.FC = () => {
     }).format(gia);
   };
 
-  // API GHN: Lấy danh sách tỉnh/thành phố
-  const getProvinces = async () => {
-    try {
-      const response = await axios.get(
-        "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/province",
-        { headers: { Token: TOKEN } }
-      );
-      return response.data.data || [];
-    } catch (error) {
-      setError("Không thể tải danh sách tỉnh/thành phố");
-      return [];
-    }
-  };
-
-  // API GHN: Lấy danh sách quận/huyện
-  const getDistricts = async (provinceId: number) => {
-    try {
-      const response = await axios.get(
-        `https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${provinceId}`,
-        { headers: { Token: TOKEN } }
-      );
-      return response.data.data || [];
-    } catch (error) {
-      setError("Không thể tải danh sách quận/huyện");
-      return [];
-    }
-  };
-
-  // API GHN: Lấy danh sách phường/xã
-  const getWards = async (districtId: number) => {
-    try {
-      const response = await axios.get(
-        `https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${districtId}`,
-        { headers: { Token: TOKEN } }
-      );
-      return response.data.data || [];
-    } catch (error) {
-      setError("Không thể tải danh sách phường/xã");
-      return [];
-    }
-  };
-
   // API GHN: Tính phí vận chuyển
   const calculateShippingFee = async (
     toDistrictId: number,
@@ -155,43 +116,49 @@ const ThanhToan: React.FC = () => {
       const maxWidth = Math.max(
         ...items.map((item) => item.sanPham.width || 20)
       );
-      const totalHeight = items.reduce(
-        (sum, item) => sum + (item.sanPham.weight || 20) * item.soLuong,
-        0
-      );
+      const totalHeight = 5;
 
-      const payload = {
-        shop_id: SHOP_ID,
-        from_district_id: YOUR_SHOP_DISTRICT_ID,
-        from_ward_code: YOUR_SHOP_WARD_CODE,
+      // Lấy district ID hợp lệ từ hệ thống GHN
+      const FROM_DISTRICT_ID = await getValidFromDistrictId();
+      const FROM_WARD_CODE = await getValidFromWardCode(FROM_DISTRICT_ID);
+
+      console.log("Sử dụng FROM_DISTRICT_ID:", FROM_DISTRICT_ID);
+      console.log("Sử dụng FROM_WARD_CODE:", FROM_WARD_CODE);
+
+      // Trước tiên lấy danh sách services có sẵn
+      const servicesData = await getServices(FROM_DISTRICT_ID, toDistrictId);
+
+      if (!servicesData || servicesData.length === 0) {
+        throw new Error("Không có dịch vụ vận chuyển khả dụng cho khu vực này");
+      }
+
+      const serviceId = servicesData[0].service_id; // Lấy service đầu tiên
+
+      const feeData = {
+        service_id: serviceId,
+        from_district_id: FROM_DISTRICT_ID,
+        from_ward_code: FROM_WARD_CODE,
         to_district_id: toDistrictId,
         to_ward_code: toWardCode,
-        weight: totalWeight,
-        length: maxLength,
-        width: maxWidth,
-        height: totalHeight,
-        service_type_id: 2, // Dịch vụ tiêu chuẩn
+        weight: Math.max(totalWeight, 200), // Minimum 200g
+        length: Math.max(maxLength, 10), // Minimum 10cm
+        width: Math.max(maxWidth, 10), // Minimum 10cm
+        height: Math.max(totalHeight, 5), // Minimum 5cm
+        insurance_value: Math.min(tinhTongTien(), 5000000), // Max 5M VND
       };
 
-      const response = await axios.post(
-        "https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee",
-        payload,
-        {
-          headers: {
-            Token: TOKEN,
-            "Content-Type": "application/json",
-            ShopId: SHOP_ID,
-          },
-        }
-      );
+      console.log("Gửi yêu cầu tính phí với dữ liệu:", feeData);
 
-      if (response.data.code === 200) {
-        return response.data.data.total;
+      const response = await calculateGhnFee(feeData);
+
+      if (response.code === 200) {
+        return response.data.total;
       } else {
-        throw new Error(response.data.message);
+        throw new Error(response.message || "Không thể tính phí vận chuyển");
       }
-    } catch (error) {
-      setError("Không thể tính phí vận chuyển");
+    } catch (error: any) {
+      console.error("Lỗi tính phí vận chuyển:", error);
+      setError(error.message || "Không thể tính phí vận chuyển");
       return 0;
     }
   };
@@ -213,9 +180,14 @@ const ThanhToan: React.FC = () => {
   useEffect(() => {
     const fetchProvinces = async () => {
       setApiLoading(true);
-      const provincesData = await getProvinces();
-      setProvinces(provincesData);
-      setApiLoading(false);
+      try {
+        const provincesData = await getProvinces();
+        setProvinces(provincesData);
+      } catch (error) {
+        setError("Không thể tải danh sách tỉnh/thành phố");
+      } finally {
+        setApiLoading(false);
+      }
     };
     fetchProvinces();
   }, []);
@@ -225,13 +197,18 @@ const ThanhToan: React.FC = () => {
     if (selectedProvince) {
       const fetchDistricts = async () => {
         setApiLoading(true);
-        const districtsData = await getDistricts(selectedProvince.ProvinceID);
-        setDistricts(districtsData);
-        setSelectedDistrict(null);
-        setWards([]);
-        setSelectedWard(null);
-        setPhiVanChuyen(0);
-        setApiLoading(false);
+        try {
+          const districtsData = await getDistricts(selectedProvince.ProvinceID);
+          setDistricts(districtsData);
+          setSelectedDistrict(null);
+          setWards([]);
+          setSelectedWard(null);
+          setPhiVanChuyen(0);
+        } catch (error) {
+          setError("Không thể tải danh sách quận/huyện");
+        } finally {
+          setApiLoading(false);
+        }
       };
       fetchDistricts();
       setThongTinKhachHang((prev) => ({
@@ -248,11 +225,16 @@ const ThanhToan: React.FC = () => {
     if (selectedDistrict) {
       const fetchWards = async () => {
         setApiLoading(true);
-        const wardsData = await getWards(selectedDistrict.DistrictID);
-        setWards(wardsData);
-        setSelectedWard(null);
-        setPhiVanChuyen(0);
-        setApiLoading(false);
+        try {
+          const wardsData = await getWards(selectedDistrict.DistrictID);
+          setWards(wardsData);
+          setSelectedWard(null);
+          setPhiVanChuyen(0);
+        } catch (error) {
+          setError("Không thể tải danh sách phường/xã");
+        } finally {
+          setApiLoading(false);
+        }
       };
       fetchWards();
       setThongTinKhachHang((prev) => ({
@@ -540,15 +522,6 @@ const ThanhToan: React.FC = () => {
           const giaGoc = Number(item.sanPham.gia);
           const soLuong = Number(item.soLuong);
 
-          // Debug để kiểm tra ma_bien_the
-          console.log("🔍 Sản phẩm trong giỏ hàng:", {
-            id: item.sanPham.id,
-            ma_bien_the: item.sanPham.ma_bien_the,
-            ten: item.sanPham.ten,
-            mauSac: item.sanPham.mauSac,
-            kichThuoc: item.sanPham.kichThuoc,
-          });
-
           return {
             ma_bien_the: Number(item.sanPham.ma_bien_the || item.sanPham.id),
             ten_san_pham: String(item.sanPham.ten || "").trim(),
@@ -566,28 +539,22 @@ const ThanhToan: React.FC = () => {
       // Lấy user ID từ user object hoặc localStorage
       let userId = 1; // Giá trị mặc định
 
-      console.log("🔍 User object từ context:", user);
-
       if (user && user.ma_nguoi_dung) {
         userId = user.ma_nguoi_dung;
-        console.log("✅ Lấy user ID từ context:", userId);
       } else {
         // Thử lấy từ localStorage
         try {
           const storedUser = localStorage.getItem("user");
-          console.log("🔍 User từ localStorage:", storedUser);
+
           if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
-            console.log("🔍 Parsed user:", parsedUser);
+
             userId = parsedUser.ma_nguoi_dung || 1;
-            console.log("✅ Lấy user ID từ localStorage:", userId);
           }
         } catch (error) {
           console.error("❌ Lỗi khi parse user từ localStorage:", error);
         }
       }
-
-      console.log("🔍 User ID cuối cùng được sử dụng:", userId);
 
       const donHangPayload = {
         ...orderData,
@@ -619,23 +586,16 @@ const ThanhToan: React.FC = () => {
 
       // Validate từng chi tiết sản phẩm
       for (const item of donHangPayload.chi_tiet) {
-        console.log("🔍 Kiểm tra sản phẩm:", item);
-
         if (
           !item.ma_bien_the ||
           !item.ten_san_pham ||
           item.so_luong <= 0 ||
           item.gia_goc <= 0
         ) {
-          console.error("❌ Sản phẩm không hợp lệ:", item);
           setError(`Sản phẩm "${item.ten_san_pham}" có dữ liệu không hợp lệ`);
           return;
         }
       }
-
-      console.log(
-        "✅ Tất cả dữ liệu đã được validate, bắt đầu gửi đơn hàng..."
-      );
       const orderResult = await createOrder(donHangPayload);
 
       if (orderResult && orderResult.payment_url) {

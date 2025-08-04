@@ -364,7 +364,7 @@ function TrangProfile() {
       newErrors.email = "❌ Vui lòng nhập email!";
     } else if (!emailRegex.test(editData.email.trim())) {
       newErrors.email =
-        "❌ Email không đúng định dạng (ví dụ: name@example.com)!";
+        "❌ Email không đúng định dạng (ví dụ: name@gmail.com)!";
     }
 
     // Kiểm tra số điện thoại Việt Nam
@@ -734,17 +734,7 @@ function TrangProfile() {
                   <ShoppingBag size={20} />
                   Đơn hàng của tôi
                 </button>
-                <button
-                  onClick={() => setActiveTab("wishlist")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
-                    activeTab === "wishlist"
-                      ? "bg-blue-50 text-blue-700 border border-blue-200"
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  <Heart size={20} />
-                  Sản phẩm yêu thích
-                </button>
+
                 <button
                   onClick={() => setActiveTab("password")}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3 ${
