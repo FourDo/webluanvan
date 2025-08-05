@@ -132,7 +132,7 @@ const TrangSanPham: React.FC = () => {
   // State cho tìm kiếm và sắp xếp
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInput, setSearchInput] = useState(""); // Input thực tế mà user gõ
-  const [sortOption, setSortOption] = useState("Featured");
+  const [sortOption, setSortOption] = useState("mặc định");
 
   // Debounce search term với delay 500ms
   const debouncedSearchTerm = useDebounce(searchInput, 500);
@@ -386,7 +386,9 @@ const TrangSanPham: React.FC = () => {
       case "Theo thứ tự chữ cái, Z-A":
         filtered.sort((a, b) => b.name.localeCompare(a.name));
         break;
+      case "mặc định":
       default:
+        // Giữ thứ tự mặc định (có thể sắp xếp theo ID hoặc thứ tự ban đầu)
         break;
     }
 
@@ -448,13 +450,17 @@ const TrangSanPham: React.FC = () => {
   const totalPages = Math.ceil(
     filteredAndSortedProducts.length / ITEMS_PER_PAGE
   );
+
+  // Lấy các sản phẩm cho trang hiện tại và sắp xếp theo đúng thứ tự đã được sắp xếp
   const currentProductIds = filteredAndSortedProducts.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
-  const currentProducts = allProducts.filter((p) =>
-    currentProductIds.includes(p.ma_san_pham)
-  );
+
+  // Tạo mảng sản phẩm theo đúng thứ tự đã sắp xếp
+  const currentProducts = currentProductIds
+    .map((productId) => allProducts.find((p) => p.ma_san_pham === productId))
+    .filter((product): product is ApiProduct => product !== undefined); // Type guard để đảm bảo không có undefined
 
   // --- EVENT HANDLERS ---
   const resetAllFilters = () => {
@@ -467,7 +473,7 @@ const TrangSanPham: React.FC = () => {
     // Đảm bảo reset price range với giá trị an toàn
     const safeMaxPrice = Math.max(maxPrice, 1);
     setPriceRange([0, safeMaxPrice]);
-    setSortOption("Featured");
+    setSortOption("mặc định");
     setCurrentPage(1);
 
     // Xóa query parameters khỏi URL
@@ -550,7 +556,7 @@ const TrangSanPham: React.FC = () => {
                   onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
                 >
                   <Filter className="w-5 h-5" />
-                  <span>{isFilterMenuOpen ? "Hide" : "Show"} Filters</span>
+                  <span>{isFilterMenuOpen} bộ lọc</span>
                 </button>
                 <div className="flex-1 relative w-full">
                   {isSearching ? (
@@ -603,7 +609,7 @@ const TrangSanPham: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-auto">
                   <label className="text-gray-700 font-medium whitespace-nowrap">
-                    xắp sếp:
+                    sắp sếp:
                   </label>
                   <select
                     value={sortOption}
@@ -662,18 +668,13 @@ const TrangSanPham: React.FC = () => {
                 {currentProducts.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {currentProducts.map((product) => {
-                      // Tìm lại ApiProduct gốc dựa trên id
-                      const originalProduct = allProducts.find(
-                        (p) => p.ma_san_pham === product.ma_san_pham
-                      );
-                      if (!originalProduct) return null;
                       // Nếu sản phẩm không có biến thể hoặc hình ảnh, không hiển thị
                       if (
-                        !Array.isArray(originalProduct.bienthe) ||
-                        originalProduct.bienthe.length === 0 ||
-                        !originalProduct.bienthe[0].hinh_anh ||
-                        !Array.isArray(originalProduct.bienthe[0].hinh_anh) ||
-                        originalProduct.bienthe[0].hinh_anh.length === 0
+                        !Array.isArray(product.bienthe) ||
+                        product.bienthe.length === 0 ||
+                        !product.bienthe[0].hinh_anh ||
+                        !Array.isArray(product.bienthe[0].hinh_anh) ||
+                        product.bienthe[0].hinh_anh.length === 0
                       )
                         return null;
                       return (
@@ -681,7 +682,7 @@ const TrangSanPham: React.FC = () => {
                           key={product.ma_san_pham}
                           onClick={() => trackViewProduct(product.ma_san_pham)}
                         >
-                          <ProductCard product={originalProduct} />
+                          <ProductCard product={product} />
                         </div>
                       );
                     })}

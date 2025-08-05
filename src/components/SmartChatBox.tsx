@@ -114,11 +114,13 @@ ${productContext}
 Khi khách hàng hỏi về sản phẩm, hãy trả lời một cách thân thiện và cung cấp thông tin hữu ích. Đặc biệt chú ý:
 - Khi khách hàng hỏi về sản phẩm "rẻ nhất" hoặc "giá thấp nhất", hãy tìm sản phẩm có giá thấp nhất trong danh mục đó
 - Khi khách hàng hỏi về sản phẩm "đắt nhất" hoặc "cao cấp nhất", hãy tìm sản phẩm có giá cao nhất
+- Khi khách hàng yêu cầu "tất cả sản phẩm" hoặc "load hết", chỉ đề cập đến 5 sản phẩm đầu tiên để tránh tràn dữ liệu
 - KHÔNG BAO GIỜ hiển thị ID sản phẩm cho khách hàng
 - ${isBrandSpecific ? "Có thể đề cập đến thương hiệu khi khách hàng hỏi cụ thể" : "Chỉ đề cập tên sản phẩm và giá, không cần nói về thương hiệu trừ khi được hỏi cụ thể"}
 - Cung cấp thông tin về chất liệu, kích thước, màu sắc khi phù hợp
 - Luôn đề cập đến tên chính xác của sản phẩm để hiển thị hình ảnh
 - So sánh giá cả, chất liệu, kích thước khi khách hàng yêu cầu
+- Nếu số lượng tồn là nhỏ hơn 1 thì không gợi ý sản phảm đó
 
 Khách hàng hỏi: ${input}
 Trả lời:`;
@@ -133,9 +135,12 @@ Trả lời:`;
       let botResponse: string | React.ReactNode = text;
       const foundProducts: Product[] = [];
 
-      // Tìm các sản phẩm được đề cập trong câu trả lời
+      // Tìm các sản phẩm được đề cập trong câu trả lời (giới hạn 5 sản phẩm)
       products.forEach((p) => {
-        if (text.toLowerCase().includes(p.ten_san_pham.toLowerCase())) {
+        if (
+          text.toLowerCase().includes(p.ten_san_pham.toLowerCase()) &&
+          foundProducts.length < 5
+        ) {
           foundProducts.push(p);
         }
       });
@@ -188,13 +193,13 @@ Trả lời:`;
             });
             foundProducts.push(matchingProducts[0]);
           } else {
-            // Hiển thị tất cả sản phẩm tìm được, sắp xếp theo giá
+            // Hiển thị tối đa 5 sản phẩm tìm được, sắp xếp theo giá
             matchingProducts.sort((a, b) => {
               const priceA = parseFloat(a.bienthe?.[0]?.gia_ban || "0");
               const priceB = parseFloat(b.bienthe?.[0]?.gia_ban || "0");
               return priceA - priceB;
             });
-            foundProducts.push(...matchingProducts);
+            foundProducts.push(...matchingProducts.slice(0, 5));
           }
         }
       } // Tạo response với links cho tên sản phẩm
@@ -301,6 +306,13 @@ Trả lời:`;
         );
       });
 
+      // Kiểm tra nếu có nhiều sản phẩm hơn được tìm thấy
+      const hasMoreProducts =
+        (text.toLowerCase().includes("tất cả") ||
+          text.toLowerCase().includes("load hết") ||
+          text.toLowerCase().includes("hiển thị hết")) &&
+        products.length > 5;
+
       if (replaced) {
         botResponse = (
           <div>
@@ -311,6 +323,12 @@ Trả lời:`;
                   Sản phẩm liên quan:
                 </p>
                 {productCards}
+                {hasMoreProducts && (
+                  <p className="text-xs text-gray-500 mt-3 p-2 bg-gray-50 rounded-lg border-l-4 border-blue-400">
+                    📌 Hiển thị 5 sản phẩm đầu tiên. Hãy nhắn cụ thể hơn để tìm
+                    sản phẩm phù hợp!
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -325,6 +343,12 @@ Trả lời:`;
                 Sản phẩm liên quan:
               </p>
               {productCards}
+              {hasMoreProducts && (
+                <p className="text-xs text-gray-500 mt-3 p-2 bg-gray-50 rounded-lg border-l-4 border-blue-400">
+                  📌 Hiển thị 5 sản phẩm đầu tiên. Hãy nhắn cụ thể hơn để tìm
+                  sản phẩm phù hợp!
+                </p>
+              )}
             </div>
           </div>
         );

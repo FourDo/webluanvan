@@ -4,8 +4,6 @@ import { productApi } from "../API/productApi";
 import type { Product } from "../types/Product";
 import { useGioHang } from "../context/GioHangContext";
 import { useBehaviorTracking } from "../hooks/useBehaviorTracking";
-import CategoryRecommendations from "../components/CategoryRecommendations";
-
 import {
   Star,
   Minus,
@@ -569,11 +567,6 @@ const ChiTietSanPham: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Sản phẩm liên quan */}
-      <div className="mt-8">
-        <CategoryRecommendations productId={product.ma_san_pham} limit={8} />
       </div>
     </div>
   );

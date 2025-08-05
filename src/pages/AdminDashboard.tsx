@@ -7,7 +7,6 @@ import {
   DollarSign,
   ShoppingCart,
   Package,
-  Activity,
 } from "lucide-react";
 import RevenueChart from "../components/RevenueChart";
 import InteractiveRevenueChart from "../components/InteractiveRevenueChart";
@@ -162,14 +161,7 @@ const AdminDashboard: React.FC = () => {
       color: "bg-green-500",
       trend: "+12.5%",
     },
-    {
-      title: "Sản Phẩm Bán Ra",
-      value: formatNumber(dashboardStats.totalSales?.tong_so_luong_ban || 0),
-      subtitle: `${(dashboardStats.totalSales?.ti_le_ban_ra || 0).toFixed(1)}% tỷ lệ bán`,
-      icon: Package,
-      color: "bg-blue-500",
-      trend: "+8.2%",
-    },
+
     {
       title: "Giá Trị TB/Đơn",
       value: formatCurrency(
@@ -179,14 +171,6 @@ const AdminDashboard: React.FC = () => {
       icon: ShoppingCart,
       color: "bg-purple-500",
       trend: "+5.1%",
-    },
-    {
-      title: "Sản Phẩm Hoạt Động",
-      value: formatNumber(dashboardStats.totalSales?.tong_san_pham || 0),
-      subtitle: "Tổng sản phẩm",
-      icon: Activity,
-      color: "bg-orange-500",
-      trend: "+2.3%",
     },
   ];
 

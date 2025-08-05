@@ -309,7 +309,13 @@ const GioHang: React.FC = () => {
                     </label>
                     <textarea
                       value={ghiChu}
-                      onChange={(e) => setGhiChu(e.target.value)}
+                      onChange={(e) => {
+                        if (e.target.value.length >= 20) {
+                          setGhiChu(e.target.value);
+                        } else {
+                          alert("Ghi chú phải ít nhất 20 ký tự");
+                        }
+                      }}
                       rows={3}
                       className="w-full px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#518581] focus:border-transparent resize-none"
                       placeholder="Thêm ghi chú cho đơn hàng (không bắt buộc)"

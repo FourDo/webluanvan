@@ -22,9 +22,11 @@ import orderApi, {
   type DonHang,
   type OrderDetailResponse,
   updateOrderStatusQL,
+  updateOrderStatusNEW,
   getCancelReturnRequests,
   confirmCancelReturn,
   refundVNPay,
+  refundZaloPay,
 } from "../API/orderApi";
 import accountApi from "../API/accountApi";
 import type { Account } from "../types/Account";
@@ -636,8 +638,8 @@ const QLDonHang = () => {
     try {
       // Hiển thị xác nhận trước khi thực hiện
       const isOnlinePayment =
-        order.hinh_thuc_thanh_toan === "VNPay" ||
-        order.hinh_thuc_thanh_toan === "ZaloPay";
+        order.hinh_thuc_thanh_toan === "vnpay" ||
+        order.hinh_thuc_thanh_toan === "zalopay";
 
       const isPaid = order.da_thanh_toan === 1;
 
@@ -666,7 +668,21 @@ const QLDonHang = () => {
           console.log(
             `💰 Đang thực hiện hoàn tiền ${order.hinh_thuc_thanh_toan} cho đơn hàng ${orderId}...`
           );
-          await refundVNPay(orderId);
+
+          // Gọi API hoàn tiền tương ứng với phương thức thanh toán
+          const paymentMethod = order.hinh_thuc_thanh_toan.toLowerCase();
+          if (paymentMethod == "zalopay" || paymentMethod == "zalo pay") {
+            console.log("🔄 Gọi API hoàn tiền ZaloPay...");
+            await refundZaloPay(orderId);
+          } else if (paymentMethod == "vnpay" || paymentMethod == "vn pay") {
+            console.log("🔄 Gọi API hoàn tiền VNPay...");
+            await refundVNPay(orderId);
+          } else {
+            // Fallback cho các phương thức thanh toán online khác
+            console.log("🔄 Gọi API hoàn tiền fallback (VNPay)...");
+            await refundVNPay(orderId);
+          }
+
           alert(
             `✅ ${decision} yêu cầu hủy/trả thành công!\n\n💰 Hoàn tiền ${order.hinh_thuc_thanh_toan} đã được thực hiện cho đơn hàng #${orderId}\nSố tiền: ${new Intl.NumberFormat(
               "vi-VN",
@@ -685,7 +701,13 @@ const QLDonHang = () => {
       } else {
         const message =
           decision === "Chấp Nhận"
-            ? `✅ Chấp nhận yêu cầu hủy/trả thành công cho đơn hàng #${orderId}!${!isPaid ? "\n\n📝 Đơn hàng chưa thanh toán nên không cần hoàn tiền." : ""}`
+            ? `✅ Chấp nhận yêu cầu hủy/trả thành công cho đơn hàng #${orderId}!${
+                !isPaid
+                  ? "\n\n📝 Đơn hàng chưa thanh toán nên không cần hoàn tiền."
+                  : !isOnlinePayment
+                    ? "\n\n💵 Đơn hàng thanh toán COD nên không cần hoàn tiền online."
+                    : ""
+              }`
             : `✅ Từ chối yêu cầu hủy/trả thành công cho đơn hàng #${orderId}!`;
         alert(message);
       }
@@ -703,21 +725,48 @@ const QLDonHang = () => {
     }
   };
 
-  // Xử lý xác nhận đơn hàng và tạo đơn GHN
-  const handleConfirmOrderAndCreateGHN = async (
-    orderId: number,
-    order: DonHang
-  ) => {
+  // Xử lý xác nhận đơn hàng (chỉ xác nhận, không tạo đơn GHN)
+  const handleConfirmOrder = async (orderId: number) => {
+    try {
+      if (!confirm(`Bạn có chắc chắn muốn xác nhận đơn hàng #${orderId}?`)) {
+        return;
+      }
+
+      console.log(`🔄 Đang xác nhận đơn hàng ${orderId}...`);
+
+      // Gọi API xác nhận đơn hàng
+      await updateOrderStatusNEW(orderId);
+
+      console.log("✅ Xác nhận đơn hàng thành công");
+
+      alert(`✅ Xác nhận đơn hàng #${orderId} thành công!`);
+
+      // Reload danh sách đơn hàng chờ xác nhận
+      await loadPendingOrders();
+    } catch (error) {
+      console.error("❌ Lỗi khi xác nhận đơn hàng:", error);
+
+      let errorMessage = "Xác nhận đơn hàng thất bại!";
+      if (error instanceof Error) {
+        errorMessage += `\n\nLỗi: ${error.message}`;
+      }
+
+      alert(`❌ ${errorMessage}`);
+    }
+  };
+
+  // Xử lý tạo đơn GHN cho đơn hàng đã xác nhận
+  const handleCreateGHNOrder = async (orderId: number, order: DonHang) => {
     try {
       if (
         !confirm(
-          `Bạn có chắc chắn muốn xác nhận đơn hàng #${orderId} và tạo đơn vận chuyển GHN?`
+          `Bạn có chắc chắn muốn tạo đơn vận chuyển GHN cho đơn hàng #${orderId}?`
         )
       ) {
         return;
       }
 
-      console.log(`🔄 Đang xác nhận đơn hàng ${orderId} và tạo đơn GHN...`);
+      console.log(`🔄 Đang tạo đơn GHN cho đơn hàng ${orderId}...`);
 
       // Parse địa chỉ từ chuỗi địa chỉ đầy đủ
       const addressParts = parseAddress(order.dia_chi_giao);
@@ -756,7 +805,7 @@ const QLDonHang = () => {
       console.log("✅ Tạo đơn GHN thành công:", ghnResponse.data);
 
       alert(
-        `✅ Xác nhận đơn hàng #${orderId} và tạo đơn vận chuyển GHN thành công!\n\n` +
+        `✅ Tạo đơn vận chuyển GHN cho đơn hàng #${orderId} thành công!\n\n` +
           `📦 Mã vận đơn: ${ghnResponse.data.order_code || "Đang cập nhật"}\n` +
           `💰 Phí vận chuyển: ${new Intl.NumberFormat("vi-VN", {
             style: "currency",
@@ -765,12 +814,12 @@ const QLDonHang = () => {
           `🕐 Dự kiến giao: ${ghnResponse.data.expected_delivery_time || "Đang cập nhật"}`
       );
 
-      // Reload danh sách đơn hàng chờ xác nhận
-      await loadPendingOrders();
+      // Reload danh sách đơn hàng đã xác nhận
+      await loadConfirmedOrders();
     } catch (error) {
-      console.error("❌ Lỗi khi xác nhận đơn hàng và tạo đơn GHN:", error);
+      console.error("❌ Lỗi khi tạo đơn GHN:", error);
 
-      let errorMessage = "Xác nhận đơn hàng và tạo đơn GHN thất bại!";
+      let errorMessage = "Tạo đơn vận chuyển GHN thất bại!";
       if (error instanceof Error) {
         errorMessage += `\n\nLỗi: ${error.message}`;
       }
@@ -791,13 +840,13 @@ const QLDonHang = () => {
     setCurrentPage(1);
   };
 
-  // Duyệt đơn hàng - chuyển từ "Chờ xử lý" sang "Đang giao" và tạo đơn GHN
-  const handleApproveOrder = async (orderId: number, order: DonHang) => {
+  // Duyệt đơn hàng - chỉ xác nhận đơn hàng
+  const handleApproveOrder = async (orderId: number) => {
     try {
-      console.log("� Đang xác nhận đơn hàng:", orderId);
+      console.log("🔄 Đang xác nhận đơn hàng:", orderId);
 
-      // Sử dụng hàm mới để xác nhận đơn hàng và tạo đơn GHN
-      await handleConfirmOrderAndCreateGHN(orderId, order);
+      // Sử dụng hàm mới để chỉ xác nhận đơn hàng
+      await handleConfirmOrder(orderId);
     } catch (error: any) {
       console.error("❌ Lỗi duyệt đơn hàng:", error);
       alert("Lỗi khi duyệt đơn hàng!");
@@ -1630,7 +1679,7 @@ const QLDonHang = () => {
                               </button>
                               <button
                                 onClick={() =>
-                                  handleApproveOrder(order.ma_don_hang, order)
+                                  handleApproveOrder(order.ma_don_hang)
                                 }
                                 className="inline-flex items-center px-3 py-2 bg-green-600 text-white shadow-sm text-sm leading-4 font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
                               >
@@ -1871,7 +1920,7 @@ const QLDonHang = () => {
                               {!order.ma_van_don && (
                                 <button
                                   onClick={() =>
-                                    handleConfirmOrderAndCreateGHN(
+                                    handleCreateGHNOrder(
                                       order.ma_don_hang,
                                       order
                                     )

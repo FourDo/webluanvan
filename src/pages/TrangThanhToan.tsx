@@ -12,6 +12,10 @@ import {
   getValidFromDistrictId,
   getValidFromWardCode,
 } from "../API/ghnApi";
+import voucherApi, {
+  type Voucher,
+  type VoucherApplyResponse,
+} from "../API/voucherApi";
 import Cookies from "js-cookie";
 
 interface ThongTinKhachHang {
@@ -88,6 +92,14 @@ const ThanhToan: React.FC = () => {
   const [phiVanChuyen, setPhiVanChuyen] = useState<number>(0);
   const [addressWarning, setAddressWarning] = useState<string | null>(null);
 
+  // State cho voucher
+  const [availableVouchers, setAvailableVouchers] = useState<Voucher[]>([]);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+  const [voucherDiscount, setVoucherDiscount] = useState<number>(0);
+  const [, setAppliedVoucher] = useState<VoucherApplyResponse | null>(null);
+  const [showVoucherModal, setShowVoucherModal] = useState<boolean>(false);
+  const [voucherLoading, setVoucherLoading] = useState<boolean>(false);
+
   // State cho validation errors của từng trường
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
@@ -97,6 +109,146 @@ const ThanhToan: React.FC = () => {
       style: "currency",
       currency: "VND",
     }).format(gia);
+  };
+
+  // Hàm xử lý voucher
+  const loadAvailableVouchers = async () => {
+    try {
+      setVoucherLoading(true);
+      const response = await voucherApi.getActiveVouchers();
+
+      if (response.status === "Success" && response.data) {
+        setAvailableVouchers(response.data);
+      } else {
+        setError("Không thể tải danh sách voucher");
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi tải voucher:", error);
+      setError(error.message || "Không thể tải danh sách voucher");
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const applyVoucherCode = async (voucher: Voucher) => {
+    try {
+      if (!user || !user.ma_nguoi_dung) {
+        setError("Vui lòng đăng nhập để sử dụng voucher");
+        return;
+      }
+
+      setVoucherLoading(true);
+      setError(null);
+
+      // Chuẩn bị dữ liệu sản phẩm
+      const sanPhamData = items.map((item) => ({
+        ma_san_pham: Number(item.sanPham.id),
+        ma_danh_muc: 1, // Default category - sẽ cần API để lấy thông tin chính xác
+        ma_bien_the: Number(item.sanPham.ma_bien_the || item.sanPham.id),
+        so_luong: Number(item.soLuong),
+      }));
+
+      const totalAmount = tinhTongTien();
+
+      const applyRequest = {
+        ma_giam_gia: voucher.ma_giam_gia,
+        ma_nguoi_dung: Number(user.ma_nguoi_dung),
+        tong_tien: totalAmount,
+        san_pham: sanPhamData,
+      };
+
+      console.log("🎫 Applying voucher with data:", applyRequest);
+
+      const response = await voucherApi.applyVoucher(applyRequest);
+
+      if (response && response.message === "Voucher hợp lệ") {
+        setAppliedVoucher(response);
+        setSelectedVoucher(voucher);
+        setVoucherDiscount(response.giam_gia || 0);
+        setShowVoucherModal(false);
+
+        // Hiển thị thông báo thành công
+        alert(
+          `✅ Áp dụng voucher thành công!\nGiảm giá: ${dinhDangTien(response.giam_gia)}`
+        );
+      } else {
+        throw new Error(response.message || "Không thể áp dụng voucher");
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi áp dụng voucher:", error);
+      setError(error.message || "Không thể áp dụng voucher");
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const removeVoucher = () => {
+    setSelectedVoucher(null);
+    setAppliedVoucher(null);
+    setVoucherDiscount(0);
+    setError(null);
+  };
+
+  const formatVoucherDescription = (voucher: Voucher) => {
+    const discount =
+      voucher.loai_khuyen_mai === "%"
+        ? `${voucher.gia_tri_giam}%`
+        : dinhDangTien(voucher.gia_tri_giam);
+
+    let description = `Giảm ${discount}`;
+
+    if (voucher.don_toi_thieu > 0) {
+      description += ` cho đơn từ ${dinhDangTien(voucher.don_toi_thieu)}`;
+    }
+
+    if (voucher.giam_toi_da > 0 && voucher.loai_khuyen_mai === "%") {
+      description += ` (tối đa ${dinhDangTien(voucher.giam_toi_da)})`;
+    }
+
+    return description;
+  };
+
+  const isVoucherEligible = (voucher: Voucher) => {
+    const currentTotal = tinhTongTien();
+    const now = new Date();
+    const startDate = new Date(voucher.ngay_bat_dau);
+    const endDate = new Date(voucher.ngay_ket_thuc);
+
+    // Kiểm tra điều kiện đơn tối thiểu
+    const meetsMinimum = currentTotal >= voucher.don_toi_thieu;
+
+    // Kiểm tra thời gian hiệu lực
+    const isWithinTimeRange = now >= startDate && now <= endDate;
+
+    // Kiểm tra giới hạn sử dụng
+    const hasUsageLeft = voucher.gioi_han_su_dung > 0;
+
+    return meetsMinimum && isWithinTimeRange && hasUsageLeft;
+  };
+
+  const getVoucherIneligibilityReason = (voucher: Voucher) => {
+    const currentTotal = tinhTongTien();
+    const now = new Date();
+    const startDate = new Date(voucher.ngay_bat_dau);
+    const endDate = new Date(voucher.ngay_ket_thuc);
+
+    if (currentTotal < voucher.don_toi_thieu) {
+      return `Đơn hàng tối thiểu ${dinhDangTien(voucher.don_toi_thieu)}`;
+    }
+
+    if (now < startDate) {
+      return `Voucher chưa có hiệu lực (từ ${startDate.toLocaleDateString("vi-VN")})`;
+    }
+
+    if (now > endDate) {
+      return `Voucher đã hết hạn (${endDate.toLocaleDateString("vi-VN")})`;
+    }
+
+    if (voucher.gioi_han_su_dung <= 0) {
+      return `Voucher đã hết lượt sử dụng`;
+    }
+
+    return null;
   };
 
   // API GHN: Tính phí vận chuyển
@@ -190,6 +342,11 @@ const ThanhToan: React.FC = () => {
       }
     };
     fetchProvinces();
+  }, []);
+
+  // Lấy danh sách voucher khi component mount
+  useEffect(() => {
+    loadAvailableVouchers();
   }, []);
 
   // Lấy danh sách quận/huyện khi chọn tỉnh/thành phố
@@ -507,7 +664,9 @@ const ThanhToan: React.FC = () => {
 
       const tongTienSanPham = tinhTongTienSanPham();
       const phiVanChuyenNumber = Number(phiVanChuyen) || 0;
-      const tongThanhToanFinal = tongTienSanPham + phiVanChuyenNumber;
+      const voucherDiscountNumber = Number(voucherDiscount) || 0;
+      const tongThanhToanFinal =
+        tongTienSanPham + phiVanChuyenNumber - voucherDiscountNumber;
 
       const orderData = {
         ten_nguoi_nhan: thongTinKhachHang.hoTen.trim(),
@@ -561,7 +720,8 @@ const ThanhToan: React.FC = () => {
         ma_nguoi_dung: Number(userId),
         tong_tien: String(orderData.tong_tien),
         phi_van_chuyen: String(orderData.phi_van_chuyen),
-        tong_thanh_toan: String(orderData.tong_thanh_toan),
+        tong_thanh_toan: String(orderData.tong_thanh_toan), // Đã được tính với voucher ở trên
+        ma_voucher: selectedVoucher ? selectedVoucher.ma_giam_gia : null, // Thêm mã voucher vào payload
       };
 
       if (Number(donHangPayload.tong_tien) <= 0) {
@@ -569,12 +729,16 @@ const ThanhToan: React.FC = () => {
         return;
       }
 
-      if (
-        Number(donHangPayload.tong_thanh_toan) !==
-        Number(donHangPayload.tong_tien) + Number(donHangPayload.phi_van_chuyen)
-      ) {
+      // Kiểm tra tính toán có đúng không (đã bao gồm voucher discount)
+      const expectedTotal =
+        Number(donHangPayload.tong_tien) +
+        Number(donHangPayload.phi_van_chuyen) -
+        Number(voucherDiscountNumber);
+
+      if (Number(donHangPayload.tong_thanh_toan) !== expectedTotal) {
         setError(
-          "Lỗi tính toán: Tổng thanh toán không khớp với tổng tiền + phí vận chuyển"
+          `Lỗi tính toán: Tổng thanh toán không khớp với tổng tiền + phí vận chuyển - voucher discount. 
+          Expected: ${expectedTotal}, Got: ${Number(donHangPayload.tong_thanh_toan)}`
         );
         return;
       }
@@ -1280,6 +1444,76 @@ const ThanhToan: React.FC = () => {
                 </span>
               </div>
 
+              {/* Voucher Section */}
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-gray-600 flex items-center font-medium">
+                    <span className="mr-2">🎫</span>
+                    Voucher giảm giá
+                  </span>
+                  {selectedVoucher ? (
+                    <button
+                      onClick={() => setShowVoucherModal(true)}
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    >
+                      Thay đổi
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowVoucherModal(true)}
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    >
+                      Chọn voucher
+                    </button>
+                  )}
+                </div>
+
+                {selectedVoucher ? (
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 mb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center mb-1">
+                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded font-bold mr-2">
+                            {selectedVoucher.ma_giam_gia}
+                          </span>
+                          <span className="text-green-700 font-medium text-sm">
+                            {formatVoucherDescription(selectedVoucher)}
+                          </span>
+                        </div>
+                        <p className="text-green-600 text-xs">
+                          {selectedVoucher.mo_ta}
+                        </p>
+                      </div>
+                      <button
+                        onClick={removeVoucher}
+                        className="text-red-500 hover:text-red-700 ml-2"
+                        title="Xóa voucher"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2">
+                    <p className="text-gray-500 text-sm text-center">
+                      Chưa chọn voucher giảm giá
+                    </p>
+                  </div>
+                )}
+
+                {voucherDiscount > 0 && (
+                  <div className="flex justify-between text-sm py-2">
+                    <span className="text-gray-600 flex items-center">
+                      <span className="mr-2">💰</span>
+                      Giảm giá voucher
+                    </span>
+                    <span className="font-semibold text-green-600">
+                      -{dinhDangTien(voucherDiscount)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               {phiVanChuyen > 0 && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-xs text-green-700 flex items-center">
@@ -1295,7 +1529,9 @@ const ThanhToan: React.FC = () => {
                   Tổng thanh toán
                 </span>
                 <span className="text-blue-600 text-xl">
-                  {dinhDangTien(tinhTongTien() + phiVanChuyen)}
+                  {dinhDangTien(
+                    tinhTongTien() + phiVanChuyen - voucherDiscount
+                  )}
                 </span>
               </div>
 
@@ -1386,7 +1622,7 @@ const ThanhToan: React.FC = () => {
               ) : phuongThucThanhToan ? (
                 <div className="flex items-center justify-center">
                   <span className="mr-2">🛒</span>
-                  {`Thanh toán ${dinhDangTien(tinhTongTien() + phiVanChuyen)}`}
+                  {`Thanh toán ${dinhDangTien(tinhTongTien() + phiVanChuyen - voucherDiscount)}`}
                 </div>
               ) : (
                 "Chọn phương thức thanh toán"
@@ -1410,6 +1646,138 @@ const ThanhToan: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Voucher Modal */}
+      {showVoucherModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">
+                  🎫 Chọn Voucher Giảm Giá
+                </h3>
+                <button
+                  onClick={() => setShowVoucherModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {voucherLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                  <span className="text-gray-600">Đang tải voucher...</span>
+                </div>
+              ) : availableVouchers.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">🎫</div>
+                  <h4 className="text-xl font-medium text-gray-700 mb-2">
+                    Chưa có voucher khả dụng
+                  </h4>
+                  <p className="text-gray-500">
+                    Hiện tại chưa có voucher nào dành cho bạn. Hãy quay lại sau
+                    nhé!
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-gray-600 mb-4">
+                    Có {availableVouchers.length} voucher khả dụng cho bạn:
+                  </p>
+
+                  {availableVouchers.map((voucher) => {
+                    const isEligible = isVoucherEligible(voucher);
+                    const isSelected =
+                      selectedVoucher?.ma_voucher === voucher.ma_voucher;
+
+                    return (
+                      <div
+                        key={voucher.ma_voucher}
+                        className={`border rounded-lg p-4 transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-blue-500 bg-blue-50"
+                            : isEligible
+                              ? "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                              : "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed"
+                        }`}
+                        onClick={() => isEligible && applyVoucherCode(voucher)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center mb-2">
+                              <span className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm font-bold px-3 py-1 rounded-lg mr-3">
+                                {voucher.ma_giam_gia}
+                              </span>
+                              {voucher.loai_khuyen_mai === "%" ? (
+                                <span className="text-green-600 font-bold text-lg">
+                                  -{voucher.gia_tri_giam}%
+                                </span>
+                              ) : (
+                                <span className="text-green-600 font-bold text-lg">
+                                  -{dinhDangTien(voucher.gia_tri_giam)}
+                                </span>
+                              )}
+                            </div>
+
+                            <h4 className="font-medium text-gray-900 mb-1">
+                              {voucher.mo_ta}
+                            </h4>
+
+                            <p className="text-sm text-gray-600 mb-2">
+                              {formatVoucherDescription(voucher)}
+                            </p>
+
+                            <div className="flex items-center text-xs text-gray-500 space-x-4">
+                              <span>
+                                📅 HSD:{" "}
+                                {new Date(
+                                  voucher.ngay_ket_thuc
+                                ).toLocaleDateString("vi-VN")}
+                              </span>
+                              <span>
+                                📊 Còn lại: {voucher.gioi_han_su_dung} lượt
+                              </span>
+                            </div>
+
+                            {!isEligible && (
+                              <div className="mt-2 text-sm text-red-600 bg-red-50 px-2 py-1 rounded">
+                                ⚠️ {getVoucherIneligibilityReason(voucher)}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col items-end">
+                            {isSelected && (
+                              <div className="text-blue-600 text-sm font-medium mb-2">
+                                ✓ Đã chọn
+                              </div>
+                            )}
+
+                            {isEligible && !isSelected && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  applyVoucherCode(voucher);
+                                }}
+                                disabled={voucherLoading}
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {voucherLoading ? "..." : "Chọn"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -152,17 +152,34 @@ const TrangHoaDon: React.FC = () => {
     }
 
     // Xác định ID đơn hàng từ các nguồn khác nhau
-    const targetOrderId =
-      orderId || app_trans_id || order?.ma_don_hang?.toString();
+    let targetOrderId;
+
+    if (paymentMethod?.toLowerCase() === "momo" && orderId) {
+      // Với ZaloPay, lấy phần sau dấu _ từ orderId (format: 250805_199)
+      const parts = orderId.split("_");
+      targetOrderId = parts.length > 1 ? parts[1] : orderId;
+      console.log(
+        "🎯 ZaloPay - Extracted Order ID:",
+        targetOrderId,
+        "from original:",
+        orderId
+      );
+    } else {
+      // Với các phương thức khác, sử dụng logic cũ
+      targetOrderId = orderId || app_trans_id || order?.ma_don_hang?.toString();
+    }
+
     console.log(
-      "🎯 Target Order ID:",
+      "🎯 Final Target Order ID:",
       targetOrderId,
       "từ orderId:",
       orderId,
       "hoặc app_trans_id:",
       app_trans_id,
       "hoặc order.ma_don_hang:",
-      order?.ma_don_hang
+      order?.ma_don_hang,
+      "paymentMethod:",
+      paymentMethod
     );
 
     if (targetOrderId) {

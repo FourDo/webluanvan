@@ -29,7 +29,7 @@ export const accountApi = {
   // Cấp quyền cho tài khoản
   updateAccountRole: (id: number, vai_tro: string) =>
     apiClient
-      .put(`/qlytaikhoan/role/${id}`, { vai_tro })
+      .patch(`/qlytaikhoan/role/${id}`, { vai_tro })
       .then((res) => res.data)
       .catch(() => {
         throw new Error("Cấp quyền tài khoản thất bại.");

@@ -268,6 +268,17 @@ export const orderApi = {
         console.error("❌ Lỗi hoàn trả tiền:", error);
         throw new Error("Hoàn trả tiền thất bại.");
       }),
+  refundZaloPay: (orderId: number) =>
+    apiClient
+      .post(`/refundzalopay/${orderId}`)
+      .then((res) => {
+        console.log("💰 Hoàn trả tiền thành công:", res.data);
+        return res.data;
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi hoàn trả tiền:", error);
+        throw new Error("Hoàn trả tiền thất bại.");
+      }),
 
   // Lấy danh sách đơn hàng chờ xác nhận
   getPendingOrders: () =>
@@ -437,6 +448,7 @@ export const getOrdersByUserId = orderApi.getOrdersByUserId;
 export const updateOrderStatusNEW = orderApi.updateOrderStatusNEW;
 export const updateOrderStatusQL = orderApi.updateOrderStatusQL;
 export const refundVNPay = orderApi.refundVNPay;
+export const refundZaloPay = orderApi.refundZaloPay; // Thêm export này
 export const getPendingOrders = orderApi.getPendingOrders;
 export const requestCancelReturn = orderApi.requestCancelReturn;
 export const confirmCancelReturn = orderApi.confirmCancelReturn;
